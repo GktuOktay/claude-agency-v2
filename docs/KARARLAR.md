@@ -117,3 +117,9 @@ Eski kurulum: ~/.claude-backup-2026-11-01 (silme işlemi henüz yapılmadı).
 - Konteyner izin listesine `dotnet list package *` ve `npm audit *` eklendi (salt-okuma, kayıt adresleri vekilden).
 - **Ruling:** AppSec, Internal audit ile aynı "Yönetişim ve kapılar" grubunda gösterilir (bağımsız denetçi). Üretim hattına girmez — yanlışsa maliyet: yalnızca şema yerleşimi.
 - Bilinen sınır: gerçek bir kod tabanında henüz denenmedi; bulgu kalitesi ilk işte ölçülecek.
+
+## Revizyon 10: DevOps/SRE (2026-11-02)
+- Yeni birim `devops-sre` (sonnet) + `devops-sre` kılavuzu: Docker yerel ortam, CI, **deploy paketi** (adımlar, geri alma, sağlık kontrolü, migration sırası), Cloudflare/Plesk kontrol listesi, yedek ve felaket kurtarma (RPO/RTO, geri yükleme denenmiş olmalı), izleme ve olay kılavuzu.
+- **Birim deploy etmez.** Canlı sunucuya/Cloudflare'a/Plesk'e dokunacak aracı yok (`ssh`, `scp`, `curl`, `docker push` kapalı); deploy paketi hazırlar, CEO tek tek onaylar (kural 4). Deploy ve mağaza gönderimi için gerçek araç ve zorlama hâlâ açık iş (B13).
+- **Ruling:** Hedef sunucu bilgisi yokken uydurmak yasak, Tip 1 olarak sorulur — yanlışsa maliyet: yanlış hedefe hazırlanmış paket.
+- Bilinen sınır: gerçek bir Plesk/Cloudflare kurulumunda denenmedi; ilk gerçek yayında kılavuz düzeltilecek.

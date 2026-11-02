@@ -52,6 +52,7 @@ Ajan belirteci (`~/.company/agent.env`, mod 600) için `harness/README.md`'ye ba
 | `dotnet-engineer` | sonnet | imzalıysa çalışma alanı | `dotnet-engineering` |
 | `react-engineer` | sonnet | imzalıysa çalışma alanı | `react-engineering` |
 | `appsec` | opus | yok | `application-security` |
+| `devops-sre` | sonnet | `ops/`, `docs/ops/`, Dockerfile, CI | `devops-sre` |
 | `qa-engineer` | sonnet | yalnız test dosyaları | `qa-verification` |
 | `internal-auditor` | opus | yok | `internal-audit` |
 | `product-manager` | sonnet | yalnız `docs/product/` | `product-management` |
@@ -61,7 +62,7 @@ Ortak standartlar (tüm ilgili birimlere yüklenir): `graph-usage` (graphify), `
 
 ## Henüz yapılmadı
 
-- DevOps/SRE, Architecture board, Scout, Marketing, Quality office, Tech comms, Talent & capacity birimleri.
+- Architecture board, Scout, Marketing, Quality office, Tech comms, Talent & capacity birimleri.
 - `company-run.sh` uçtan uca bu depodaki haliyle henüz çalıştırılmadı (belirteç silindi); önceki denemedeki sürümü çalıştı, bu sürümün sözdizimi ve bağımlı bileşenleri `check` ile doğrulandı.
 - Ana makine oturumlarında kılavuz/kancaları ajanın kendi değiştirmesini engelleyen ayar (`.claude/settings.json` ve `harness/` şu an ajan tarafından düzenlenebilir; yalnızca CEO onaylı oturumlarda güvenli).
 - Kendi kılavuzlarımız için değerlendirme setleri (SOP-04).
