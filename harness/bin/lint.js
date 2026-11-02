@@ -64,7 +64,7 @@ for (const f of fs.existsSync(agentsDir) ? fs.readdirSync(agentsDir).filter((x) 
   for (const s of fm.skills || []) if (!skillNames.has(s)) { fail(`${label}: skill '${s}' does not exist`); bad = true; }
   if (!(fm.skills || []).length) { fail(`${label}: every unit needs a playbook skill (SOP-01)`); bad = true; }
   // independence rules (AUD-01): reviewers/critics must have no write tools
-  if (["internal-auditor", "spec-critic"].includes(fm.name)) {
+  if (["internal-auditor", "spec-critic", "appsec"].includes(fm.name)) {
     const write = tools.filter((t) => ["Write", "Edit", "MultiEdit", "NotebookEdit"].includes(t));
     if (write.length) { fail(`${label}: independent unit must not have write tools (${write.join(",")})`); bad = true; }
   }
