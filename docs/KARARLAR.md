@@ -111,3 +111,9 @@ Eski kurulum: ~/.claude-backup-2026-11-01 (silme işlemi henüz yapılmadı).
 ## Revizyon 8: React engineer (2026-11-02)
 - Yeni birim `react-engineer` (sonnet) + `react-engineering` kılavuzu. Eski `~/.claude/rules/frontend.md` kapıları (Zod doğrulama, kullanıcı dostu form mesajı, zarif bozulma, 60 fps, paket boyutu, LLM çıktısı doğrulama) kılavuza taşındı; üstüne ekran başına durum tablosu (yükleniyor/boş/hata/başarı/yetkisiz), erişilebilirlik, iki tema ve 375 px, istemci paketinde sır yok eklendi.
 - **Ruling:** Konteynerde tarayıcı yok, bu yüzden birim görsel doğrulama yapamaz; raporunda "görsel doğrulanmadı" listesi verir, gözle kontrolü ana oturum veya CEO yapar — yanlışsa maliyet: görsel hata geç yakalanır. Çözüm ileride: imaja Playwright eklemek (Architecture board kararı).
+
+## Revizyon 9: AppSec (2026-11-02)
+- Yeni birim `appsec` (opus, **yazma aracı yok**, `lint.js` bağımsızlık kuralına eklendi) + `application-security` kılavuzu. İki durak: (A) imzadan önce spec tehdit modeli (STRIDE, güven sınırları, kötüye kullanım), (B) teslimden önce kod, bağımlılık, sır, yapılandırma (OWASP ASVS/Top 10). Kanıtsız bulgu yok; sır değeri raporda gösterilmez; KRİTİK/YÜKSEK → GEÇMEZ ve dur-ve-bildir.
+- Konteyner izin listesine `dotnet list package *` ve `npm audit *` eklendi (salt-okuma, kayıt adresleri vekilden).
+- **Ruling:** AppSec, Internal audit ile aynı "Yönetişim ve kapılar" grubunda gösterilir (bağımsız denetçi). Üretim hattına girmez — yanlışsa maliyet: yalnızca şema yerleşimi.
+- Bilinen sınır: gerçek bir kod tabanında henüz denenmedi; bulgu kalitesi ilk işte ölçülecek.
