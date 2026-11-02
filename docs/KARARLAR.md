@@ -148,3 +148,8 @@ Eski kurulum: ~/.claude-backup-2026-11-01 (silme işlemi henüz yapılmadı).
 - **Ruling (Tip 2):** B11'de korunan liste yalnızca zorlama katmanı; `.claude/agents` ve `skills` korunmadı (ana oturum bunları sürekli düzenler, her seferinde onay istemek CEO'ya yük; konteynerde zaten salt-okunur). Yanlışsa maliyet: ana makinede bir kılavuz sessizce değişebilir; denetimi PR ve CI yapar.
 - Bilinen açıklar: satır içi yorumlayıcı yazmaları (`python -c`, `node -e`) yakalanmaz; deploy araç listesi isme dayalı. Canlı testler yapılmadı: B5, B8, B12.
 - **Not:** `.claude/settings.json` değişikliği (Write|Edit kancası ve Notification) bu oturumda yeniden başlatılana kadar geçerli olmayabilir.
+
+## Revizyon 15: Uçtan uca yolun sahte ajanla doğrulanması (2026-11-02)
+- `harness/test/e2e.sh`: `company-run.sh` bir `claude` yer tutucusuyla çalıştırılır (geçici anahtar, sahte token, geçici çalışma alanı; gerçek CEO anahtarına ve gerçek token'a dokunulmaz). 18 test yeşil: imzasızken kod alanı salt-okunur, imzalıyken yazılabilir, imzadan sonra spec değişirse plan kipine döner, `approvals/` her kipte salt-okunur, doğrudan internet kapalı, hata çıkış koduna yansır.
+- **Ruling:** bu test CI'a konmadı (Docker ve ~2 GB imaj gerekir); `check` yalnızca söz dizimini denetler — yanlışsa maliyet: yol bozulursa CI yakalamaz, elle çalıştırmak gerekir.
+- Kalan: model davranışı (B5 canlı kısmı), B8, B12. Bunlar gerçek token, gerçek kota ve etkileşimli oturum ister.
