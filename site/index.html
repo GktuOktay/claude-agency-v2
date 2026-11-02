@@ -1,4 +1,5 @@
 <meta charset="utf-8">
+<script>document.documentElement.lang="tr"</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Claude Agency V2</title>
 <meta name="claude:viewport-fit-sides" content="cover">
@@ -8,18 +9,18 @@
    Graphics first: every section is a drawing, text is captions. */
 :root {
   --bg: #F2F4F7; --surface: #FFFFFF; --ink: #101B2E; --muted: #55627A; --line: #CBD3DF;
-  --gate: #C0301C; --gate-soft: #FBE9E5; --auto: #0B7A64; --auto-soft: #E2F3EE; --plan: #7B879B;
+  --gate: #C0301C; --gate-soft: #FBE9E5; --auto: #0B7A64; --auto-soft: #E2F3EE; --plan: #7B879B; --on-accent: #FFFFFF;
   --ring1: #0B7A64; --ring2: #3E9C86; --ring3: #78BBA9; --ring4: #B3D9CE;
   --display: "Schibsted Grotesk", "Helvetica Neue", Arial, sans-serif;
   --mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
   --bg: #0C131D; --surface: #141E2B; --ink: #E8EDF3; --muted: #9AA7BA; --line: #2A394C;
-  --gate: #F2664F; --gate-soft: #3A1C18; --auto: #3DC2A3; --auto-soft: #11302A; --plan: #6F7D92;
+  --gate: #F2664F; --gate-soft: #3A1C18; --auto: #3DC2A3; --auto-soft: #11302A; --plan: #6F7D92; --on-accent: #0C131D;
   --ring1: #3DC2A3; --ring2: #2E9A82; --ring3: #1F7262; --ring4: #174A40; color-scheme: dark; } }
 :root[data-theme="dark"] {
   --bg: #0C131D; --surface: #141E2B; --ink: #E8EDF3; --muted: #9AA7BA; --line: #2A394C;
-  --gate: #F2664F; --gate-soft: #3A1C18; --auto: #3DC2A3; --auto-soft: #11302A; --plan: #6F7D92;
+  --gate: #F2664F; --gate-soft: #3A1C18; --auto: #3DC2A3; --auto-soft: #11302A; --plan: #6F7D92; --on-accent: #0C131D;
   --ring1: #3DC2A3; --ring2: #2E9A82; --ring3: #1F7262; --ring4: #174A40; color-scheme: dark; }
 
 * { box-sizing: border-box; }
@@ -75,7 +76,7 @@ svg .m { font-family: var(--mono); fill: var(--muted); }
 .unit b { display: flex; justify-content: space-between; gap: 8px; font-size: 0.95rem; }
 .unit span.s { font-size: 0.82rem; color: var(--muted); }
 .st { font-family: var(--mono); font-size: 0.64rem; letter-spacing: 0.05em; text-transform: uppercase; white-space: nowrap; }
-.st.on { color: var(--auto); } .st.off { color: var(--plan); }
+.st.on { color: var(--auto); } .st.off { color: var(--muted); }
 
 /* simulator */
 .sim { display: grid; grid-template-columns: 1.15fr 1fr; gap: 16px; align-items: stretch; }
@@ -91,7 +92,7 @@ svg .m { font-family: var(--mono); fill: var(--muted); }
 .btns { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
 button { font: inherit; font-size: 0.88rem; font-weight: 500; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--ink); background: var(--surface); color: var(--ink); cursor: pointer; min-height: 40px; }
 button:hover { background: var(--ink); color: var(--bg); }
-button.primary { background: var(--gate); border-color: var(--gate); color: #fff; } button.primary:hover { filter: brightness(0.92); background: var(--gate); color: #fff; }
+button.primary { background: var(--gate); border-color: var(--gate); color: var(--on-accent); } button.primary:hover { filter: brightness(0.92); background: var(--gate); color: var(--on-accent); }
 .console { font-family: var(--mono); font-size: 0.78rem; background: var(--ink); color: var(--bg); border-radius: 8px; padding: 12px; min-height: 100%; display: grid; gap: 6px; align-content: start; overflow-wrap: anywhere; }
 .console .ok { color: #7fe3c8; } .console .no { color: #ff9a88; } .console .cmd { opacity: .75; }
 .note { color: var(--muted); font-size: 0.82rem; margin-top: 10px; }
@@ -105,7 +106,7 @@ button.primary { background: var(--gate); border-color: var(--gate); color: #fff
 .leg span { color: var(--muted); font-size: 0.86rem; }
 .bar { display: flex; height: 34px; border-radius: 8px; overflow: hidden; border: 1px solid var(--line); margin: 22px 0 8px; }
 .bar > div { display: grid; place-items: center; font-family: var(--mono); font-size: 0.76rem; font-weight: 500; min-width: 0; }
-.b-enf { background: var(--auto); color: #fff; flex: 6; }
+.b-enf { background: var(--auto); color: var(--on-accent); flex: 6; }
 .b-part { background: repeating-linear-gradient(135deg, var(--auto) 0 6px, var(--auto-soft) 6px 12px); color: var(--ink); flex: 1; }
 .b-val { background: var(--surface); flex: 1; border-left: 1px solid var(--line); }
 .b-doc { background: transparent; color: var(--muted); flex: 1; border-left: 1px dashed var(--plan); }
@@ -376,7 +377,7 @@ footer { padding-block: 36px 52px; color: var(--muted); font-size: 0.82rem; }
           <button type="button" id="b-sign" class="primary">CEO: imzala</button>
           <button type="button" id="b-reset">Sıfırla</button>
         </div>
-        <p class="note">Simülasyon. Gerçek davranış Docker'da gerçek Claude ile ve 16 otomatik testle doğrulandı.</p>
+        <p class="note">Simülasyon. Gerçek davranış Docker'da gerçek Claude ile ve 20 imza-kapı, 41 zarf testiyle doğrulandı.</p>
       </div>
       <div class="panel" style="padding:0"><div class="console" id="con" role="log" aria-live="polite"></div></div>
     </div>
@@ -403,7 +404,7 @@ footer { padding-block: 36px 52px; color: var(--muted); font-size: 0.82rem; }
         </g>
       </svg>
       <div class="leg">
-        <div><i style="background:var(--ring1)"></i><p><b>İmza</b><span>Parola korumalı anahtar, konteynerde yok. İmza spec'in içeriğine bağlı; değişirse düşer.</span></p></div>
+        <div><i style="background:var(--ring1)"></i><p><b>İmza</b><span>Anahtar repoda ve konteynerde yok; imza, onay penceresine senin tıklamandır. İmza spec'in içeriğine bağlı; değişirse düşer.</span></p></div>
         <div><i style="background:var(--ring2)"></i><p><b>Konteyner bağlama</b><span>İmza yoksa çalışma alanı salt-okunur. Hangi araçla denenirse denensin yazılamaz.</span></p></div>
         <div><i style="background:var(--ring3)"></i><p><b>Kapı</b><span>Claude'a nedenini söyleyen hook. Bozuk girdide veya hatada engeller.</span></p></div>
         <div><i style="background:var(--ring4)"></i><p><b>Ağ</b><span>İçerisi kapalı; yalnızca model hizmetine açılan bir vekil. 25 bağlantıdan 25'i oraya.</span></p></div>
@@ -470,7 +471,7 @@ footer { padding-block: 36px 52px; color: var(--muted); font-size: 0.82rem; }
   };
   document.getElementById('b-sign').onclick = function () {
     state.signed = true; state.edited = false; render();
-    say('harness/bin/approve.sh <proje>   # CEO, parola ile', true, 'imzalandı. Konteyner yeniden bağlanır: src/ yazılabilir.');
+    say('harness/bin/approve.sh <proje>   # CEO, onay penceresiyle', true, 'imzalandı. Konteyner yeniden bağlanır: src/ yazılabilir.');
   };
   document.getElementById('b-reset').onclick = function () {
     state.signed = false; state.edited = false; con.innerHTML = ''; render(); line('cmd', 'Başlangıç: spec imzasız.');

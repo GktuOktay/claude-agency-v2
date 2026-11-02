@@ -132,6 +132,7 @@ for (const f of fs.existsSync(siteDir) ? fs.readdirSync(siteDir).filter((x) => x
   if (!/<meta\s+name="viewport"/.test(t)) problems.push("viewport meta missing");
   if (!/prefers-color-scheme:\s*dark/.test(t)) problems.push("no dark theme");
   if (!/<title>[^<]{3,}<\/title>/.test(t)) problems.push("title missing");
+  if (!/<html[^>]*\blang=|documentElement\.lang\s*=/.test(t)) problems.push("page language not set (html lang)");
   for (const m of t.matchAll(/<svg\b([^>]*)>/g)) {
     const a = m[1];
     if (/aria-hidden="true"/.test(a)) continue;
