@@ -4,9 +4,10 @@ set -u
 HERE=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 T=$(mktemp -d); trap 'rm -rf "$T"' EXIT
 pass=0; fail=0
-mkdir -p "$T/main-repo" "$T/feat-repo" "$T/nogh-bin"
+mkdir -p "$T/main-repo" "$T/feat-repo" "$T/nogh-bin" "$T/ci-repo/.github/workflows"
 ( cd "$T/main-repo" && git init -q -b main . )
 ( cd "$T/feat-repo" && git init -q -b feat/0007-x . )
+( cd "$T/ci-repo" && git init -q -b feat/0007-x . )
 
 # run <repo> <command> [ENV=VAL ...]  ->  prints allow | ask | deny | error
 run() {
@@ -42,6 +43,8 @@ t "gh pr merge with red CI is denied"        deny  "$(run $F 'gh pr merge 12 --s
 t "gh pr merge with pending CI is denied"    deny  "$(run $F 'gh pr merge 12 --squash' COMPANY_PR_BASE=integration/0007-x COMPANY_PR_CI=SUCCESS,IN_PROGRESS)"
 t "gh pr merge with green CI still asks (main)" ask "$(run $F 'gh pr merge 12 --squash' COMPANY_PR_BASE=main COMPANY_PR_CI=SUCCESS,SKIPPED)"
 t "gh pr merge with green CI into integration" allow "$(run $F 'gh pr merge 12 --squash' COMPANY_PR_BASE=integration/0007-x COMPANY_PR_CI=SUCCESS)"
+t "gh pr merge, CI configured but no checks reported yet, is denied" deny "$(run "$T/ci-repo" 'gh pr merge 12 --squash' COMPANY_PR_BASE=integration/0007-x COMPANY_PR_CI=)"
+t "gh pr merge, no CI configured, no checks: allowed into integration" allow "$(run $F 'gh pr merge 12 --squash' COMPANY_PR_BASE=integration/0007-x COMPANY_PR_CI=)"
 t "gh pr merge with no way to check asks"    ask   "$(run $F 'gh pr merge 12')"
 t "gh release create asks"                   ask   "$(run $F 'gh release create v1.0')"
 t "gh repo delete asks"                      ask   "$(run $F 'gh repo delete x --yes')"

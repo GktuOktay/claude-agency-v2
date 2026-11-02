@@ -34,6 +34,7 @@ function prChecks(arg, cwd) {
     return execFileSync("gh", a, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"], timeout: 15000 }).trim().split(",").filter(Boolean);
   } catch { return null; }
 }
+const fs = require("fs"); const path = require("path");
 const GOOD_CHECK = new Set(["SUCCESS", "SKIPPED", "NEUTRAL"]);
 
 // Remove heredoc bodies and quoted strings so words inside commit messages do not trigger rules.
@@ -101,6 +102,8 @@ process.stdin.on("end", () => {
         const target = a.slice(2).find((x) => !x.startsWith("-"));
         // Branch protection is unavailable on this plan, so the guard is the merge gate: no merge unless CI is green.
         const checks = prChecks(target, cwd);
+        // A repo with CI workflows but no reported checks yet (PR just opened) is NOT green: wait for the first run.
+        if (checks && checks.length === 0 && fs.existsSync(path.join(cwd, ".github", "workflows"))) deny("CI henüz sonuç bildirmedi (kontrol listesi boş): ilk koşu bitmeden birleştirilmez.");
         if (checks && checks.length && checks.some((c) => !GOOD_CHECK.has(c.toUpperCase()))) deny("CI yeşil değil (" + [...new Set(checks)].join(", ") + "): kırmızı veya sürmekte olan PR birleştirilmez.");
         const base = prBase(target, cwd);
         if (base === null) ask("PR'ın taban dalı doğrulanamadı (fail closed).");
