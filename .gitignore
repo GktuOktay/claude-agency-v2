@@ -8,3 +8,6 @@ node_modules/
 # test workspaces
 ws*/
 tmp/
+
+# graphify: derived output, rebuilt per project (graph-usage standard)
+graphify-out/

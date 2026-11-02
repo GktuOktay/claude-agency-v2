@@ -19,6 +19,11 @@
 
 ## 4. Kullanıcı deneyimi
 <!-- Akış; her ekranın tüm durumları: boş, yükleniyor, hata, başarı, yetkisiz. Her durum için kabul kriteri. Tasarım bağlantısı (kopya değil). Erişilebilirlik. Arayüz yoksa: "yok". -->
+```mermaid
+%% Soru: kullanıcı bu akışta hangi ekranlardan geçer? (en çok 9 düğüm; ikili görsel dosya yok)
+flowchart LR
+  A[Başlangıç] --> B[Ekran]
+```
 
 ## 5. Kabul kriterleri
 <!-- Her satır bağımsız test edilebilir. Mutlu yol, sınırlar, boş, geçersiz girdi, yetkilendirme. -->
@@ -26,9 +31,19 @@
 
 ## 6. Mimari ve teknoloji kararı
 <!-- Seçenekler (en az 2), seçim, gerekçe, maliyet/risk. Yeni bağımlılık için: ihtiyaç, alternatif, bakım durumu, lisans. Architecture board görüşü: -->
+```mermaid
+%% Soru: bileşenler birbirine nasıl bağlanır?
+flowchart LR
+  C[İstemci] --> S[Servis] --> D[(Veri)]
+```
 
 ## 7. Veri ve API sözleşmesi
 <!-- Varlıklar, alanlar, tipler, kısıtlar; uç noktalar, istek/yanıt, hata kodları. -->
+```mermaid
+%% Soru: varlıklar arasındaki ilişki nedir?
+erDiagram
+  VARLIK_A ||--o{ VARLIK_B : içerir
+```
 
 ## 8. Tehdit modeli ve güvenlik
 <!-- Güven sınırları, kötüye kullanım senaryoları, kişisel/hassas veri, yetkilendirme. Özel alan işareti: Sensitive area: <ad> | none -->
@@ -41,6 +56,11 @@
 
 ## 10. Dağıtım ve felaket kurtarma
 <!-- Hedef (iç sunucu / Plesk / Cloudflare), adımlar, geri alma planı, yedek, izleme. Deploy CEO onayıyla. -->
+```mermaid
+%% Soru: kod canlıya hangi yoldan çıkar, nasıl geri alınır?
+flowchart LR
+  K[Kod] --> B[Build] --> O{CEO onayı} --> C[Canlı]
+```
 
 ## 11. Hukuk ve uyum
 <!-- KVKK/GDPR, lisanslar, mağaza kuralları. Hukuki görüş değil, kontrol listesi. -->

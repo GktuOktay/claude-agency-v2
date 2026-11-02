@@ -452,3 +452,35 @@ Tüm denemeler bu oturumun geçici klasöründe, atılabilir veriyle yapıldı; 
 **Sonuç.** SEC-01 (ajan imzayı taklit edemez) için çalışan bir tasarım var: parola korumalı anahtarla spec'e bağlı imza + imza dizininin ajana salt-okunur olması + doğrulayıcının çalışma alanı dışında durması. T-F, T-G ve T-H ile parçalar ayrı ayrı doğrulandı: kapı gerçek Claude Code'da çalışıyor, aynı kapı Docker'da salt-okunur bağlamalarla çalışıyor. **Güncelleme (T-I..T-M).** Tek parçada denendi: Claude konteynerin içinde, ağ yalnızca `api.anthropic.com`'a açık, kapı imza durumuna göre bağlamayı seçiyor. Denemede **bir açık bulundu ve kapatıldı**: yalnızca araç hook'una güvenmek yetmiyor (T-K). Kalıcı tasarım: ana makinedeki güvenilir betik imzayı doğrular ve konteyner bağlamalarını buna göre kurar; hook yalnızca Claude'a anlaşılır geri bildirim verir.
 
 **Henüz test edilmeyenler.** UI araçları (Impeccable, taste-skill, Emil: örnek bir React uygulaması gerekir), REA ile kendi paketimizin incelenmesi, context7, bildirim ve abonelik limitinde bekle-devam davranışı, `Stop` hook'unun "bitti" demeyi gerçekten engellemesi.
+
+
+---
+
+## 12. Sonradan eklenenler (2026-11-02)
+
+### 12.1 Graphify kullanımı (GFY) ve görsel dil (VIS)
+Kaynak: CEO "graphify ve grafik kullanımlarını kural haline getirelim". Standartlar: `.claude/skills/graph-usage`, `.claude/skills/visual-standards`; anayasa kural 8 ve 9.
+
+| ID | Gereksinim | Ö | Z |
+|---|---|---|---|
+| GFY-01 | Kod tabanı ve mimari sorusunda önce `GRAPH_REPORT.md` ve `graphify query/explain/path`; grafik yoksa 50+ dosyalı projede kurulum önerilir. | M | D |
+| GFY-02 | Değişiklikten önce `graphify affected`; sonuç plan dosya listesine ve görev dosya sahipliğine işlenir. | M | D |
+| GFY-03 | Grafik ipucudur, kanıt değildir: `INFERRED`/`AMBIGUOUS` kenar kaynakta doğrulanmadan karar veya bulgu olmaz; denetim kanıtı `dosya:satır`. | M | D |
+| GFY-04 | Kod değişince `graphify update` (yalnızca kod, LLM'siz). | S | D |
+| GFY-05 | Anlamsal çıkarım (doküman/görsel) ve `--mode deep` kota harcar: yalnızca spec'te kota payı yazılıysa veya CEO isterse. | M | D |
+| GFY-06 | Grafik kaynak dizinlerinde kurulur, proje kökünde değil (sır dosyaları kapsam dışı; graphify'ın dışlama ayarı doğrulanmadı). `graphify-out/` git dışı. Git hook'u ve `graphify claude install` yalnızca CEO onayıyla. | M | V/D |
+| GFY-07 | Graphify ajan imajına konulur (ENV-10) ya da sorgu ana makinede çalışır; o zamana kadar konteynerdeki ajan `graph.json`'u salt-okunur okur. | S | D |
+| VIS-01 | Üç+ adımlı akış, üç+ bileşen, durum geçişi, üç+ varlık, dağıtım, bağımlılık diyagramla gösterilir. Spec şablonunda 4 yuva (UX akışı, mimari, ER, dağıtım). | M | V |
+| VIS-02 | Bir diyagram bir soruya cevap verir; en çok 9 düğüm; renk anlam taşır (yeşil otonom, kırmızı CEO kapısı, gri/kesikli planlı), tek başına bilgi taşımaz. | M | D |
+| VIS-03 | Diyagram metin olarak depoda (mermaid/SVG); ikili görsel ve ekran görüntüsü yok. | M | D |
+| VIS-04 | HTML sayfa: viewport, açık+koyu tema, etiketli `svg`, `alt`, izinli kaynak; 375 px'te yatay kaydırma yok; gözle doğrulama. | M | V (kısmen) |
+| VIS-05 | Her sayı kaynağa bağlı (test sayısı `check` çıktısından); simülasyon "simülasyon" diye etiketli. | M | D |
+
+### 12.2 Yeni test sonuçları
+| # | Test | Sonuç |
+|---|---|---|
+| T-N | `guard.js` karar testleri: 33 sentetik komut (main'e push, force, silme, release, commit on main, `bash -c` gizlemesi, heredoc/commit mesajı içindeki sözcükler, bozuk girdi) | **33/33 geçti.** |
+| T-O | **Gerçek Claude** (başsız), yerel geçici "uzak depo", `allow` kuralı verilmişken: force push; normal feature push; `feat/x:main` push | Force push engellendi (uzak depoda yalnızca `main`). Normal feature push geçti. `main`'e push engellendi (main 1 commit'te kaldı). **Hook'un `ask` kararı `allow` kuralını geçiyor.** Başsız modda onay verecek kimse olmadığı için `ask` reddedilir. |
+| T-P | Sayfa: yerel sunucuda masaüstü ve 375 px ekran görüntüsü, simülatör mantığı, taşma ölçümü | Geçti. İlk denemede `viewport` etiketi yoktu (yerel dosya 980 px çiziyordu); eklendi. |
+
+Not: guard'ın `ask` kararı etkileşimli oturumda CEO'ya onay sorusu olarak gelir; bu yolu (CEO "evet" der) ayrıca denemedim.
