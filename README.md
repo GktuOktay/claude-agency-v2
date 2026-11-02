@@ -26,6 +26,7 @@ Tartışma ve araştırma → Spec paketi + eleştiri + ön görüş → CEO İM
 | Kılavuz biçimi standart | **Validated** | `harness/bin/lint.js` |
 | "Bitti = taze kanıt" | **Enforced** (kısmen) | `harness/stop.js` `Stop` kancası: tur kod dosyası değiştirdiyse ve sonrasında derleme/test/check çalışmadıysa turu bir kez geri çevirir; ya doğrula ya "doğrulanmadı" de. Sınır: `sed -i` gibi Bash ile yapılan düzenlemeleri görmez; kanıtın *geçtiğini* değil çalıştığını arar. Denetçi kılavuzu ikinci katman |
 | Zarf (main'e push/merge, release, silme, geri alınamaz git) | **Enforced** (kısmen) | Ana makinede `harness/guard.js` kancası bunları CEO onayına çevirir; başsız çalışmada reddedilir. Gerçek Claude'da `allow` kuralı varken bile engelledi (T-O, `docs/GEREKSINIM-ANALIZI.md` §12.2). Deploy ve mağaza gönderimi için henüz komut/araç yok |
+| Tarayıcı yalıtımı | **Enforced** | Sandbox'sız Chromium yalnızca `visual-check.sh`'in başlattığı ayrı konteynerde (`--network none`, token yok, sayfa salt-okunur); `lint.js` `seccomp=unconfined`, `--privileged`, `--cap-add`, `docker.sock` ve başka yerde `--no-sandbox` kullanımını yasaklar |
 | Grafik ve görsel kullanımı | **Validated** (kısmen) | `lint.js`: spec şablonunda 4 diyagram yuvası, `site/*.html` için viewport, koyu tema, etiketli svg, izinli kaynaklar; `graphify-out/` git dışı. Gözle kontrol ve "kaynaksız sayı yok" talimat seviyesinde |
 
 ## Hızlı başlangıç
@@ -34,7 +35,8 @@ Tartışma ve araştırma → Spec paketi + eleştiri + ön görüş → CEO İM
 ./harness/bin/check              # tek doğrulama komutu: biçim, testler, gizli bilgi taraması
 ./harness/bin/ceo-keygen.sh      # BİR KEZ: CEO anahtarı (parola yok; --passphrase ile korumalı varyant)
 docker build -t company-agent:dev harness/docker   # ajan imajı: .NET 10 SDK + Node + Claude Code + graphify (sürümler sabit)
-sh harness/test/image.sh         # imaj doğrulaması (9 test; 6-8 için önce proxy-up.sh)
+sh harness/test/image.sh         # imaj doğrulaması (14 test; 6-8 için önce proxy-up.sh)
+./harness/bin/visual-check.sh <sayfa-dizini> <çıktı-dizini>   # ayrı, ağsız konteynerde ekran görüntüsü + axe
 ./harness/bin/proxy-up.sh        # internal ağ + izinli listeli çıkış vekili
 ./harness/bin/approve.sh <proje> # CEO bir projenin aktif spec'ini imzalar
 ./harness/bin/company-run.sh <proje> "<görev>" [birim]

@@ -7,7 +7,7 @@ REPO=$(dirname "$HERE")
 rc=0
 step() { echo "==> $1"; shift; "$@" || rc=1; echo; }
 step "shell syntax"            sh -c 'for f in '"$HERE"'/bin/*.sh '"$HERE"'/test/run.sh '"$HERE"'/test/guard.sh '"$HERE"'/test/image.sh '"$HERE"'/test/stop.sh; do sh -n "$f" || exit 1; done; echo "ok    all shell scripts parse"'
-step "node syntax"             sh -c 'for f in '"$HERE"'/approval.js '"$HERE"'/gate.js '"$HERE"'/guard.js '"$HERE"'/stop.js '"$HERE"'/bin/lint.js '"$HERE"'/docker/proxy.js; do node --check "$f" || exit 1; done; echo "ok    all node scripts parse"'
+step "node syntax"             sh -c 'for f in '"$HERE"'/approval.js '"$HERE"'/gate.js '"$HERE"'/guard.js '"$HERE"'/stop.js '"$HERE"'/bin/lint.js '"$HERE"'/docker/proxy.js '"$HERE"'/docker/shot.js; do node --check "$f" || exit 1; done; echo "ok    all node scripts parse"'
 step "agents and playbooks"    node "$HERE/bin/lint.js"
 step "approval and gate tests" sh "$HERE/test/run.sh"
 step "envelope guard tests"    sh "$HERE/test/guard.sh"

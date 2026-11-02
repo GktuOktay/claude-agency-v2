@@ -151,10 +151,25 @@ try {
   const bad = [];
   if (!/ARG CLAUDE_CODE_VERSION=\d+\.\d+\.\d+/.test(df)) bad.push("Claude Code version not pinned");
   if (!/ARG GRAPHIFY_VERSION=\d+\.\d+\.\d+/.test(df)) bad.push("graphify version not pinned");
+  if (/playwright/i.test(df) && !/ARG PLAYWRIGHT_VERSION=\d+\.\d+\.\d+/.test(df)) bad.push("Playwright version not pinned");
+  if (/axe-core/i.test(df) && !/ARG AXE_PLAYWRIGHT_VERSION=\d+\.\d+\.\d+/.test(df)) bad.push("axe version not pinned");
   for (const m of df.matchAll(/^FROM\s+(\S+)/gm)) if (/:latest$|^[^:\s]+$/.test(m[1]) && !/^\w+$/.test(m[1])) bad.push("floating base image: " + m[1]);
   if (/\bsudo\b|--privileged/.test(df)) bad.push("privilege escalation in Dockerfile");
   if (bad.length) fail("harness/docker/Dockerfile: " + bad.join("; ")); else ok("harness/docker/Dockerfile: pinned versions, no floating tags");
 } catch (e) { fail("harness/docker/Dockerfile: " + e.message); }
+
+// container hardening flags: nothing weakens the agent container (AppSec review 2026-11-02)
+{
+  const binDir = path.join(ROOT, "harness", "bin"); const bad = [];
+  for (const f of fs.readdirSync(binDir).filter((x) => x.endsWith(".sh"))) {
+    const s = fs.readFileSync(path.join(binDir, f), "utf8").split("\n").filter((l) => !/^\s*#/.test(l)).join("\n");
+    if (/seccomp=unconfined|--privileged|--cap-add|--ipc=host|docker\.sock/.test(s)) bad.push(`${f}: weakening flag or docker socket`);
+    if (/--no-sandbox/.test(s) && f !== "visual-check.sh") bad.push(`${f}: --no-sandbox only allowed in visual-check.sh`);
+  }
+  const vc = fs.existsSync(path.join(binDir, "visual-check.sh")) ? fs.readFileSync(path.join(binDir, "visual-check.sh"), "utf8") : "";
+  if (vc && !(/--network none/.test(vc) && /:ro/.test(vc) && !/--env-file|HTTPS?_PROXY/.test(vc.split("\n").filter((l) => !/^\s*#/.test(l)).join("\n")))) bad.push("visual-check.sh: must run with --network none, read-only page dir, no env-file and no proxy");
+  if (bad.length) fail("container flags: " + bad.join("; ")); else ok("container flags: no weakening flags, --no-sandbox only in the isolated visual container");
+}
 
 // graph output stays out of git
 const gi = fs.existsSync(path.join(ROOT, ".gitignore")) ? fs.readFileSync(path.join(ROOT, ".gitignore"), "utf8") : "";

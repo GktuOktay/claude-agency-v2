@@ -28,5 +28,36 @@ if docker ps --format '{{.Names}}' | grep -qx company-proxy; then
 else
   echo "skip  6-8 (proxy not running: harness/bin/proxy-up.sh)"
 fi
+
+# --- visual verification (needs the image built with Playwright; skipped on older images)
+if off 'test -f /opt/visual/shot.js && echo yes' | grep -q yes; then
+  want_pw=$(sed -n 's/^ARG PLAYWRIGHT_VERSION=//p' "$HERE/docker/Dockerfile")
+  PAGE=$(mktemp -d); chmod 755 "$PAGE"
+  printf '<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>t</title><body><main><h1>Hello</h1><p>visual test</p></main></body></html>' > "$PAGE/index.html"
+  # shellcheck disable=SC2086
+  vis() { docker run --rm --network none $HARD -v "$PAGE:/page:ro" --entrypoint node "$IMG" /opt/visual/shot.js /page /tmp/shots --no-sandbox 2>&1 | tail -1; }
+  t "9 Playwright is the pinned version"            "$want_pw" "$(off 'node -p "require(\"/opt/visual/node_modules/playwright-core/package.json\").version"')"
+  out=$(vis)
+  t "10 four screenshots, offline (network none)"   "4" "$(printf '%s' "$out" | node -e 'try{console.log(JSON.parse(require("fs").readFileSync(0,"utf8")).shots.length)}catch{console.log("fail")}')"
+  t "11 axe finds no violations on a clean page"    "0" "$(printf '%s' "$out" | node -e 'try{const a=JSON.parse(require("fs").readFileSync(0,"utf8")).axe;console.log(a.light.length+a.dark.length)}catch{console.log("fail")}')"
+  rm -rf "$PAGE"
+else
+  echo "skip  9-11 (image has no visual tooling)"
+fi
+
+# --- host script: separate locked-down container (AppSec option C2)
+if [ -x "$HERE/bin/visual-check.sh" ] && off 'test -f /opt/visual/shot.js && echo yes' | grep -q yes; then
+  W=$(mktemp -d); mkdir -p "$W/page"; chmod -R 755 "$W"
+  printf '<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>t</title><body><main><h1>Hello</h1><img src="/leak" alt="x"></main></body></html>' > "$W/page/index.html"
+  ln -s /etc/hostname "$W/page/leak"
+  json=$(COMPANY_IMAGE="$IMG" sh "$HERE/bin/visual-check.sh" "$W/page" "$W/out" 90 2>/dev/null | tail -1)
+  t "12 visual-check.sh writes 4 screenshots to the out dir" "4" "$(ls "$W/out"/*.png 2>/dev/null | wc -l | tr -d ' ')"
+  t "13 a symlink leading out of the page dir is refused (403)" "yes" "$(printf '%s' "$json" | grep -q '403 /leak' && echo yes || echo no)"
+  COMPANY_IMAGE="$IMG" sh "$HERE/bin/visual-check.sh" "$W/page" "$W/out2" 1 >/dev/null 2>&1; rc=$?
+  t "14 an overall timeout stops the run (non-zero exit)" "nonzero" "$([ "$rc" -ne 0 ] && echo nonzero || echo zero)"
+  rm -rf "$W"
+else
+  echo "skip  12-14 (no visual tooling)"
+fi
 echo; if [ "$fail" -eq 0 ]; then echo "IMAGE TESTS GREEN: $pass passed, 0 failed"; else echo "IMAGE TESTS FAILED: $pass passed, $fail failed"; fi
 [ "$fail" -eq 0 ]
