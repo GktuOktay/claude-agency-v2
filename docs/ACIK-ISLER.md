@@ -4,8 +4,8 @@ Son güncelleme: 2026-11-02. Tek takip yeri bu dosya. İş bitince `[x]` yapıl�
 
 ## A. Senin kararın veya eylemin gerekenler
 
-- [ ] **A1. Dalı gönder, PR aç, birleştir.** CEO talimatı: asistan yapar. Birleştirme `main`'e gittiği için onay penceresi çıkar; "Evet" demen yeterli.
-- [ ] **A2. CEO anahtarını üret.** Parola yok. Kendi terminalinde tek komut: `./harness/bin/ceo-keygen.sh`. (Asistanın üretmesi otomatik mod sınıflandırıcısı tarafından engellendi.) Sonra üretilen `harness/keys/ceo.pub.pem` dosyası depoya eklenir; bunu asistan yapar.
+- [x] **A1. Dalı gönder, PR aç, birleştir.** Bitti: PR #1, main 0cce459. CEO talimatı: asistan yapar. Birleştirme `main`'e gittiği için onay penceresi çıkar; "Evet" demen yeterli.
+- [x] **A2. CEO anahtarını üret.** Bitti (2026-11-02); genel anahtar PR #2'de. Parola yok. Kendi terminalinde tek komut: `./harness/bin/ceo-keygen.sh`. (Asistanın üretmesi otomatik mod sınıflandırıcısı tarafından engellendi.) Sonra üretilen `harness/keys/ceo.pub.pem` dosyası depoya eklenir; bunu asistan yapar.
 - [ ] **A3. Ajan belirteci** (yalnızca otonom koşu denemesi için): `~/.company/agent.env`, mod 600. Şu an yok. Gerektiğinde yeniden üretilir; iş bitince silinir.
 - [ ] **A4. Eski `claude-agency` reposu:** arşivlensin mi, README'sine "yerini `claude-agency-v2` aldı" notu düşülsün mü?
 - [ ] **A5. Eski global kurulum:** `~/.claude` içindeki eski orchestrator ve skill'ler (32 adet, yedek `~/.claude-backup-2026-11-01`) devre dışı bırakılsın mı; yeni birimler her projede kullanılsın mı?
@@ -17,7 +17,7 @@ Son güncelleme: 2026-11-02. Tek takip yeri bu dosya. İş bitince `[x]` yapıl�
 
 ## B. Yapılacak (asistan), önerilen sıra
 
-- [ ] **B1. Ajan imajı:** .NET 10 SDK + graphify + Node; imaj etiketi `:dev`. Dockerfile ve betikler hazır, imaj indirme/doğrulama sürüyor (ikinci PR).
+- [x] **B1. Ajan imajı:** .NET 10 SDK + Node + Claude Code 2.1.316 + graphify 0.9.54, etiket `:dev`; 9 imaj testi yeşil (PR #2). NuGet için yalnızca `api.nuget.org` yetti.
 - [ ] **B2. `Stop` hook'u:** "kanıtsız bitti denmez" şu an yalnızca talimat.
 - [ ] **B3. Kalan birimler:** React engineer (eski `~/.claude/rules/frontend.md` kalite kapılarını temel alır), AppSec, DevOps/SRE, Scout, Architecture board, Talent & capacity, Quality office, Marketing, Tech comms.
 - [ ] **B4. CI:** GitHub Actions ile `harness/bin/check`.
@@ -43,4 +43,4 @@ Son güncelleme: 2026-11-02. Tek takip yeri bu dosya. İş bitince `[x]` yapıl�
 
 ## D. Temizlik
 
-- [ ] `docker rmi company-agent:test` (577 MB) imaj doğrulanınca.
+- [x] `docker rmi company-agent:test` yapıldı.

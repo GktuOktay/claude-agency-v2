@@ -42,8 +42,8 @@ CLAUDE_DIR=""
 
 # shellcheck disable=SC2086
 exec docker run --rm --network company-int --read-only --cap-drop ALL --security-opt no-new-privileges \
-  --user 1000:1000 --memory 2g --pids-limit 256 --cpus 2 \
-  --tmpfs /tmp:rw,size=256m --tmpfs /home/node:rw,size=128m,uid=1000,gid=1000 \
+  --user 1000:1000 --memory "${COMPANY_MEMORY:-4g}" --pids-limit 512 --cpus 2 \
+  --tmpfs /tmp:rw,size=512m --tmpfs /home/node:rw,size=1g,uid=1000,gid=1000 \
   --tmpfs /home/node/.claude:rw,size=64m,uid=1000,gid=1000 -e HOME=/home/node \
   -e HTTPS_PROXY=http://company-proxy:3128 -e HTTP_PROXY=http://company-proxy:3128 \
   -e DISABLE_TELEMETRY=1 -e DISABLE_AUTOUPDATER=1 -e CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1 \
