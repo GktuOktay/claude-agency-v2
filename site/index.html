@@ -1,0 +1,484 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Claude Agency V2</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Schibsted+Grotesk:wght@400;500;700;800&display=swap">
+<style>
+/* Layout concept: a customs-checkpoint line. Green = work that runs on its own, red mühür = the two moments the CEO decides.
+   Graphics first: every section is a drawing, text is captions. */
+:root {
+  --bg: #F2F4F7; --surface: #FFFFFF; --ink: #101B2E; --muted: #55627A; --line: #CBD3DF;
+  --gate: #C0301C; --gate-soft: #FBE9E5; --auto: #0B7A64; --auto-soft: #E2F3EE; --plan: #7B879B;
+  --ring1: #0B7A64; --ring2: #3E9C86; --ring3: #78BBA9; --ring4: #B3D9CE;
+  --display: "Schibsted Grotesk", "Helvetica Neue", Arial, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0C131D; --surface: #141E2B; --ink: #E8EDF3; --muted: #9AA7BA; --line: #2A394C;
+  --gate: #F2664F; --gate-soft: #3A1C18; --auto: #3DC2A3; --auto-soft: #11302A; --plan: #6F7D92;
+  --ring1: #3DC2A3; --ring2: #2E9A82; --ring3: #1F7262; --ring4: #174A40; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #0C131D; --surface: #141E2B; --ink: #E8EDF3; --muted: #9AA7BA; --line: #2A394C;
+  --gate: #F2664F; --gate-soft: #3A1C18; --auto: #3DC2A3; --auto-soft: #11302A; --plan: #6F7D92;
+  --ring1: #3DC2A3; --ring2: #2E9A82; --ring3: #1F7262; --ring4: #174A40; color-scheme: dark; }
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--display); font-size: 16px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 0; }
+.wrap { max-width: 1040px; margin: 0 auto; }
+section { padding-block: 52px 4px; }
+h1, h2, h3 { font-weight: 800; letter-spacing: -0.02em; line-height: 1.1; text-wrap: balance; margin: 0; }
+h1 { font-size: clamp(2.1rem, 6vw, 3.7rem); max-width: 18ch; }
+h2 { font-size: clamp(1.45rem, 3.2vw, 2.05rem); margin-bottom: 6px; }
+h3 { font-size: 1rem; font-weight: 700; letter-spacing: -0.01em; }
+p { margin: 0; }
+.cap { color: var(--muted); max-width: 60ch; margin-bottom: 20px; }
+.label { font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+:focus-visible { outline: 3px solid var(--gate); outline-offset: 2px; }
+svg { display: block; max-width: 100%; height: auto; }
+svg text { font-family: var(--display); fill: var(--ink); }
+svg .m { font-family: var(--mono); fill: var(--muted); }
+.i { fill: none; stroke: currentColor; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
+.iF { fill: currentColor; stroke: none; }
+.only-narrow { display: none; }
+
+.top { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; padding-block: 18px; border-bottom: 1px solid var(--line); }
+.brand { font-weight: 800; letter-spacing: -0.02em; }
+.hero { padding-block: 44px 4px; }
+.lede { max-width: 56ch; color: var(--muted); font-size: 1.08rem; margin-top: 14px; }
+
+/* hero track */
+.track { display: grid; grid-template-columns: 1fr auto 1.9fr auto 1fr; gap: 12px; align-items: center; margin-top: 34px; }
+.stage { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 14px 16px; min-width: 0; }
+.stage.ceo { border-color: var(--gate); }
+.stage.auto { background: var(--auto-soft); border-color: var(--auto); }
+.stage h3 { margin: 6px 0 2px; }
+.stage p { font-size: 0.88rem; color: var(--muted); }
+.stamp { width: 82px; height: 82px; border: 2.5px solid var(--gate); border-radius: 50%; color: var(--gate); display: grid; place-items: center; text-align: center;
+  font-family: var(--mono); font-weight: 500; font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; transform: rotate(-7deg);
+  background: var(--gate-soft); box-shadow: inset 0 0 0 4px var(--gate-soft), inset 0 0 0 5.5px var(--gate); line-height: 1.2; justify-self: center; }
+.stamp small { display: block; font-size: 0.6rem; letter-spacing: 0.04em; }
+
+/* problem vignettes */
+.grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; min-width: 0; }
+.card h3 { margin: 10px 0 2px; }
+.card p { font-size: 0.9rem; color: var(--muted); }
+
+/* org */
+.orgcard { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px; }
+.org { display: grid; grid-template-columns: 1fr; gap: 14px; }
+.group { border: 1px dashed var(--line); border-radius: 12px; padding: 12px; display: grid; gap: 8px; }
+.unit { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
+.unit.built { border-color: var(--auto); background: var(--auto-soft); }
+.unit.planned { border-style: dashed; color: var(--muted); }
+.unit b { display: flex; justify-content: space-between; gap: 8px; font-size: 0.95rem; }
+.unit span.s { font-size: 0.82rem; color: var(--muted); }
+.st { font-family: var(--mono); font-size: 0.64rem; letter-spacing: 0.05em; text-transform: uppercase; white-space: nowrap; }
+.st.on { color: var(--auto); } .st.off { color: var(--plan); }
+
+/* simulator */
+.sim { display: grid; grid-template-columns: 1.15fr 1fr; gap: 16px; align-items: stretch; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; min-width: 0; }
+.tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 12px; }
+.tile { border: 2px solid var(--line); border-radius: 10px; padding: 12px 8px; text-align: center; min-width: 0; transition: none; }
+.tile svg { margin: 0 auto 4px; width: 40px; height: 40px; }
+.tile .nm { font-family: var(--mono); font-size: 0.82rem; overflow-wrap: anywhere; }
+.tile .sv { font-family: var(--mono); font-size: 0.62rem; letter-spacing: 0.05em; text-transform: uppercase; display: block; margin-top: 2px; }
+.tile.open { border-color: var(--auto); background: var(--auto-soft); color: var(--auto); }
+.tile.locked { border-color: var(--gate); background: var(--gate-soft); color: var(--gate); }
+.tile .nm { color: var(--ink); }
+.btns { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+button { font: inherit; font-size: 0.88rem; font-weight: 500; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--ink); background: var(--surface); color: var(--ink); cursor: pointer; min-height: 40px; }
+button:hover { background: var(--ink); color: var(--bg); }
+button.primary { background: var(--gate); border-color: var(--gate); color: #fff; } button.primary:hover { filter: brightness(0.92); background: var(--gate); color: #fff; }
+.console { font-family: var(--mono); font-size: 0.78rem; background: var(--ink); color: var(--bg); border-radius: 8px; padding: 12px; min-height: 100%; display: grid; gap: 6px; align-content: start; overflow-wrap: anywhere; }
+.console .ok { color: #7fe3c8; } .console .no { color: #ff9a88; } .console .cmd { opacity: .75; }
+.note { color: var(--muted); font-size: 0.82rem; margin-top: 10px; }
+
+/* defense rings */
+.rings { display: grid; grid-template-columns: minmax(0, 420px) 1fr; gap: 28px; align-items: center; }
+.leg { display: grid; gap: 12px; }
+.leg div { display: flex; gap: 12px; align-items: flex-start; }
+.leg i { flex: none; width: 22px; height: 22px; border-radius: 50%; margin-top: 2px; }
+.leg b { display: block; font-size: 0.98rem; }
+.leg span { color: var(--muted); font-size: 0.86rem; }
+.bar { display: flex; height: 34px; border-radius: 8px; overflow: hidden; border: 1px solid var(--line); margin: 22px 0 8px; }
+.bar > div { display: grid; place-items: center; font-family: var(--mono); font-size: 0.76rem; font-weight: 500; min-width: 0; }
+.b-enf { background: var(--auto); color: #fff; flex: 6; }
+.b-part { background: repeating-linear-gradient(135deg, var(--auto) 0 6px, var(--auto-soft) 6px 12px); color: var(--ink); flex: 1; }
+.b-val { background: var(--surface); flex: 1; border-left: 1px solid var(--line); }
+.b-doc { background: transparent; color: var(--muted); flex: 1; border-left: 1px dashed var(--plan); }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 0.82rem; color: var(--muted); }
+
+/* status */
+.dotsrow { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.dots { display: flex; flex-wrap: wrap; gap: 5px; margin: 12px 0 8px; }
+.dots i { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--plan); display: block; }
+.dots i.on { background: var(--auto); border-color: var(--auto); }
+.big { font-size: 2rem; font-weight: 800; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; line-height: 1; }
+.big small { font-size: 1rem; color: var(--muted); font-weight: 500; letter-spacing: 0; }
+.next { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 16px; }
+.next div { border: 1px dashed var(--plan); border-radius: 10px; padding: 12px; font-size: 0.88rem; color: var(--muted); }
+.next b { display: block; color: var(--ink); font-size: 0.92rem; margin-bottom: 2px; }
+footer { padding-block: 36px 52px; color: var(--muted); font-size: 0.82rem; }
+
+@media (max-width: 860px) {
+  .only-wide { display: none; } .only-narrow { display: block; }
+  .track { grid-template-columns: 1fr; }
+  .stamp { transform: rotate(-4deg); }
+  .grid3, .sim, .rings, .dotsrow { grid-template-columns: 1fr; }
+  .tiles { grid-template-columns: repeat(2, 1fr); }
+  .next { grid-template-columns: repeat(2, 1fr); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  button { transition: background .15s, color .15s; }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+  .live { animation: pulse 2.4s ease-in-out infinite; }
+}
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <symbol id="i-person" viewBox="0 0 48 48"><circle class="i" cx="24" cy="15" r="9"/><path class="i" d="M6 44c0-10 8-16 18-16s18 6 18 16"/></symbol>
+    <symbol id="i-server" viewBox="0 0 48 48"><rect class="i" x="6" y="6" width="36" height="10" rx="3"/><rect class="i" x="6" y="19" width="36" height="10" rx="3"/><rect class="i" x="6" y="32" width="36" height="10" rx="3"/><circle class="iF" cx="13" cy="11" r="2"/><circle class="iF" cx="13" cy="24" r="2"/><circle class="iF" cx="13" cy="37" r="2"/></symbol>
+    <symbol id="i-doc" viewBox="0 0 48 48"><path class="i" d="M12 5h17l8 8v30H12z"/><path class="i" d="M29 5v8h8M18 22h14M18 29h14M18 36h9"/></symbol>
+    <symbol id="i-code" viewBox="0 0 48 48"><path class="i" d="M17 14 7 24l10 10M31 14l10 10-10 10M27 10l-6 28"/></symbol>
+    <symbol id="i-check" viewBox="0 0 48 48"><circle class="i" cx="24" cy="24" r="17"/><path class="i" d="m16 25 6 6 11-13"/></symbol>
+    <symbol id="i-search" viewBox="0 0 48 48"><circle class="i" cx="21" cy="21" r="12"/><path class="i" d="m30 30 12 12"/></symbol>
+    <symbol id="i-list" viewBox="0 0 48 48"><path class="i" d="M20 12h22M20 24h22M20 36h22"/><circle class="iF" cx="10" cy="12" r="3"/><circle class="iF" cx="10" cy="24" r="3"/><circle class="iF" cx="10" cy="36" r="3"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 48 48"><rect class="i" x="9" y="21" width="30" height="21" rx="4"/><path class="i" d="M15 21v-6a9 9 0 0 1 18 0v6"/><circle class="iF" cx="24" cy="31" r="2.5"/></symbol>
+    <symbol id="i-unlock" viewBox="0 0 48 48"><rect class="i" x="9" y="21" width="30" height="21" rx="4"/><path class="i" d="M15 21v-6a9 9 0 0 1 17-4"/><circle class="iF" cx="24" cy="31" r="2.5"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 48 48"><circle class="i" cx="24" cy="24" r="17"/><path class="i" d="M24 13v12l8 5"/></symbol>
+    <marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1 8 5 2 9" fill="none" stroke="context-stroke" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></marker>
+  </defs>
+</svg>
+
+<div class="wrap">
+  <header class="top">
+    <span class="brand">Claude Agency V2</span>
+    <span class="label">CEO + Claude · tek kişilik yazılım şirketi</span>
+  </header>
+
+  <section class="hero" aria-labelledby="h-hero">
+    <p class="label">Ne bu</p>
+    <h1 id="h-hero">Sen karar verirsin. İki kapıdan geçmeden iş canlıya çıkmaz.</h1>
+    <p class="lede">Önce Claude ile konuşup işi imzalarsın. Sonrasını birimler izole bir ortamda yürütür. Yayını yine sen onaylarsın.</p>
+
+    <div class="track">
+      <div class="stage ceo">
+        <svg viewBox="0 0 230 120" role="img" aria-label="Sen ve Claude konuşuyor">
+          <g style="color: var(--gate)"><use href="#i-person" x="8" y="22" width="76" height="76"/></g>
+          <rect x="90" y="12" width="132" height="40" rx="10" fill="var(--surface)" stroke="var(--gate)" stroke-width="1.6"/>
+          <text x="102" y="36" font-size="12.5" font-weight="700">Silinsin mi?</text>
+          <rect x="90" y="62" width="132" height="46" rx="10" fill="var(--gate-soft)" stroke="var(--gate)" stroke-width="1.6"/>
+          <text x="102" y="81" font-size="11.5">Önerim: 30 gün</text><text x="102" y="97" font-size="11.5">sakla, sonra sil.</text>
+        </svg>
+        <h3>Anlat, tartış, imzala</h3><p>Her soru önerisiyle gelir.</p>
+      </div>
+      <div class="stamp" aria-label="Kapı 1: imza"><span>İmza<small>kapı 1</small></span></div>
+      <div class="stage auto">
+        <svg viewBox="0 0 400 134" role="img" aria-label="Docker içinde çalışan dört aşama: analiz, kod, test, denetim">
+          <rect x="3" y="20" width="394" height="110" rx="12" fill="none" stroke="var(--auto)" stroke-width="1.8" stroke-dasharray="6 5"/>
+          <text class="m" x="14" y="13" font-size="11">DOCKER · AĞ KAPALI · İMZAYA GÖRE KİLİTLİ</text>
+          <g style="color: var(--auto)">
+            <rect x="18" y="42" width="76" height="72" rx="8" fill="var(--surface)" stroke="var(--auto)" stroke-width="1.6"/><use href="#i-doc" x="38" y="50" width="36" height="36"/><text x="56" y="104" font-size="12" text-anchor="middle">analiz</text>
+            <rect x="114" y="42" width="76" height="72" rx="8" fill="var(--surface)" stroke="var(--auto)" stroke-width="1.6"/><use href="#i-code" x="134" y="50" width="36" height="36"/><text x="152" y="104" font-size="12" text-anchor="middle">kod</text>
+            <rect x="210" y="42" width="76" height="72" rx="8" fill="var(--surface)" stroke="var(--auto)" stroke-width="1.6"/><use href="#i-check" x="230" y="50" width="36" height="36"/><text x="248" y="104" font-size="12" text-anchor="middle">test</text>
+            <rect x="306" y="42" width="76" height="72" rx="8" fill="var(--surface)" stroke="var(--auto)" stroke-width="1.6"/><use href="#i-search" x="326" y="50" width="36" height="36"/><text x="344" y="104" font-size="12" text-anchor="middle">denetim</text>
+          </g>
+          <g stroke="var(--auto)" stroke-width="1.8" fill="none"><path d="M96 78h16" marker-end="url(#ah)"/><path d="M192 78h16" marker-end="url(#ah)"/><path d="M288 78h16" marker-end="url(#ah)"/></g>
+        </svg>
+        <h3>Kendi başına yürür</h3><p>Takılırsa o işi park eder, diğerlerine devam eder.</p>
+      </div>
+      <div class="stamp" aria-label="Kapı 2: onay"><span>Onay<small>kapı 2</small></span></div>
+      <div class="stage ceo">
+        <svg viewBox="0 0 230 120" role="img" aria-label="Canlı sunucu ve onay">
+          <g style="color: var(--ink)"><use href="#i-server" x="14" y="18" width="84" height="84"/></g>
+          <circle class="live" cx="112" cy="40" r="6" fill="var(--auto)"/><text class="m" x="124" y="44" font-size="11">canlı</text>
+          <rect x="108" y="64" width="112" height="36" rx="8" fill="var(--gate-soft)" stroke="var(--gate)" stroke-width="1.6"/>
+          <text x="164" y="87" font-size="12.5" font-weight="700" text-anchor="middle" style="fill: var(--gate)">Yayınla?</text>
+        </svg>
+        <h3>Yayını onayla</h3><p>Her sürüm için tek tek.</p>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-why">
+    <p class="label">Ne işe yarar</p>
+    <h2 id="h-why">Üç sorunu çözer</h2>
+    <div class="grid3" style="margin-top:16px">
+      <article class="card">
+        <svg viewBox="0 0 280 100" role="img" aria-label="Belirsiz anlatım net spec'e dönüşüyor">
+          <ellipse cx="62" cy="50" rx="46" ry="32" fill="none" stroke="var(--gate)" stroke-width="2" stroke-dasharray="3 5"/><text x="62" y="58" font-size="26" font-weight="800" text-anchor="middle" style="fill: var(--gate)">?</text>
+          <path d="M120 50h50" stroke="var(--muted)" stroke-width="2" fill="none" marker-end="url(#ah)"/>
+          <g style="color: var(--auto)"><use href="#i-doc" x="190" y="14" width="72" height="72"/></g>
+        </svg>
+        <h3>Reçete önce yazılır</h3><p>Anlattığın, eksiksiz bir spec'e dönüşür. Boşluk burada bulunur, koddan sonra değil.</p>
+      </article>
+      <article class="card">
+        <svg viewBox="0 0 280 100" role="img" aria-label="Başında beklemek yerine işin kendi kendine ilerlemesi">
+          <g style="color: var(--gate)"><use href="#i-person" x="6" y="18" width="52" height="52"/><use href="#i-clock" x="52" y="10" width="34" height="34"/></g>
+          <path d="M104 50h26" stroke="var(--muted)" stroke-width="2" fill="none" marker-end="url(#ah)"/>
+          <g style="color: var(--auto)"><use href="#i-person" x="146" y="18" width="52" height="52"/></g>
+          <text class="m" x="196" y="28" font-size="13">zz</text>
+          <path d="M150 86h118" stroke="var(--auto)" stroke-width="5" stroke-linecap="round"/><text class="m" x="150" y="100" font-size="10.5">iş sürüyor</text>
+        </svg>
+        <h3>Arkası düşünülmez</h3><p>Seni yalnızca senin kararın gereken yerde çağırır.</p>
+      </article>
+      <article class="card">
+        <svg viewBox="0 0 280 100" role="img" aria-label="Sözde bitti yerine kanıtla doğrulanmış sonuç">
+          <rect x="6" y="20" width="96" height="40" rx="10" fill="var(--gate-soft)" stroke="var(--gate)" stroke-width="1.8"/><text x="54" y="45" font-size="14" font-weight="700" text-anchor="middle" style="fill: var(--gate)">"bitti"</text>
+          <path d="M10 66 98 14" stroke="var(--gate)" stroke-width="2.4"/>
+          <path d="M124 50h26" stroke="var(--muted)" stroke-width="2" fill="none" marker-end="url(#ah)"/>
+          <g style="color: var(--auto)"><use href="#i-doc" x="164" y="14" width="64" height="64"/><use href="#i-search" x="214" y="42" width="46" height="46"/></g>
+        </svg>
+        <h3>Kanıtsız bitmez</h3><p>Bağımsız denetçi, çıktıyı spec'e ve test sonucuna karşı kontrol eder.</p>
+      </article>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-flow">
+    <p class="label">Bir işin yolu</p>
+    <h2 id="h-flow">Fikirden canlıya sekiz durak</h2>
+    <p class="cap">Kırmızı mühürler senin kararın. Yeşil hat kendi kendine yürür.</p>
+
+    <div class="only-wide orgcard">
+      <svg viewBox="0 0 960 300" role="img" aria-label="Sekiz duraklı hat: tartışma, spec, imza, plan, yürütme, denetim, onay, canlı">
+        <path d="M70 150H889" stroke="var(--auto)" stroke-width="7" stroke-linecap="round"/>
+        <!-- stations -->
+        <g text-anchor="middle">
+          <circle cx="70" cy="150" r="20" fill="var(--surface)" stroke="var(--auto)" stroke-width="3"/><g style="color:var(--auto)"><use href="#i-search" x="58" y="138" width="24" height="24"/></g>
+          <text x="70" y="104" font-size="14" font-weight="700">Tartışma</text><text class="m" x="70" y="121" font-size="10.5">Product · Scout</text>
+
+          <circle cx="187" cy="150" r="20" fill="var(--surface)" stroke="var(--auto)" stroke-width="3"/><g style="color:var(--auto)"><use href="#i-doc" x="175" y="138" width="24" height="24"/></g>
+          <text x="187" y="204" font-size="14" font-weight="700">Spec</text><text class="m" x="187" y="221" font-size="10.5">analist · eleştirmen</text>
+
+          <circle cx="304" cy="150" r="28" fill="var(--gate-soft)" stroke="var(--gate)" stroke-width="3.5"/><g style="color:var(--gate)"><use href="#i-person" x="290" y="136" width="28" height="28"/></g>
+          <text x="304" y="96" font-size="14" font-weight="800" style="fill:var(--gate)">İMZA</text><text class="m" x="304" y="113" font-size="10.5">kapı 1 · sen</text>
+
+          <circle cx="421" cy="150" r="20" fill="var(--surface)" stroke="var(--auto)" stroke-width="3"/><g style="color:var(--auto)"><use href="#i-list" x="409" y="138" width="24" height="24"/></g>
+          <text x="421" y="204" font-size="14" font-weight="700">Plan</text><text class="m" x="421" y="221" font-size="10.5">issue · PR</text>
+
+          <circle cx="538" cy="150" r="20" fill="var(--surface)" stroke="var(--auto)" stroke-width="3"/><g style="color:var(--auto)"><use href="#i-code" x="526" y="138" width="24" height="24"/></g>
+          <text x="538" y="104" font-size="14" font-weight="700">Yürütme</text><text class="m" x="538" y="121" font-size="10.5">test önce · Docker</text>
+
+          <circle cx="655" cy="150" r="20" fill="var(--surface)" stroke="var(--auto)" stroke-width="3"/><g style="color:var(--auto)"><use href="#i-check" x="643" y="138" width="24" height="24"/></g>
+          <text x="655" y="204" font-size="14" font-weight="700">Denetim</text><text class="m" x="655" y="221" font-size="10.5">bağımsız · kanıt</text>
+
+          <circle cx="772" cy="150" r="28" fill="var(--gate-soft)" stroke="var(--gate)" stroke-width="3.5"/><g style="color:var(--gate)"><use href="#i-person" x="758" y="136" width="28" height="28"/></g>
+          <text x="772" y="96" font-size="14" font-weight="800" style="fill:var(--gate)">ONAY</text><text class="m" x="772" y="113" font-size="10.5">kapı 2 · tek tek</text>
+
+          <circle cx="889" cy="150" r="20" fill="var(--surface)" stroke="var(--auto)" stroke-width="3"/><g style="color:var(--auto)"><use href="#i-server" x="877" y="138" width="24" height="24"/></g>
+          <text x="889" y="204" font-size="14" font-weight="700">Canlı</text><text class="m" x="889" y="221" font-size="10.5">izleme · destek</text>
+        </g>
+        <path d="M889 232V268H70V176" fill="none" stroke="var(--plan)" stroke-width="1.6" stroke-dasharray="5 5" marker-end="url(#ah)"/>
+        <text class="m" x="480" y="288" font-size="11" text-anchor="middle">kullanıcı geri bildirimi Product'a döner</text>
+      </svg>
+    </div>
+
+    <div class="only-narrow orgcard">
+      <svg viewBox="0 0 340 690" role="img" aria-label="Sekiz duraklı dikey hat">
+        <path d="M44 38V630" stroke="var(--auto)" stroke-width="6" stroke-linecap="round"/>
+        <g>
+          <circle cx="44" cy="38" r="18" fill="var(--surface)" stroke="var(--auto)" stroke-width="3"/><g style="color:var(--auto)"><use href="#i-search" x="33" y="27" width="22" height="22"/></g><text x="82" y="34" font-size="15" font-weight="700">Tartışma</text><text class="m" x="82" y="52" font-size="11">Product · Scout</text>
+          <circle cx="44" cy="120" r="18" fill="var(--surface)" stroke="var(--auto)" stroke-width="3"/><g style="color:var(--auto)"><use href="#i-doc" x="33" y="109" width="22" height="22"/></g><text x="82" y="116" font-size="15" font-weight="700">Spec</text><text class="m" x="82" y="134" font-size="11">analist · eleştirmen</text>
+          <circle cx="44" cy="206" r="25" fill="var(--gate-soft)" stroke="var(--gate)" stroke-width="3.5"/><g style="color:var(--gate)"><use href="#i-person" x="32" y="194" width="24" height="24"/></g><text x="82" y="202" font-size="15" font-weight="800" style="fill:var(--gate)">İMZA</text><text class="m" x="82" y="220" font-size="11">kapı 1 · sen</text>
+          <circle cx="44" cy="292" r="18" fill="var(--surface)" stroke="var(--auto)" stroke-width="3"/><g style="color:var(--auto)"><use href="#i-list" x="33" y="281" width="22" height="22"/></g><text x="82" y="288" font-size="15" font-weight="700">Plan</text><text class="m" x="82" y="306" font-size="11">issue · PR</text>
+          <circle cx="44" cy="374" r="18" fill="var(--surface)" stroke="var(--auto)" stroke-width="3"/><g style="color:var(--auto)"><use href="#i-code" x="33" y="363" width="22" height="22"/></g><text x="82" y="370" font-size="15" font-weight="700">Yürütme</text><text class="m" x="82" y="388" font-size="11">test önce · Docker</text>
+          <circle cx="44" cy="456" r="18" fill="var(--surface)" stroke="var(--auto)" stroke-width="3"/><g style="color:var(--auto)"><use href="#i-check" x="33" y="445" width="22" height="22"/></g><text x="82" y="452" font-size="15" font-weight="700">Denetim</text><text class="m" x="82" y="470" font-size="11">bağımsız · kanıt</text>
+          <circle cx="44" cy="542" r="25" fill="var(--gate-soft)" stroke="var(--gate)" stroke-width="3.5"/><g style="color:var(--gate)"><use href="#i-person" x="32" y="530" width="24" height="24"/></g><text x="82" y="538" font-size="15" font-weight="800" style="fill:var(--gate)">ONAY</text><text class="m" x="82" y="556" font-size="11">kapı 2 · tek tek</text>
+          <circle cx="44" cy="630" r="18" fill="var(--surface)" stroke="var(--auto)" stroke-width="3"/><g style="color:var(--auto)"><use href="#i-server" x="33" y="619" width="22" height="22"/></g><text x="82" y="626" font-size="15" font-weight="700">Canlı</text><text class="m" x="82" y="644" font-size="11">izleme · destek</text>
+        </g>
+        <path d="M44 654V676" stroke="var(--plan)" stroke-width="1.6" stroke-dasharray="4 4"/><text class="m" x="82" y="682" font-size="10.5">geri bildirim Product'a döner</text>
+      </svg>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-org">
+    <p class="label">Kimler çalışır</p>
+    <h2 id="h-org">Şirket şeması</h2>
+    <p class="cap">Dolu yeşil: kuruldu ve çalışıyor. Kesikli: planda.</p>
+
+    <div class="only-wide orgcard">
+      <svg viewBox="0 0 960 560" role="img" aria-label="Organizasyon şeması: CEO, Chief of Staff, üç grup ve birimleri">
+        <g text-anchor="middle">
+          <rect x="400" y="8" width="160" height="40" rx="8" fill="var(--gate-soft)" stroke="var(--gate)" stroke-width="2"/><text x="480" y="33" font-size="14" font-weight="800" style="fill:var(--gate)">CEO (sen)</text>
+          <path d="M480 48V68" stroke="var(--muted)" stroke-width="1.8" fill="none" marker-end="url(#ah)"/>
+          <rect x="380" y="70" width="200" height="52" rx="8" fill="var(--surface)" stroke="var(--ink)" stroke-width="1.8"/><text x="480" y="92" font-size="14" font-weight="700">Chief of Staff</text><text class="m" x="480" y="110" font-size="10.5">bu oturum · koordinasyon</text>
+          <path d="M480 122V146M170 146H790M170 146V160M480 146V160M790 146V160" stroke="var(--muted)" stroke-width="1.8" fill="none"/>
+        </g>
+        <!-- groups -->
+        <g>
+          <rect x="20" y="162" width="300" height="386" rx="14" fill="none" stroke="var(--line)" stroke-width="1.6" stroke-dasharray="6 5"/><text class="m" x="36" y="184" font-size="11">ÜRÜN HATTI</text>
+          <rect x="330" y="162" width="300" height="386" rx="14" fill="none" stroke="var(--line)" stroke-width="1.6" stroke-dasharray="6 5"/><text class="m" x="346" y="184" font-size="11">ÜRETİM</text>
+          <rect x="640" y="162" width="300" height="386" rx="14" fill="none" stroke="var(--line)" stroke-width="1.6" stroke-dasharray="6 5"/><text class="m" x="656" y="184" font-size="11">YÖNETİŞİM VE KAPILAR</text>
+        </g>
+        <!-- units: built = solid green; planned = dashed grey -->
+        <g font-size="13.5">
+          <g><rect x="36" y="196" width="268" height="58" rx="8" fill="var(--surface)" stroke="var(--plan)" stroke-dasharray="5 4" stroke-width="1.6"/><text x="50" y="220" font-weight="700" style="fill:var(--muted)">Product</text><text class="m" x="50" y="240" font-size="10.5">piyasa, yol haritası</text></g>
+          <g><rect x="36" y="264" width="268" height="58" rx="8" fill="var(--auto-soft)" stroke="var(--auto)" stroke-width="2"/><circle cx="286" cy="280" r="5" fill="var(--auto)"/><text x="50" y="288" font-weight="700">Business analyst</text><text class="m" x="50" y="308" font-size="10.5">teknik spec · opus</text></g>
+          <g><rect x="36" y="332" width="268" height="58" rx="8" fill="var(--auto-soft)" stroke="var(--auto)" stroke-width="2"/><circle cx="286" cy="348" r="5" fill="var(--auto)"/><text x="50" y="356" font-weight="700">Spec critic</text><text class="m" x="50" y="376" font-size="10.5">boşluk arar · yazma yok</text></g>
+          <g><rect x="36" y="400" width="268" height="58" rx="8" fill="var(--surface)" stroke="var(--plan)" stroke-dasharray="5 4" stroke-width="1.6"/><text x="50" y="424" font-weight="700" style="fill:var(--muted)">Scout</text><text class="m" x="50" y="444" font-size="10.5">repo, API, MCP tarama</text></g>
+          <g><rect x="36" y="468" width="268" height="58" rx="8" fill="var(--surface)" stroke="var(--plan)" stroke-dasharray="5 4" stroke-width="1.6"/><text x="50" y="492" font-weight="700" style="fill:var(--muted)">Delivery</text><text class="m" x="50" y="512" font-size="10.5">plan, issue, PR</text></g>
+
+          <g><rect x="346" y="196" width="268" height="58" rx="8" fill="var(--auto-soft)" stroke="var(--auto)" stroke-width="2"/><circle cx="596" cy="212" r="5" fill="var(--auto)"/><text x="360" y="220" font-weight="700">.NET engineer</text><text class="m" x="360" y="240" font-size="10.5">imzalıysa yazar · sonnet</text></g>
+          <g><rect x="346" y="264" width="268" height="58" rx="8" fill="var(--surface)" stroke="var(--plan)" stroke-dasharray="5 4" stroke-width="1.6"/><text x="360" y="288" font-weight="700" style="fill:var(--muted)">React engineer</text><text class="m" x="360" y="308" font-size="10.5">arayüz, durumlar</text></g>
+          <g><rect x="346" y="332" width="268" height="58" rx="8" fill="var(--auto-soft)" stroke="var(--auto)" stroke-width="2"/><circle cx="596" cy="348" r="5" fill="var(--auto)"/><text x="360" y="356" font-weight="700">QA engineer</text><text class="m" x="360" y="376" font-size="10.5">kanıt tablosu · yalnız test</text></g>
+          <g><rect x="346" y="400" width="268" height="58" rx="8" fill="var(--surface)" stroke="var(--plan)" stroke-dasharray="5 4" stroke-width="1.6"/><text x="360" y="424" font-weight="700" style="fill:var(--muted)">AppSec, DevOps/SRE</text><text class="m" x="360" y="444" font-size="10.5">güvenlik, deploy, izleme</text></g>
+          <g><rect x="346" y="468" width="268" height="58" rx="8" fill="var(--surface)" stroke="var(--plan)" stroke-dasharray="5 4" stroke-width="1.6"/><text x="360" y="492" font-weight="700" style="fill:var(--muted)">Marketing, Tech comms</text><text class="m" x="360" y="512" font-size="10.5">mağaza, görsel, sunum</text></g>
+
+          <g><rect x="656" y="196" width="268" height="58" rx="8" fill="var(--auto-soft)" stroke="var(--auto)" stroke-width="2"/><circle cx="906" cy="212" r="5" fill="var(--auto)"/><text x="670" y="220" font-weight="700">Internal audit</text><text class="m" x="670" y="240" font-size="10.5">bağımsız · yazma yok · opus</text></g>
+          <g><rect x="656" y="264" width="268" height="58" rx="8" fill="var(--surface)" stroke="var(--plan)" stroke-dasharray="5 4" stroke-width="1.6"/><text x="670" y="288" font-weight="700" style="fill:var(--muted)">Architecture board</text><text class="m" x="670" y="308" font-size="10.5">gereksiz teknolojiyi engeller</text></g>
+          <g><rect x="656" y="332" width="268" height="58" rx="8" fill="var(--surface)" stroke="var(--plan)" stroke-dasharray="5 4" stroke-width="1.6"/><text x="670" y="356" font-weight="700" style="fill:var(--muted)">Talent &amp; capacity</text><text class="m" x="670" y="376" font-size="10.5">eksik uzmanlık, darboğaz</text></g>
+          <g><rect x="656" y="400" width="268" height="58" rx="8" fill="var(--surface)" stroke="var(--plan)" stroke-dasharray="5 4" stroke-width="1.6"/><text x="670" y="424" font-weight="700" style="fill:var(--muted)">Quality office</text><text class="m" x="670" y="444" font-size="10.5">süreç kaydı, KVKK, lisans</text></g>
+        </g>
+      </svg>
+    </div>
+
+    <div class="only-narrow">
+      <div class="org">
+        <div class="group"><span class="label">Ürün hattı</span>
+          <div class="unit planned"><b>Product<span class="st off">planlı</span></b><span class="s">piyasa, yol haritası</span></div>
+          <div class="unit built"><b>Business analyst<span class="st on">hazır</span></b><span class="s">teknik spec</span></div>
+          <div class="unit built"><b>Spec critic<span class="st on">hazır</span></b><span class="s">boşluk arar, yazma yok</span></div>
+          <div class="unit planned"><b>Scout<span class="st off">planlı</span></b><span class="s">repo, API, MCP tarama</span></div>
+          <div class="unit planned"><b>Delivery<span class="st off">planlı</span></b><span class="s">plan, issue, PR</span></div></div>
+        <div class="group"><span class="label">Üretim</span>
+          <div class="unit built"><b>.NET engineer<span class="st on">hazır</span></b><span class="s">imzalıysa yazar</span></div>
+          <div class="unit planned"><b>React engineer<span class="st off">planlı</span></b><span class="s">arayüz, durumlar</span></div>
+          <div class="unit built"><b>QA engineer<span class="st on">hazır</span></b><span class="s">kanıt tablosu</span></div>
+          <div class="unit planned"><b>AppSec, DevOps/SRE<span class="st off">planlı</span></b><span class="s">güvenlik, deploy, izleme</span></div>
+          <div class="unit planned"><b>Marketing, Tech comms<span class="st off">planlı</span></b><span class="s">mağaza, görsel, sunum</span></div></div>
+        <div class="group"><span class="label">Yönetişim ve kapılar</span>
+          <div class="unit built"><b>Internal audit<span class="st on">hazır</span></b><span class="s">bağımsız, yazma yok</span></div>
+          <div class="unit planned"><b>Architecture board<span class="st off">planlı</span></b><span class="s">gereksiz teknolojiyi engeller</span></div>
+          <div class="unit planned"><b>Talent &amp; capacity<span class="st off">planlı</span></b><span class="s">eksik uzmanlık</span></div>
+          <div class="unit planned"><b>Quality office<span class="st off">planlı</span></b><span class="s">süreç kaydı, KVKK, lisans</span></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-sim">
+    <p class="label">Kapı nasıl çalışır · simülasyon</p>
+    <h2 id="h-sim">İmza yoksa çalışma alanı kilitli</h2>
+    <p class="cap">Bu bir talimat değil, işletim sistemi kuralı. Düğmelerle dene.</p>
+    <div class="sim">
+      <div class="panel">
+        <span class="label">Konteynerdeki çalışma alanı</span>
+        <div class="tiles" id="tiles" aria-live="polite"></div>
+        <div class="btns">
+          <button type="button" id="b-src">src/ içine yaz</button>
+          <button type="button" id="b-fake">Sahte imza yaz</button>
+          <button type="button" id="b-edit">İmzalı spec'e satır ekle</button>
+          <button type="button" id="b-sign" class="primary">CEO: imzala</button>
+          <button type="button" id="b-reset">Sıfırla</button>
+        </div>
+        <p class="note">Simülasyon. Gerçek davranış Docker'da gerçek Claude ile ve 16 otomatik testle doğrulandı.</p>
+      </div>
+      <div class="panel" style="padding:0"><div class="console" id="con" role="log" aria-live="polite"></div></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-enf">
+    <p class="label">Neler zorlanıyor</p>
+    <h2 id="h-enf">Dört katmanlı savunma</h2>
+    <p class="cap">Bir katman delinse bile bir sonraki durdurur. Ortadaki, korunan şey: çalışma alanı.</p>
+    <div class="rings">
+      <svg viewBox="0 0 440 440" role="img" aria-label="İç içe dört halka: imza, konteyner bağlama, kapı, ağ; ortada çalışma alanı">
+        <circle cx="220" cy="220" r="210" fill="var(--ring4)"/>
+        <circle cx="220" cy="220" r="165" fill="var(--ring3)"/>
+        <circle cx="220" cy="220" r="120" fill="var(--ring2)"/>
+        <circle cx="220" cy="220" r="75" fill="var(--ring1)"/>
+        <circle cx="220" cy="220" r="40" fill="var(--surface)" stroke="var(--gate)" stroke-width="3"/>
+        <g style="color:var(--gate)"><use href="#i-lock" x="204" y="196" width="32" height="32"/></g>
+        <text class="m" x="220" y="244" font-size="9.5" text-anchor="middle">kod</text>
+        <g font-size="12.5" font-weight="700" text-anchor="middle">
+          <rect x="190" y="150" width="60" height="22" rx="11" fill="var(--surface)"/><text x="220" y="165">İmza</text>
+          <rect x="168" y="108" width="104" height="22" rx="11" fill="var(--surface)"/><text x="220" y="123">Konteyner</text>
+          <rect x="196" y="63" width="48" height="22" rx="11" fill="var(--surface)"/><text x="220" y="78">Kapı</text>
+          <rect x="202" y="18" width="36" height="22" rx="11" fill="var(--surface)"/><text x="220" y="33">Ağ</text>
+        </g>
+      </svg>
+      <div class="leg">
+        <div><i style="background:var(--ring1)"></i><p><b>İmza</b><span>Parola korumalı anahtar, konteynerde yok. İmza spec'in içeriğine bağlı; değişirse düşer.</span></p></div>
+        <div><i style="background:var(--ring2)"></i><p><b>Konteyner bağlama</b><span>İmza yoksa çalışma alanı salt-okunur. Hangi araçla denenirse denensin yazılamaz.</span></p></div>
+        <div><i style="background:var(--ring3)"></i><p><b>Kapı</b><span>Claude'a nedenini söyleyen hook. Bozuk girdide veya hatada engeller.</span></p></div>
+        <div><i style="background:var(--ring4)"></i><p><b>Ağ</b><span>İçerisi kapalı; yalnızca model hizmetine açılan bir vekil. 25 bağlantıdan 25'i oraya.</span></p></div>
+      </div>
+    </div>
+    <div class="bar" role="img" aria-label="9 kuraldan 6'sı zorlanıyor, 1'i kısmen, 1'i doğrulanıyor, 1'i yalnızca talimat">
+      <div class="b-enf">6 zorlanıyor</div><div class="b-part">1</div><div class="b-val">1</div><div class="b-doc">1</div>
+    </div>
+    <div class="legend"><span>Dolu: araç engelliyor</span><span>Çizgili: kısmen</span><span>Beyaz: betik yakalıyor</span><span>Kesikli: yalnızca talimat ("bitti = taze kanıt")</span></div>
+  </section>
+
+  <section aria-labelledby="h-st">
+    <p class="label">Şu anki durum</p>
+    <h2 id="h-st">Temel kuruldu, ilk beş birim çalışıyor</h2>
+    <div class="dotsrow" style="margin-top:16px">
+      <div class="card"><div class="big">5<small> / 13 birim</small></div><div class="dots" data-total="13" data-on="5" role="img" aria-label="13 birimden 5'i hazır"></div><p>Her biri aynı 9 başlıklı kılavuzla.</p></div>
+      <div class="card"><div class="big">29<small> / 29 kontrol</small></div><div class="dots" data-total="29" data-on="29" role="img" aria-label="29 kontrolün 29'u yeşil"></div><p>13 biçim denetimi, 16 kapı testi.</p></div>
+      <div class="card"><div class="big">1<small> açık bulundu</small></div><div class="dots" data-total="1" data-on="1" role="img" aria-label="1 açık bulundu ve kapatıldı"></div><p>Bash ile yazma yolu. Gerçek ajanla bulundu, kapatıldı.</p></div>
+    </div>
+    <p class="label" style="margin-top:22px">Sıradaki</p>
+    <div class="next">
+      <div><b>Product, Delivery</b>Fikirden issue ve PR'a zincir</div>
+      <div><b>.NET imajı</b>Konteynerde derleme (şu an yalnızca Node)</div>
+      <div><b>Stop hook</b>"Kanıtsız bitti denmez" araçla</div>
+      <div><b>Kalan birimler</b>Kılavuzlarıyla birlikte</div>
+    </div>
+  </section>
+
+  <footer>Ayrıntılar depoda: README.md, docs/GEREKSINIM-ANALIZI.md, docs/KARARLAR.md. Bu sayfa tanıtımdır; imza simülasyonu gerçek bir imza işlemi değildir.</footer>
+</div>
+
+<script>
+(function () {
+  var state = { signed: false, edited: false };
+  var con = document.getElementById('con');
+  var tiles = document.getElementById('tiles');
+  function line(cls, text) {
+    var d = document.createElement('div'); d.className = cls; d.textContent = text; con.appendChild(d);
+    while (con.children.length > 12) con.removeChild(con.firstChild);
+  }
+  function tile(name, open, why) {
+    return '<div class="tile ' + (open ? 'open' : 'locked') + '"><svg viewBox="0 0 48 48" aria-hidden="true"><use href="#' + (open ? 'i-unlock' : 'i-lock') + '"/></svg>' +
+      '<span class="nm">' + name + '</span><span class="sv">' + (open ? 'yazılabilir' : 'salt-okunur') + (why ? '<br>' + why : '') + '</span></div>';
+  }
+  function validNow() { return state.signed && !state.edited; }
+  function render() {
+    var ok = validNow();
+    tiles.innerHTML = tile('specs/', true, 'taslak serbest') + tile('docs/', true, '') +
+      tile('src/', ok, ok ? 'imza geçerli' : (state.signed ? 'imza düştü' : 'imza yok')) +
+      tile('approvals/', false, 'yalnız CEO') + tile('.claude/', false, 'kılavuzlar') + tile('.git/hooks', false, '');
+  }
+  function say(cmd, ok, text) { line('cmd', '$ ' + cmd); line(ok ? 'ok' : 'no', text); }
+  document.getElementById('b-src').onclick = function () {
+    var ok = validNow();
+    say("printf 'hello' > src/hello.txt", ok, ok ? 'yazıldı: src/hello.txt' : 'sh: src/hello.txt: Read-only file system');
+  };
+  document.getElementById('b-fake').onclick = function () {
+    say("echo 'Approved by CEO' > approvals/0001.sig", false, 'sh: approvals/0001.sig: Read-only file system');
+  };
+  document.getElementById('b-edit').onclick = function () {
+    if (!state.signed) { say("echo 'AC-9' >> specs/active/0001.md", true, 'yazıldı (imza yokken taslak serbest)'); return; }
+    state.edited = true; render();
+    say("echo 'AC-9' >> specs/active/0001.md", true, 'yazıldı. Spec değişti: imza düştü, src/ yeniden kilitlendi.');
+  };
+  document.getElementById('b-sign').onclick = function () {
+    state.signed = true; state.edited = false; render();
+    say('harness/bin/approve.sh <proje>   # CEO, parola ile', true, 'imzalandı. Konteyner yeniden bağlanır: src/ yazılabilir.');
+  };
+  document.getElementById('b-reset').onclick = function () {
+    state.signed = false; state.edited = false; con.innerHTML = ''; render(); line('cmd', 'Başlangıç: spec imzasız.');
+  };
+  render(); line('cmd', 'Başlangıç: spec imzasız. Bir düğmeyi dene.');
+
+  var groups = document.querySelectorAll('.dots');
+  for (var g = 0; g < groups.length; g++) {
+    var total = +groups[g].getAttribute('data-total'), on = +groups[g].getAttribute('data-on');
+    for (var i = 0; i < total; i++) { var d = document.createElement('i'); if (i < on) d.className = 'on'; groups[g].appendChild(d); }
+  }
+})();
+</script>
