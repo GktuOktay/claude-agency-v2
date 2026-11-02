@@ -325,7 +325,7 @@ footer { padding-block: 36px 52px; color: var(--muted); font-size: 0.82rem; }
           <g><rect x="346" y="196" width="268" height="58" rx="8" fill="var(--auto-soft)" stroke="var(--auto)" stroke-width="2"/><circle cx="596" cy="212" r="5" fill="var(--auto)"/><text x="360" y="220" font-weight="700">.NET engineer</text><text class="m" x="360" y="240" font-size="10.5">imzalıysa yazar · sonnet</text></g>
           <g><rect x="346" y="264" width="268" height="58" rx="8" fill="var(--auto-soft)" stroke="var(--auto)" stroke-width="2"/><circle cx="596" cy="280" r="5" fill="var(--auto)"/><text x="360" y="288" font-weight="700">React engineer</text><text class="m" x="360" y="308" font-size="10.5">arayüz, durumlar · sonnet</text></g>
           <g><rect x="346" y="332" width="268" height="58" rx="8" fill="var(--auto-soft)" stroke="var(--auto)" stroke-width="2"/><circle cx="596" cy="348" r="5" fill="var(--auto)"/><text x="360" y="356" font-weight="700">QA engineer</text><text class="m" x="360" y="376" font-size="10.5">kanıt tablosu · yalnız test</text></g>
-          <g><rect x="346" y="400" width="268" height="58" rx="8" fill="var(--surface)" stroke="var(--plan)" stroke-dasharray="5 4" stroke-width="1.6"/><text x="360" y="424" font-weight="700" style="fill:var(--muted)">DevOps/SRE</text><text class="m" x="360" y="444" font-size="10.5">deploy, izleme, felaket</text></g>
+          <g><rect x="346" y="400" width="268" height="58" rx="8" fill="var(--auto-soft)" stroke="var(--auto)" stroke-width="2"/><circle cx="596" cy="416" r="5" fill="var(--auto)"/><text x="360" y="424" font-weight="700">DevOps/SRE</text><text class="m" x="360" y="444" font-size="10.5">hazırlar, deploy etmez · sonnet</text></g>
           <g><rect x="346" y="468" width="268" height="58" rx="8" fill="var(--surface)" stroke="var(--plan)" stroke-dasharray="5 4" stroke-width="1.6"/><text x="360" y="492" font-weight="700" style="fill:var(--muted)">Marketing, Tech comms</text><text class="m" x="360" y="512" font-size="10.5">mağaza, görsel, sunum</text></g>
 
           <g><rect x="656" y="196" width="268" height="58" rx="8" fill="var(--auto-soft)" stroke="var(--auto)" stroke-width="2"/><circle cx="906" cy="212" r="5" fill="var(--auto)"/><text x="670" y="220" font-weight="700">Internal audit</text><text class="m" x="670" y="240" font-size="10.5">bağımsız · yazma yok · opus</text></g>
@@ -349,7 +349,7 @@ footer { padding-block: 36px 52px; color: var(--muted); font-size: 0.82rem; }
           <div class="unit built"><b>.NET engineer<span class="st on">hazır</span></b><span class="s">imzalıysa yazar</span></div>
           <div class="unit built"><b>React engineer<span class="st on">hazır</span></b><span class="s">arayüz, durumlar</span></div>
           <div class="unit built"><b>QA engineer<span class="st on">hazır</span></b><span class="s">kanıt tablosu</span></div>
-          <div class="unit planned"><b>DevOps/SRE<span class="st off">planlı</span></b><span class="s">deploy, izleme, felaket</span></div>
+          <div class="unit built"><b>DevOps/SRE<span class="st on">hazır</span></b><span class="s">deploy paketi, yedek, izleme</span></div>
           <div class="unit planned"><b>Marketing, Tech comms<span class="st off">planlı</span></b><span class="s">mağaza, görsel, sunum</span></div></div>
         <div class="group"><span class="label">Yönetişim ve kapılar</span>
           <div class="unit built"><b>Internal audit<span class="st on">hazır</span></b><span class="s">bağımsız, yazma yok</span></div>
@@ -419,13 +419,13 @@ footer { padding-block: 36px 52px; color: var(--muted); font-size: 0.82rem; }
     <p class="label">Şu anki durum</p>
     <h2 id="h-st">Temel kuruldu, yedi birim çalışıyor</h2>
     <div class="dotsrow" style="margin-top:16px">
-      <div class="card"><div class="big">9<small> / 13 birim</small></div><div class="dots" data-total="13" data-on="9" role="img" aria-label="13 birimden 9'u hazır"></div><p>Her biri aynı 9 başlıklı kılavuzla.</p></div>
-      <div class="card"><div class="big">102<small> / 102 kontrol</small></div><div class="dots" data-total="102" data-on="102" role="img" aria-label="102 kontrolün 102'si yeşil"></div><p>30 biçim ve görsel kontrolü, 20 imza-kapı, 41 zarf, 11 kanıt-kancası testi.</p></div>
+      <div class="card"><div class="big">10<small> / 13 birim</small></div><div class="dots" data-total="13" data-on="10" role="img" aria-label="13 birimden 10'u hazır"></div><p>Her biri aynı 9 başlıklı kılavuzla.</p></div>
+      <div class="card"><div class="big">104<small> / 104 kontrol</small></div><div class="dots" data-total="104" data-on="104" role="img" aria-label="104 kontrolün 104'ü yeşil"></div><p>32 biçim ve görsel kontrolü, 20 imza-kapı, 41 zarf, 11 kanıt-kancası testi.</p></div>
       <div class="card"><div class="big">1<small> açık bulundu</small></div><div class="dots" data-total="1" data-on="1" role="img" aria-label="1 açık bulundu ve kapatıldı"></div><p>Bash ile yazma yolu. Gerçek ajanla bulundu, kapatıldı.</p></div>
     </div>
     <p class="label" style="margin-top:22px">Sıradaki</p>
     <div class="next">
-      <div><b>Scout, DevOps, Marketing</b>Kalan birimler, kılavuzlarıyla</div>
+      <div><b>Scout, Marketing, Architecture</b>Kalan birimler, kılavuzlarıyla</div>
       <div><b>.NET imajı</b>Konteynerde derleme (şu an yalnızca Node)</div>
       <div><b>Stop hook</b>"Kanıtsız bitti denmez" araçla</div>
       <div><b>Graphify imajda</b>Konteynerdeki ajan da grafiği sorgulasın</div>
