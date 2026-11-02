@@ -135,3 +135,7 @@ Eski kurulum: ~/.claude-backup-2026-11-01 (silme işlemi henüz yapılmadı).
 - Zorlama: `lint.js` `seccomp=unconfined`, `--privileged`, `--cap-add`, `--ipc=host`, `docker.sock` ve `visual-check.sh` dışında `--no-sandbox` kullanımını yasaklar.
 - **Ruling:** React engineer tarayıcıyı kendisi çalıştırmaz; ana oturum `visual-check.sh` ile çalıştırır — yanlışsa maliyet: bir adım daha. **CEO kararı gereken:** yeni bağımlılık (Playwright/Chromium/axe, +~630 MB) ve sandbox'sız Chromium'un ayrı konteynerde kullanımı.
 - **CEO kararı (2026-11-02):** yeni bağımlılık (Playwright/Chromium/axe) ve sandbox'sız Chromium'un yalnızca ayrı konteynerde kullanımı onaylandı.
+
+## Revizyon 13: CI ve birleştirme kapısı (2026-11-02)
+- CI: `.github/workflows/check.yml` her PR'da ve main'e push'ta `harness/bin/check` çalıştırır (salt-okuma yetki, sır yok, action commit SHA'sına sabit; `lint.js` zorlar). İlk koşu yeşil.
+- GitHub dal koruması özel depoda ücretsiz planda yok (API 403). **Ruling:** para harcamak (Pro) ve depoyu herkese açmak CEO kararı olduğu için yapılmadı; yerine ana makine kapısı: `guard.js` kontrolleri yeşil olmayan PR'ın `gh pr merge`'ünü reddeder (deny; main'e giden birleştirme ayrıca CEO onayı ister). Yanlışsa maliyet: GitHub arayüzünden elle birleştirme hâlâ mümkün.
