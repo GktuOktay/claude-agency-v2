@@ -11,7 +11,7 @@ Son güncelleme: 2026-11-02. Tek takip yeri bu dosya. İş bitince `[x]` yapıl�
 - [ ] **A5. Eski global kurulum:** `~/.claude` içindeki eski orchestrator ve skill'ler (32 adet, yedek `~/.claude-backup-2026-11-01`) devre dışı bırakılsın mı; yeni birimler her projede kullanılsın mı?
 - [x] **A6. Paket kayıtlarına çıkış:** CEO "bu sorunu çöz" dedi; karar: NuGet ve npm varsayılan açık, `COMPANY_REGISTRIES=none` ile kapanır (B1 PR'ında).
 - [ ] **A7. Docker Desktop güncellemesi:** sunucu sürümü 20.10.22 (2022).
-- [ ] **A8. GitHub koruması:** `main` dal koruması ve CI.
+- [x] **A8. GitHub koruması:** GitHub dal koruması bu planda yok (özel depo: GitHub Pro veya herkese açık depo gerekir; ikisi de CEO kararı). Yerine `guard.js` kırmızı/sürmekte olan CI ile `gh pr merge`'i reddeder (PR #12). Kalan boşluk: GitHub arayüzünden elle birleştirme. İstersen sonra: GitHub Pro (para harcama, CEO).
 - [ ] **A9. Denenecek adaylar:** Cloudflare güvenlik denetimi, Impeccable, taste-skill, Emil, REA (savunmacı), context7, Playwright/Chrome DevTools MCP. Hiçbiri denenmedi. Proje üzerinde çalışırken sırası gelince.
 - [x] **A10. Pilot iş:** ertelendi. CEO projeler üzerinde zamanla deneyecek.
 

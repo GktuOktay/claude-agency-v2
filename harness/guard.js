@@ -24,6 +24,18 @@ function prBase(arg, cwd) {
   } catch { return null; }
 }
 
+// CI state of a PR as a list of check results (conclusion, or status while running); null when unknown.
+// COMPANY_PR_CI="SUCCESS,FAILURE" overrides for tests.
+function prChecks(arg, cwd) {
+  if (process.env.COMPANY_PR_CI !== undefined) return process.env.COMPANY_PR_CI.split(",").map((s) => s.trim()).filter(Boolean);
+  try {
+    const a = ["pr", "view"]; if (arg) a.push(arg);
+    a.push("--json", "statusCheckRollup", "-q", '[.statusCheckRollup[] | (.conclusion // .status)] | join(",")');
+    return execFileSync("gh", a, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"], timeout: 15000 }).trim().split(",").filter(Boolean);
+  } catch { return null; }
+}
+const GOOD_CHECK = new Set(["SUCCESS", "SKIPPED", "NEUTRAL"]);
+
 // Remove heredoc bodies and quoted strings so words inside commit messages do not trigger rules.
 function strip(cmd) {
   let s = cmd.replace(/<<-?\s*['"]?(\w+)['"]?[\s\S]*?\n\s*\1(?=\s|$)/g, " ");
@@ -87,6 +99,9 @@ process.stdin.on("end", () => {
       const a = t.slice(ghi + 1);
       if (a[0] === "pr" && a[1] === "merge") {
         const target = a.slice(2).find((x) => !x.startsWith("-"));
+        // Branch protection is unavailable on this plan, so the guard is the merge gate: no merge unless CI is green.
+        const checks = prChecks(target, cwd);
+        if (checks && checks.length && checks.some((c) => !GOOD_CHECK.has(c.toUpperCase()))) deny("CI yeşil değil (" + [...new Set(checks)].join(", ") + "): kırmızı veya sürmekte olan PR birleştirilmez.");
         const base = prBase(target, cwd);
         if (base === null) ask("PR'ın taban dalı doğrulanamadı (fail closed).");
         else if (isProtected(base)) ask("main'e giden PR birleştirme.");
