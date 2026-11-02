@@ -6,11 +6,12 @@ HERE=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 REPO=$(dirname "$HERE")
 rc=0
 step() { echo "==> $1"; shift; "$@" || rc=1; echo; }
-step "shell syntax"            sh -c 'for f in '"$HERE"'/bin/*.sh '"$HERE"'/test/run.sh '"$HERE"'/test/guard.sh '"$HERE"'/test/image.sh; do sh -n "$f" || exit 1; done; echo "ok    all shell scripts parse"'
-step "node syntax"             sh -c 'for f in '"$HERE"'/approval.js '"$HERE"'/gate.js '"$HERE"'/guard.js '"$HERE"'/bin/lint.js '"$HERE"'/docker/proxy.js; do node --check "$f" || exit 1; done; echo "ok    all node scripts parse"'
+step "shell syntax"            sh -c 'for f in '"$HERE"'/bin/*.sh '"$HERE"'/test/run.sh '"$HERE"'/test/guard.sh '"$HERE"'/test/image.sh '"$HERE"'/test/stop.sh; do sh -n "$f" || exit 1; done; echo "ok    all shell scripts parse"'
+step "node syntax"             sh -c 'for f in '"$HERE"'/approval.js '"$HERE"'/gate.js '"$HERE"'/guard.js '"$HERE"'/stop.js '"$HERE"'/bin/lint.js '"$HERE"'/docker/proxy.js; do node --check "$f" || exit 1; done; echo "ok    all node scripts parse"'
 step "agents and playbooks"    node "$HERE/bin/lint.js"
 step "approval and gate tests" sh "$HERE/test/run.sh"
 step "envelope guard tests"    sh "$HERE/test/guard.sh"
+step "stop hook tests"         sh "$HERE/test/stop.sh"
 step "no secrets in the repo"  sh -c 'cd '"$REPO"' && ! grep -rIl --exclude-dir=.git --exclude-dir=node_modules -E "sk-ant-[A-Za-z0-9_-]{20,}|BEGIN (RSA |OPENSSH |ENCRYPTED )?PRIVATE KEY" . && echo "ok    no token or private key patterns"'
 if [ "$rc" -eq 0 ]; then echo "CHECK GREEN (full)"; else echo "CHECK FAILED" >&2; fi
 exit "$rc"

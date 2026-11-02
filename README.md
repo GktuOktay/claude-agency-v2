@@ -24,7 +24,7 @@ Tartışma ve araştırma → Spec paketi + eleştiri + ön görüş → CEO İM
 | Ajan kendi kılavuzunu değiştiremez | **Enforced** | `.claude/agents`, `.claude/skills` konteynerde salt-okunur bağlanır |
 | Yapan doğrulamaz | **Enforced** | `internal-auditor` ve `spec-critic` birimlerinin yazma aracı yok (`lint.js` denetler) |
 | Kılavuz biçimi standart | **Validated** | `harness/bin/lint.js` |
-| "Bitti = taze kanıt" | **Documented** | Anayasa + denetçi kılavuzu (henüz `Stop` hook'u ile zorlanmıyor) |
+| "Bitti = taze kanıt" | **Enforced** (kısmen) | `harness/stop.js` `Stop` kancası: tur kod dosyası değiştirdiyse ve sonrasında derleme/test/check çalışmadıysa turu bir kez geri çevirir; ya doğrula ya "doğrulanmadı" de. Sınır: `sed -i` gibi Bash ile yapılan düzenlemeleri görmez; kanıtın *geçtiğini* değil çalıştığını arar. Denetçi kılavuzu ikinci katman |
 | Zarf (main'e push/merge, release, silme, geri alınamaz git) | **Enforced** (kısmen) | Ana makinede `harness/guard.js` kancası bunları CEO onayına çevirir; başsız çalışmada reddedilir. Gerçek Claude'da `allow` kuralı varken bile engelledi (T-O, `docs/GEREKSINIM-ANALIZI.md` §12.2). Deploy ve mağaza gönderimi için henüz komut/araç yok |
 | Grafik ve görsel kullanımı | **Validated** (kısmen) | `lint.js`: spec şablonunda 4 diyagram yuvası, `site/*.html` için viewport, koyu tema, etiketli svg, izinli kaynaklar; `graphify-out/` git dışı. Gözle kontrol ve "kaynaksız sayı yok" talimat seviyesinde |
 
@@ -60,7 +60,6 @@ Ortak standartlar (tüm ilgili birimlere yüklenir): `graph-usage` (graphify), `
 ## Henüz yapılmadı
 
 - React engineer, AppSec, DevOps/SRE, Architecture board, Scout, Marketing, Quality office, Tech comms, Talent & capacity birimleri.
-- `Stop` hook'u ile "kanıtsız bitti denmez" zorlaması.
 - `company-run.sh` uçtan uca bu depodaki haliyle henüz çalıştırılmadı (belirteç silindi); önceki denemedeki sürümü çalıştı, bu sürümün sözdizimi ve bağımlı bileşenleri `check` ile doğrulandı.
 - Ana makine oturumlarında kılavuz/kancaları ajanın kendi değiştirmesini engelleyen ayar (`.claude/settings.json` ve `harness/` şu an ajan tarafından düzenlenebilir; yalnızca CEO onaylı oturumlarda güvenli).
 - Kendi kılavuzlarımız için değerlendirme setleri (SOP-04).
