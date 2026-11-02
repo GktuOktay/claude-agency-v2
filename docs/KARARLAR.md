@@ -107,3 +107,7 @@ Eski kurulum: ~/.claude-backup-2026-11-01 (silme işlemi henüz yapılmadı).
 - Kural 2 ("bitti = taze kanıt") artık araçla zorlanıyor: `harness/stop.js`. Tur kod dosyası değiştirdiyse ve son değişiklikten sonra derleme/test/check komutu çalışmadıysa tur bir kez geri çevrilir. Çıkış yolu dürüstlük: son mesajda "doğrulanmadı" demek serbest.
 - **Ruling:** kanca açık-başarısız (bozuk kanca oturumu kilitlememeli) ve `stop_hook_active` ile döngüsüz — yanlışsa maliyet: nadiren kanıtsız bitiş geçer; denetçi ikinci katman.
 - Bilinen sınır: Bash ile düzenleme (`sed -i`, yönlendirme) görülmez; testin geçtiği değil çalıştığı aranır.
+
+## Revizyon 8: React engineer (2026-11-02)
+- Yeni birim `react-engineer` (sonnet) + `react-engineering` kılavuzu. Eski `~/.claude/rules/frontend.md` kapıları (Zod doğrulama, kullanıcı dostu form mesajı, zarif bozulma, 60 fps, paket boyutu, LLM çıktısı doğrulama) kılavuza taşındı; üstüne ekran başına durum tablosu (yükleniyor/boş/hata/başarı/yetkisiz), erişilebilirlik, iki tema ve 375 px, istemci paketinde sır yok eklendi.
+- **Ruling:** Konteynerde tarayıcı yok, bu yüzden birim görsel doğrulama yapamaz; raporunda "görsel doğrulanmadı" listesi verir, gözle kontrolü ana oturum veya CEO yapar — yanlışsa maliyet: görsel hata geç yakalanır. Çözüm ileride: imaja Playwright eklemek (Architecture board kararı).
