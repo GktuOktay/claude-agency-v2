@@ -90,3 +90,9 @@ Eski kurulum: ~/.claude-backup-2026-11-01 (silme işlemi henüz yapılmadı).
 - Entegrasyon dalı düzeni (DEL-05): görev PR'ları `integration/NNNN-<ad>` dalına otonom, oradan `main`'e CEO onayıyla.
 - İki ortak standart (kural 8 ve 9): `graph-usage` (graphify: önce grafik, INFERRED kenar kanıt değil, yalnızca kod çıkarımı kota dostu, çıktı git dışı, sır dosyaları kapsam dışı) ve `visual-standards` (diyagram ne zaman zorunlu, anlamsal renk, iki tema, ikili görsel depoda yok, her sayı kaynaklı, sayfa gözle görülür).
 - Açık: graphify ve görsel araçlar ajan imajında yok (ENV-10); `.claude/settings.json` ve `harness/` ana makinede ajan tarafından düzenlenebilir (CEO onaylı oturum varsayımı).
+
+## Revizyon 5: CEO talimatları (2026-11-02)
+- **A1:** Push, PR ve birleştirmeyi CEO'ya bırakmadan asistan yapar. Birleştirme `main`'e gittiği için `guard.js` onay penceresi gösterir; CEO'nun sohbetteki açık talimatı bunun gerekçesidir, kancayı aşmak yok.
+- **A2: parola yok.** Spec imzası için parola girilmeyecek. Yeni model: özel anahtar parolasız (`~/.company/keys/ceo.key.pem`, mod 600, repo ve konteyner dışı); imza komutları ve anahtara dokunan her komut `guard.js` ile CEO kararına bağlı (uygulama onay penceresi = tek tık). Başsız çalışma imzalayamaz. Taviz: ana makinedeki oturum anahtarı rastgele kodla okuyabilir; bu risk "CEO gözetimindeki ana oturum güvenilir" varsayımıyla kabul edildi. Daha sıkı yol (sonradan): `ceo-keygen.sh --passphrase` veya Touch ID.
+- **A10:** Pilot iş şimdi yok; CEO projeler üzerinde zamanla deneyecek.
+- Not: gerçek CEO anahtarı üretimi otomatik mod sınıflandırıcısı tarafından engellendi; anahtar CEO'nun kendi komutuyla üretilecek.

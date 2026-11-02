@@ -38,5 +38,14 @@ t "no terminal and no test mode cannot sign"        3 "$( cd "$WS" && env -u COM
 mkdir -p "$WS/specs/active"; cp "$WS/specs/active/0001.md" "$WS/specs/active/0002.md"
 t "two active specs: code write blocked"            2 "$(gate Write "$WS/src/app.cs")"
 
+# passwordless key: signs without a terminal; the gate accepts it (presence proof is guard.js on the host)
+node "$HERE/approval.js" keygen "$T/plain" --no-passphrase >/dev/null
+WS2="$T/ws2"; mkdir -p "$WS2/specs/active" "$WS2/approvals" "$WS2/src"; printf '# Spec 2\n' > "$WS2/specs/active/0002.md"
+gate2() { printf '{"tool_name":"Write","cwd":"%s","tool_input":{"file_path":"%s"}}' "$WS2" "$WS2/src/app.cs" | COMPANY_PUBKEY="$T/plain/ceo.pub.pem" node "$HERE/gate.js" >/dev/null 2>&1; echo $?; }
+t "plain key: code blocked before signing"            2 "$(gate2)"
+t "plain key: signs without terminal or passphrase"   0 "$( cd "$WS2" && env -u COMPANY_TEST_MODE -u COMPANY_TEST_PASSPHRASE node "$HERE/approval.js" sign specs/active/0002.md approvals "$T/plain/ceo.key.pem" </dev/null >/dev/null 2>&1; echo $?)"
+t "plain key: signature accepted by the gate"         0 "$(gate2)"
+t "plain key file is not PEM-encrypted"               0 "$(grep -c ENCRYPTED "$T/plain/ceo.key.pem")"
+
 echo; if [ "$fail" -eq 0 ]; then echo "HARNESS TESTS GREEN: $pass passed, 0 failed"; else echo "HARNESS TESTS FAILED: $pass passed, $fail failed"; fi
 [ "$fail" -eq 0 ]

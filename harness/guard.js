@@ -48,6 +48,7 @@ process.stdin.on("end", () => {
   const full = String((ev.tool_input && ev.tool_input.command) || "");
   const cwd = ev.cwd || process.cwd();
   const cleaned = strip(full);
+  const noHeredoc = full.replace(/<<-?\s*['"]?(\w+)['"]?[\s\S]*?\n\s*\1(?=\s|$)/g, " ");
 
   // Commands that run other commands hide intent: scan the raw text too.
   const opaque = /\b(?:bash|sh|zsh)\s+-c\b|\beval\b|\bxargs\b|\$\(|`/.test(cleaned);
@@ -55,6 +56,7 @@ process.stdin.on("end", () => {
   const views = opaque ? [cleaned, full.replace(/["'`()]/g, " ").replace(/\$\s/g, " ")] : [cleaned];
   const branch = currentBranch(cwd);
 
+  if (/\.company\b|ceo\.key|approval\.js\s+(sign|keygen)|\bapprove\.sh\b|ceo-keygen/.test(noHeredoc)) ask("CEO imzası, CEO anahtarı veya ajan belirteci. Bu penceredeki onay, imzanın kendisidir.");
   if (/--no-verify\b/.test(full) && /\bgit\b/.test(full)) deny("--no-verify yasak: kancaları ve CI'ı atlatmak anayasaya aykırı.");
 
   for (const v of views) for (const seg of segments(v)) {

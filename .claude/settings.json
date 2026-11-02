@@ -1,4 +1,7 @@
 {
+  "permissions": {
+    "deny": ["Read(~/.company/**)", "Edit(~/.company/**)", "Write(~/.company/**)"]
+  },
   "hooks": {
     "PreToolUse": [
       {

@@ -484,3 +484,13 @@ Kaynak: CEO "graphify ve grafik kullanımlarını kural haline getirelim". Stand
 | T-P | Sayfa: yerel sunucuda masaüstü ve 375 px ekran görüntüsü, simülatör mantığı, taşma ölçümü | Geçti. İlk denemede `viewport` etiketi yoktu (yerel dosya 980 px çiziyordu); eklendi. |
 
 Not: guard'ın `ask` kararı etkileşimli oturumda CEO'ya onay sorusu olarak gelir; bu yolu (CEO "evet" der) ayrıca denemedim.
+
+### 12.3 Parolasız onay (CEO talimatı: "imza için parola girmek istemiyorum")
+| ID | Gereksinim | Ö | Z |
+|---|---|---|---|
+| ENV-04 (revize) | Onay: (a) CEO özel anahtarıyla spec içeriğine bağlı imza; anahtar parolasız olabilir, repo ve konteyner dışındadır. (b) İmza dizini ajana salt-okunur. (c) Ana makinede imza komutu, anahtar dosyası ve belirteç dosyası `guard.js` ile CEO kararına bağlıdır: uygulamanın onay penceresine tıklamak imzanın kendisidir; başsız çalışma imzalayamaz. | M | E (konteyner), kısmen (ana makine) |
+| SEC-01 (revize) | Konteynerdeki ajan imzayı taklit edemez. Ana makinede oturumdaki ajan anahtar dosyasını rastgele kodla okuyabilir; bu risk "CEO gözetimindeki ana oturum güvenilirdir" varsayımıyla kabul edilir. Sıkılaştırma yolu: `ceo-keygen.sh --passphrase` veya Touch ID. | M | kısmen |
+| SEC-12 | Anahtar, belirteç ve `~/.company` ile ilgili her komut `guard.js` ile onaya bağlanır; `Read/Edit/Write(~/.company/**)` yasaktır. | M | E |
+
+Yeni testler: parolasız anahtar terminalsiz imzalar ve kapı kabul eder (4 test, `harness/test/run.sh`); anahtar, imza ve `~/.company` komutları onaya bağlanır, doğrulama serbest (8 test, `harness/test/guard.sh`). Toplam bu değişiklikte: 24 biçim/görsel + 20 imza-kapı + 41 zarf = 85 kontrol (ajan imajı denetimi ikinci PR'da eklenir).
+Not: gerçek CEO anahtarının üretimi otomatik mod sınıflandırıcısı tarafından engellendi ("tehlikeli"); anahtar CEO'nun kendi komutuyla üretilecek.
