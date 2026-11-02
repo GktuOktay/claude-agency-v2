@@ -102,3 +102,8 @@ Eski kurulum: ~/.claude-backup-2026-11-01 (silme işlemi henüz yapılmadı).
 - **A6:** NuGet ve npm çıkışı varsayılan açık (`COMPANY_REGISTRIES`, varsayılan `nuget,npm`; `none` kapatır). Deneyle doğrulandı: NuGet için yalnızca `api.nuget.org`, npm için `registry.npmjs.org` gerekti; diğer adresler kapalı kaldı. Risk: indirilen paket konteynerde çalışır; sınır: konteynerde belirteçten başka sır yok, başka çıkış yok, canlıya denetim ve CEO onayı olmadan hiçbir şey çıkmaz.
 - GFY-07 / ENV-10 / ENV-11 kapandı: graphify ve .NET artık imajda.
 - CEO anahtarı üretildi (A2); genel anahtar `harness/keys/ceo.pub.pem`.
+
+## Revizyon 7: Stop kancası (2026-11-02)
+- Kural 2 ("bitti = taze kanıt") artık araçla zorlanıyor: `harness/stop.js`. Tur kod dosyası değiştirdiyse ve son değişiklikten sonra derleme/test/check komutu çalışmadıysa tur bir kez geri çevrilir. Çıkış yolu dürüstlük: son mesajda "doğrulanmadı" demek serbest.
+- **Ruling:** kanca açık-başarısız (bozuk kanca oturumu kilitlememeli) ve `stop_hook_active` ile döngüsüz — yanlışsa maliyet: nadiren kanıtsız bitiş geçer; denetçi ikinci katman.
+- Bilinen sınır: Bash ile düzenleme (`sed -i`, yönlendirme) görülmez; testin geçtiği değil çalıştığı aranır.

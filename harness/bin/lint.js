@@ -106,6 +106,9 @@ try {
   const pre = JSON.stringify((hs.hooks && hs.hooks.PreToolUse) || []);
   if (!/guard\.js/.test(pre)) fail(".claude/settings.json: guard hook (harness/guard.js) is not wired for Bash");
   else ok(".claude/settings.json: envelope guard wired for Bash");
+  const stop = JSON.stringify((hs.hooks && hs.hooks.Stop) || []);
+  if (!/stop\.js/.test(stop)) fail(".claude/settings.json: Stop hook (harness/stop.js) is not wired");
+  else ok(".claude/settings.json: evidence (Stop) hook wired");
 } catch (e) { fail(".claude/settings.json: " + e.message); }
 
 // --- visual standards (SOP: visual-standards)
