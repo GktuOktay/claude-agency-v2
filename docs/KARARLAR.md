@@ -123,3 +123,9 @@ Eski kurulum: ~/.claude-backup-2026-11-01 (silme işlemi henüz yapılmadı).
 - **Birim deploy etmez.** Canlı sunucuya/Cloudflare'a/Plesk'e dokunacak aracı yok (`ssh`, `scp`, `curl`, `docker push` kapalı); deploy paketi hazırlar, CEO tek tek onaylar (kural 4). Deploy ve mağaza gönderimi için gerçek araç ve zorlama hâlâ açık iş (B13).
 - **Ruling:** Hedef sunucu bilgisi yokken uydurmak yasak, Tip 1 olarak sorulur — yanlışsa maliyet: yanlış hedefe hazırlanmış paket.
 - Bilinen sınır: gerçek bir Plesk/Cloudflare kurulumunda denenmedi; ilk gerçek yayında kılavuz düzeltilecek.
+
+## Revizyon 11: Scout (2026-11-02)
+- Yeni birim `scout` (sonnet) + `scouting` kılavuzu: ihtiyacı ölçülebilir kriterlere çevirir, en az 3 adayı en az 2 kaynak türünden tarar, her adayı aynı tabloyla (uyum, lisans, bakım, güvenlik, maliyet, yığın uyumu, çıkış maliyeti) kaynaklı değerlendirir; MCP/plugin/skill adaylarında yetki ve veri akışını yazar. Çıktı: `docs/scout/` raporu, `KULLAN / DENE / KULLANMA / SIFIRDAN YAZ`.
+- **Scout hiçbir şey kurmaz, indirmez, çalıştırmaz: Bash'i yok.** Yeni kural `lint.js`'te: web araçları olan birimde Bash olamaz (web içeriği komuta dönüşmesin). Web araçları yalnızca Product ve Scout'ta.
+- **Ruling:** Yazma yeri `docs/scout/` ile sınırlı, bu talimat + imzasız kipte `docs/` dışı salt-okunur olması ile sağlanıyor; araç düzeyinde alt klasör kısıtı yok — yanlışsa maliyet: rapor başka bir `docs/` yoluna yazılabilir (düşük).
+- Bilinen sınır: ilk gerçek taramada (ör. ücretsiz API arama) kalitesi ölçülecek.

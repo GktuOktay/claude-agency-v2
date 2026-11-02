@@ -98,7 +98,13 @@ for (const f of fs.existsSync(agentsDir) ? fs.readdirSync(agentsDir).filter((x) 
   const web = tools.filter((t) => t === "WebFetch" || t === "WebSearch");
   if (web.length && !WEB_OK.has(p.fm.name)) fail(`agents/${f}: web tools (${web.join(",")}) only for ${[...WEB_OK].join(", ")}`);
 }
-ok("web tools limited to research units");
+for (const f of fs.existsSync(agentsDir) ? fs.readdirSync(agentsDir).filter((x) => x.endsWith(".md")) : []) {
+  const p = frontmatter(path.join(agentsDir, f));
+  if (!p) continue;
+  const tools = (p.fm.tools || "").split(",").map((s) => s.trim());
+  if (tools.some((t) => t === "WebFetch" || t === "WebSearch") && tools.includes("Bash")) fail(`agents/${f}: web tools and Bash together (web content could become commands)`);
+}
+ok("web tools limited to research units, never combined with Bash");
 
 // --- host guard wired into project settings (envelope on the host)
 try {
