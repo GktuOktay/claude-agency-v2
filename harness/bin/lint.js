@@ -189,6 +189,35 @@ try {
   if (bad.length) fail("CI workflows: " + bad.join("; ")); else ok("CI workflows: actions pinned to SHAs, read-only permissions, no secrets, no dangerous triggers");
 }
 
+// playbook evaluation sets (SOP-04): every unit playbook has a set of >=3 cases that checks itself
+{
+  const evalMod = require("./eval.js"); const bad = [];
+  const unitSkills = new Set();
+  for (const f of fs.existsSync(agentsDir) ? fs.readdirSync(agentsDir).filter((x) => x.endsWith(".md")) : []) {
+    const p = frontmatter(path.join(agentsDir, f)); if (p && (p.fm.skills || [])[0]) unitSkills.add(p.fm.skills[0]);
+  }
+  for (const s of unitSkills) {
+    const file = path.join(ROOT, "evals", s + ".md");
+    if (!fs.existsSync(file)) { bad.push(`evals/${s}.md missing`); continue; }
+    for (const pr of evalMod.validate(file)) bad.push(`evals/${s}.md: ${pr}`);
+  }
+  if (bad.length) fail("evaluation sets: " + bad.join("; ")); else ok(`evaluation sets: ${unitSkills.size} unit playbooks, each with >=3 self-checking cases`);
+}
+
+// notification and enforcement-file hooks, and the templates the processes rely on
+try {
+  const hs = JSON.parse(fs.readFileSync(path.join(ROOT, ".claude", "settings.json"), "utf8"));
+  const notif = JSON.stringify((hs.hooks && hs.hooks.Notification) || []);
+  if (!/notify\.js/.test(notif)) fail(".claude/settings.json: Notification hook (harness/notify.js) is not wired"); else ok(".claude/settings.json: CEO notification hook wired");
+  const pre = (hs.hooks && hs.hooks.PreToolUse) || [];
+  const fileGuard = pre.some((h) => /Write/.test(h.matcher || "") && /Edit/.test(h.matcher || "") && /guard\.js/.test(JSON.stringify(h.hooks || [])));
+  if (!fileGuard) fail(".claude/settings.json: enforcement files are not protected (guard.js must also be wired for Write|Edit)"); else ok(".claude/settings.json: enforcement files protected (Write|Edit through the guard)");
+} catch (e) { fail(".claude/settings.json: " + e.message); }
+for (const t of ["scorecard.md", "uyum-kontrol.md", "olay-postmortem.md", "destek-triyaj.md"]) {
+  if (!fs.existsSync(path.join(ROOT, "templates", t))) fail(`templates/${t} missing`);
+}
+ok("process templates present (scorecard, compliance, incident, support triage)");
+
 // graph output stays out of git
 const gi = fs.existsSync(path.join(ROOT, ".gitignore")) ? fs.readFileSync(path.join(ROOT, ".gitignore"), "utf8") : "";
 if (!/graphify-out/.test(gi)) fail(".gitignore: graphify-out/ must be ignored (derived output)"); else ok(".gitignore: graphify-out/ ignored");

@@ -40,8 +40,10 @@ CLAUDE_DIR=""
 [ -d "$REPO/.claude/agents" ] && CLAUDE_DIR="-v $REPO/.claude/agents:/home/node/.claude/agents:ro -v $REPO/.claude/skills:/home/node/.claude/skills:ro"
 [ -f "$REPO/CLAUDE.md" ] && CLAUDE_DIR="$CLAUDE_DIR -v $REPO/CLAUDE.md:/home/node/.claude/CLAUDE.md:ro"
 
+# The CEO is notified when a run ends, whatever the result (B7); the notifier fails open and never changes the exit code.
 # shellcheck disable=SC2086
-exec docker run --rm --network company-int --read-only --cap-drop ALL --security-opt no-new-privileges \
+rc=0
+docker run --rm --network company-int --read-only --cap-drop ALL --security-opt no-new-privileges \
   --user 1000:1000 --memory "${COMPANY_MEMORY:-4g}" --pids-limit 512 --cpus 2 \
   --tmpfs /tmp:rw,size=512m --tmpfs /home/node:rw,size=1g,uid=1000,gid=1000 \
   --tmpfs /home/node/.claude:rw,size=64m,uid=1000,gid=1000 -e HOME=/home/node \
@@ -51,4 +53,7 @@ exec docker run --rm --network company-int --read-only --cap-drop ALL --security
   $WSMOUNT -v "$WS/approvals":/work/approvals:ro \
   -v "$HERE":/harness:ro $CLAUDE_DIR -w /work \
   "$IMAGE" claude -p "$TASK" --model "$MODEL" --max-turns "${COMPANY_MAX_TURNS:-12}" \
-  --settings /harness/container-settings.json --permission-mode acceptEdits $AGENTFLAG
+  --settings /harness/container-settings.json --permission-mode acceptEdits $AGENTFLAG || rc=$?
+if [ "$rc" = 0 ]; then node "$HERE/notify.js" "Şirket: koşu bitti" "$(basename "$WS") (mod: $MODE)" || true
+else node "$HERE/notify.js" "Şirket: koşu DURDU" "$(basename "$WS") çıkış kodu $rc, durum için STATE.md" || true; fi
+exit "$rc"

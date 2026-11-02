@@ -16,6 +16,25 @@
             "command": "node \"$CLAUDE_PROJECT_DIR/harness/guard.js\""
           }
         ]
+      },
+      {
+        "matcher": "Write|Edit|MultiEdit|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/harness/guard.js\""
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/harness/notify.js\""
+          }
+        ]
       }
     ],
     "Stop": [
