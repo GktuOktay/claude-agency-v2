@@ -19,7 +19,7 @@ Son güncelleme: 2026-11-02. Tek takip yeri bu dosya. İş bitince `[x]` yapıl�
 
 - [x] **B1. Ajan imajı:** .NET 10 SDK + Node + Claude Code 2.1.316 + graphify 0.9.54, etiket `:dev`; 9 imaj testi yeşil (PR #2). NuGet için yalnızca `api.nuget.org` yetti.
 - [x] **B2. `Stop` hook'u:** `harness/stop.js` + 11 test (PR #3). Sınırı: Bash ile yapılan düzenlemeleri ve testin geçip geçmediğini görmez.
-- [ ] **B3. Kalan birimler:** React engineer (eski `~/.claude/rules/frontend.md` kalite kapılarını temel alır), AppSec, DevOps/SRE, Scout, Architecture board, Talent & capacity, Quality office, Marketing, Tech comms.
+- [ ] **B3. Kalan birimler** (React engineer bitti, PR #4; eski `frontend.md` kapıları kılavuza girdi): AppSec, DevOps/SRE, Scout, Architecture board, Talent & capacity, Quality office, Marketing, Tech comms.
 - [ ] **B4. CI:** GitHub Actions ile `harness/bin/check`.
 - [ ] **B5. `company-run.sh` uçtan uca koşu** (belirteç + anahtar sonrası).
 - [ ] **B6. Kılavuz değerlendirme setleri** (SOP-04).
