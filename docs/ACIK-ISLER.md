@@ -30,7 +30,7 @@ Son güncelleme: 2026-11-02. Tek takip yeri bu dosya. İş bitince `[x]` yapıl�
 - [x] **B11. Ana makine sertleştirmesi:** `guard.js` artık `Write|Edit` ve Bash yazmalarında zorlama dosyalarını (guard/gate/stop/approval.js, keys, container-settings, `.claude/settings*.json`, CLAUDE.md, approvals, CI iş akışları) CEO onayına bağlar. Bilinen açık: `python -c` veya `node -e` ile satır içi yazma yakalanmaz.
 - [ ] **B12. Kancanın etkileşimli yolu:** "sor" der, sen "evet" dersin. Gerçek oturumda denemek gerekir: canlı test, yapılmadı (kancanın JSON çıktısı birim testlerle doğrulandı).
 - [x] **B13. Deploy ve mağaza gönderimi araçları:** `guard.js` ssh/scp/rsync, docker push, npm/nuget yayın, bulut CLI'ları, kubectl/terraform, fastlane/altool, dış adrese POST ve posta komutlarını tek tek CEO onayına bağlar. Gerçek deploy aracı yok (DevOps paket hazırlar). Kapsam listesi isme dayalı; yeni araç eklenince listeye girmeli.
-- [x] **B15. Konteynerde görsel doğrulama:** denendi ve uygulandı (`harness/bin/visual-check.sh`, ayrı ağsız konteyner, AppSec seçenek C2; 12 imaj testi yeşil). **CEO onayladı (2026-11-02):** (1) Playwright + Chromium + axe yeni bağımlılığı ve ~+630 MB imaj, (2) sandbox'sız Chromium yalnızca ayrı konteynerde. Sonuç: `docs/ops/2026-11-02-gorsel-dogrulama-deneme.md`. Kalan: x64'te ölçüm, `npm audit`, özel seccomp (D) isteğe bağlı, axe MPL-2.0 hukuk teyidi.
+- [x] **B15. Konteynerde görsel doğrulama:** denendi ve uygulandı (`harness/bin/visual-check.sh`, ayrı ağsız konteyner, AppSec seçenek C2; 12 imaj testi yeşil). **CEO onayladı (2026-11-02):** (1) Playwright + Chromium + axe yeni bağımlılığı ve ~+630 MB imaj, (2) sandbox'sız Chromium yalnızca ayrı konteynerde. Sonuç: `docs/ops/2026-11-02-gorsel-dogrulama-deneme.md`. Kalan: x64'te ölçüm, özel seccomp (D) isteğe bağlı, axe MPL-2.0 hukuk teyidi.
 - [x] **B16. Tanıtım sayfası erişilebilirliği:** `html-has-lang` ve `color-contrast` düzeltildi; `visual-check.sh` ile iki temada axe 0 ihlal; eski parola ve test sayısı metinleri güncellendi. Ayrıca Playwright/Chromium yama takvimi (S-04).
 - [x] **B14. Hukuk/Uyum ve Operasyon süreçleri:** `docs/surecler/` (iki akış diyagramlı belge) + şablonlar (`uyum-kontrol`, `olay-postmortem`, `destek-triyaj`) + Kalite ofisi birimi. İzleme/uyarı aracı ve gerçek olay denemesi yok.
 
@@ -40,7 +40,7 @@ Son güncelleme: 2026-11-02. Tek takip yeri bu dosya. İş bitince `[x]` yapıl�
 - Konteynere verilen Claude belirteci ajan tarafından teorik olarak okunabilir; belirteç yalnızca model isteği atar, bir yıl geçerlidir.
 - Çalışma alanındaki `.git/config` yazılabilir. Vekil yalnızca ana ad ve portu görür. Docker Desktop VM yalıtımı çekirdek açıklarına karşı sınır değildir.
 - Denemeler küçük modelle ve basit görevlerle yapıldı.
-- graphify'ın sır dosyalarını dışlayan ayarı doğrulanmadı.
+- graphify: yalnızca kod grafiği (`graphify update`, LLM'siz) `.env` ve `secrets.yml` içeriğini ve adlarını çıktıya almadı (2026-11-02, deneme). Doküman/anlamsal çıkarım yolu sır dosyalarında denenmedi; o yol kota harcar ve kurala göre yalnızca bütçeyle çalışır.
 - Deny kurallarının dolanılabilirliği (T-E) çalıştırılmadı.
 
 ## D. Temizlik
