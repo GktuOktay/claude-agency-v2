@@ -1,0 +1,29 @@
+# CI: the same single verification command humans and agents use (harness/bin/check).
+# Builds and tests only. It never deploys, never publishes, and has no secrets and read-only repo access.
+name: check
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      # pinned to a commit (actions/checkout v7.0.1); update deliberately, not by floating tag
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Versions
+        run: node --version && git --version
+      - name: harness/bin/check
+        run: ./harness/bin/check
