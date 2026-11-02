@@ -130,7 +130,8 @@ Eski kurulum: ~/.claude-backup-2026-11-01 (silme işlemi henüz yapılmadı).
 - **Ruling:** Yazma yeri `docs/scout/` ile sınırlı, bu talimat + imzasız kipte `docs/` dışı salt-okunur olması ile sağlanıyor; araç düzeyinde alt klasör kısıtı yok — yanlışsa maliyet: rapor başka bir `docs/` yoluna yazılabilir (düşük).
 - Bilinen sınır: ilk gerçek taramada (ör. ücretsiz API arama) kalitesi ölçülecek.
 
-## Revizyon 12: Görsel doğrulama (2026-11-02, CEO onayı bekliyor)
+## Revizyon 12: Görsel doğrulama (2026-11-02, CEO onayladı)
 - Scout önerisi (Playwright + axe) denendi; Chromium sandbox'ı sertleştirilmiş ajan konteynerinde açılmıyor. AppSec seçenek C2'yi önerdi, uygulandı: sandbox'sız Chromium **yalnızca** ana makinenin başlattığı ayrı konteynerde (`harness/bin/visual-check.sh`: ağ yok, token yok, sayfa salt-okunur, zaman aşımı). `seccomp=unconfined` ajan konteynerinde reddedildi (YÜKSEK).
 - Zorlama: `lint.js` `seccomp=unconfined`, `--privileged`, `--cap-add`, `--ipc=host`, `docker.sock` ve `visual-check.sh` dışında `--no-sandbox` kullanımını yasaklar.
 - **Ruling:** React engineer tarayıcıyı kendisi çalıştırmaz; ana oturum `visual-check.sh` ile çalıştırır — yanlışsa maliyet: bir adım daha. **CEO kararı gereken:** yeni bağımlılık (Playwright/Chromium/axe, +~630 MB) ve sandbox'sız Chromium'un ayrı konteynerde kullanımı.
+- **CEO kararı (2026-11-02):** yeni bağımlılık (Playwright/Chromium/axe) ve sandbox'sız Chromium'un yalnızca ayrı konteynerde kullanımı onaylandı.

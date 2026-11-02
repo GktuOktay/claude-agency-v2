@@ -30,7 +30,7 @@ Son güncelleme: 2026-11-02. Tek takip yeri bu dosya. İş bitince `[x]` yapıl�
 - [ ] **B11. Ana makine sertleştirmesi:** `.claude/settings.json` ve `harness/` oturumdaki ajan tarafından düzenlenebilir.
 - [ ] **B12. Kancanın etkileşimli yolu:** "sor" der, sen "evet" dersin. Bu oturumda ilk kez yaşandı (push ve birleştirme sırasında), ama sistematik test edilmedi.
 - [ ] **B13. Deploy ve mağaza gönderimi araçları** (guard yalnızca git/gh için).
-- [ ] **B15. Konteynerde görsel doğrulama:** denendi ve uygulandı (`harness/bin/visual-check.sh`, ayrı ağsız konteyner, AppSec seçenek C2; 12 imaj testi yeşil). **CEO kararı bekliyor:** (1) Playwright + Chromium + axe yeni bağımlılığı ve ~+630 MB imaj, (2) sandbox'sız Chromium yalnızca ayrı konteynerde. Sonuç: `docs/ops/2026-11-02-gorsel-dogrulama-deneme.md`. Kalan: x64'te ölçüm, `npm audit`, özel seccomp (D) isteğe bağlı, axe MPL-2.0 hukuk teyidi.
+- [x] **B15. Konteynerde görsel doğrulama:** denendi ve uygulandı (`harness/bin/visual-check.sh`, ayrı ağsız konteyner, AppSec seçenek C2; 12 imaj testi yeşil). **CEO onayladı (2026-11-02):** (1) Playwright + Chromium + axe yeni bağımlılığı ve ~+630 MB imaj, (2) sandbox'sız Chromium yalnızca ayrı konteynerde. Sonuç: `docs/ops/2026-11-02-gorsel-dogrulama-deneme.md`. Kalan: x64'te ölçüm, `npm audit`, özel seccomp (D) isteğe bağlı, axe MPL-2.0 hukuk teyidi.
 - [ ] **B16. Tanıtım sayfası erişilebilirliği:** `html-has-lang` ve `color-contrast` (axe, serious); düzelt, `visual-check.sh` ile yeniden doğrula. Ayrıca Playwright/Chromium yama takvimi (S-04).
 - [ ] **B14. Hukuk/Uyum ve Operasyon süreçleri.**
 
