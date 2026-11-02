@@ -19,20 +19,20 @@ Son güncelleme: 2026-11-02. Tek takip yeri bu dosya. İş bitince `[x]` yapıl�
 
 - [x] **B1. Ajan imajı:** .NET 10 SDK + Node + Claude Code 2.1.316 + graphify 0.9.54, etiket `:dev`; 9 imaj testi yeşil (PR #2). NuGet için yalnızca `api.nuget.org` yetti.
 - [x] **B2. `Stop` hook'u:** `harness/stop.js` + 11 test (PR #3). Sınırı: Bash ile yapılan düzenlemeleri ve testin geçip geçmediğini görmez.
-- [ ] **B3. Kalan birimler** (React engineer, AppSec, DevOps/SRE, Scout bitti; PR #4-#7):  Architecture board, Talent & capacity, Quality office, Marketing, Tech comms.
+- [x] **B3. Kalan birimler:** Architecture board, Talent & capacity, Quality office, Marketing, Tech comms yazıldı (16 birim). Kılavuzlar gerçek işte denenmedi.
 - [x] **B4. CI:** `.github/workflows/check.yml` (PR #11), ilk koşu yeşil. Kırmızı CI birleştirmeyi henüz **engellemiyor**: dal koruması A8.
-- [ ] **B5. `company-run.sh` uçtan uca koşu** (belirteç + anahtar sonrası).
-- [ ] **B6. Kılavuz değerlendirme setleri** (SOP-04).
-- [ ] **B7. Durma bildirimi:** masaüstü bildirimi mekanizması.
-- [ ] **B8. Kota bekle-devam doğrulaması.**
-- [ ] **B9. Scorecard otomasyonu.**
-- [ ] **B10. Yazım araçları:** kısa konuşma modu sınırları, Türkçe humanizer, MCP/plugin danışmanlığı (Scout).
-- [ ] **B11. Ana makine sertleştirmesi:** `.claude/settings.json` ve `harness/` oturumdaki ajan tarafından düzenlenebilir.
-- [ ] **B12. Kancanın etkileşimli yolu:** "sor" der, sen "evet" dersin. Bu oturumda ilk kez yaşandı (push ve birleştirme sırasında), ama sistematik test edilmedi.
-- [ ] **B13. Deploy ve mağaza gönderimi araçları** (guard yalnızca git/gh için).
+- [ ] **B5. `company-run.sh` uçtan uca koşu** (belirteç + anahtar sonrası). **Canlı test: CEO ile birlikte, ayrı iş.**
+- [x] **B6. Kılavuz değerlendirme setleri:** `evals/` altında 16 set, her biri 3 vaka; set kendini sınar (`eval.js self`, `lint.js` CI'da çalıştırır). Gerçek birim çıktısını notlama (`eval.js grade`) canlı koşu gerektirir (B5 sonrası).
+- [x] **B7. Durma bildirimi:** `harness/notify.js` (`Notification` kancası + `company-run.sh` koşu sonu); macOS bildirimi, metin argüman olarak geçer, başarısızlıkta sessiz. Gerçek masaüstünde görsel bildirim denenmedi (testte sahte `osascript`).
+- [ ] **B8. Kota bekle-devam doğrulaması.** Gerçek kota dolumu gerektirir: canlı test, yapılmadı. Çıkış mesajı biçimi bilinmeden kod yazmak tahmin olurdu.
+- [x] **B9. Scorecard otomasyonu:** `templates/scorecard.md` (makine okur) + `harness/bin/scorecard.js` (özet, sapma, gürültü oranı, bozuk dosyada hata). Internal audit hâlâ scorecard'ı iş sonunda elle doldurur; otomatik doldurma yok.
+- [x] **B10. Yazım araçları:** `writing-standards` kılavuzu (kısa konuşma sınırı, Türkçe kalıplar) + `harness/bin/humanize-check.js` (mutlak iddia HATA, boş kalıp UYARI). MCP/plugin danışmanlığı Scout'ta zaten var. Sınır: kalıp listesi küçük, temiz çıkması metnin iyi olduğunu kanıtlamaz.
+- [x] **B11. Ana makine sertleştirmesi:** `guard.js` artık `Write|Edit` ve Bash yazmalarında zorlama dosyalarını (guard/gate/stop/approval.js, keys, container-settings, `.claude/settings*.json`, CLAUDE.md, approvals, CI iş akışları) CEO onayına bağlar. Bilinen açık: `python -c` veya `node -e` ile satır içi yazma yakalanmaz.
+- [ ] **B12. Kancanın etkileşimli yolu:** "sor" der, sen "evet" dersin. Gerçek oturumda denemek gerekir: canlı test, yapılmadı (kancanın JSON çıktısı birim testlerle doğrulandı).
+- [x] **B13. Deploy ve mağaza gönderimi araçları:** `guard.js` ssh/scp/rsync, docker push, npm/nuget yayın, bulut CLI'ları, kubectl/terraform, fastlane/altool, dış adrese POST ve posta komutlarını tek tek CEO onayına bağlar. Gerçek deploy aracı yok (DevOps paket hazırlar). Kapsam listesi isme dayalı; yeni araç eklenince listeye girmeli.
 - [x] **B15. Konteynerde görsel doğrulama:** denendi ve uygulandı (`harness/bin/visual-check.sh`, ayrı ağsız konteyner, AppSec seçenek C2; 12 imaj testi yeşil). **CEO onayladı (2026-11-02):** (1) Playwright + Chromium + axe yeni bağımlılığı ve ~+630 MB imaj, (2) sandbox'sız Chromium yalnızca ayrı konteynerde. Sonuç: `docs/ops/2026-11-02-gorsel-dogrulama-deneme.md`. Kalan: x64'te ölçüm, `npm audit`, özel seccomp (D) isteğe bağlı, axe MPL-2.0 hukuk teyidi.
 - [x] **B16. Tanıtım sayfası erişilebilirliği:** `html-has-lang` ve `color-contrast` düzeltildi; `visual-check.sh` ile iki temada axe 0 ihlal; eski parola ve test sayısı metinleri güncellendi. Ayrıca Playwright/Chromium yama takvimi (S-04).
-- [ ] **B14. Hukuk/Uyum ve Operasyon süreçleri.**
+- [x] **B14. Hukuk/Uyum ve Operasyon süreçleri:** `docs/surecler/` (iki akış diyagramlı belge) + şablonlar (`uyum-kontrol`, `olay-postmortem`, `destek-triyaj`) + Kalite ofisi birimi. İzleme/uyarı aracı ve gerçek olay denemesi yok.
 
 ## C. Bilinen sınırlar ve riskler
 

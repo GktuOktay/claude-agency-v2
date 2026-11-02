@@ -71,7 +71,52 @@ t "verifying a signature is allowed"         allow "$(run $F 'node harness/appro
 t "words about approve.sh in a heredoc ignored" allow "$(run $F "cat > note.md <<'EOF'
 approve.sh and ~/.company are described here
 EOF")"
-t "non-Bash tool is ignored"                 allow "$(printf '{"tool_name":"Read","cwd":"%s","tool_input":{}}' "$F" | node "$HERE/guard.js" >/dev/null 2>&1; echo allow)"
+# --- B13: deploy, publish, store and remote tools are CEO decisions, one by one
+t "ssh asks"                                 ask   "$(run $F 'ssh deploy@10.0.0.5 systemctl restart app')"
+t "scp asks"                                 ask   "$(run $F 'scp build.zip deploy@10.0.0.5:/var/www/')"
+t "rsync asks"                               ask   "$(run $F 'rsync -az dist/ deploy@10.0.0.5:/var/www/')"
+t "docker push asks"                         ask   "$(run $F 'docker push registry.example.com/app:1.2')"
+t "npm publish asks"                         ask   "$(run $F 'npm publish --access public')"
+t "dotnet nuget push asks"                   ask   "$(run $F 'dotnet nuget push pkg.nupkg -s https://api.nuget.org')"
+t "wrangler (Cloudflare) asks"               ask   "$(run $F 'npx wrangler pages deploy dist')"
+t "kubectl asks"                             ask   "$(run $F 'kubectl apply -f deploy.yaml')"
+t "terraform asks"                           ask   "$(run $F 'terraform apply -auto-approve')"
+t "fastlane (store upload) asks"             ask   "$(run $F 'fastlane deliver')"
+t "xcrun altool asks"                        ask   "$(run $F 'xcrun altool --upload-app -f app.ipa')"
+t "sudo does not hide ssh"                   ask   "$(run $F 'sudo ssh host uptime')"
+t "curl POST to an outside host asks"        ask   "$(run $F 'curl -X POST https://hooks.example.com/x -d @body.json')"
+t "curl --data to an outside host asks"      ask   "$(run $F 'curl --data a=b https://api.example.com/v1')"
+t "curl GET to an outside host is allowed"   allow "$(run $F 'curl -s https://example.com/status')"
+t "curl POST to localhost is allowed"        allow "$(run $F 'curl -X POST http://localhost:5000/api/items -d {}')"
+t "docker build is allowed"                  allow "$(run $F 'docker build -t app:dev .')"
+t "dotnet build is allowed"                  allow "$(run $F 'dotnet build')"
+t "npm test is allowed"                      allow "$(run $F 'npm test')"
+# --- B11: the files that enforce the envelope are not edited without the CEO
+runf() { # runf <tool> <path>
+  json=$(node -e 'process.stdout.write(JSON.stringify({hook_event_name:"PreToolUse",tool_name:process.argv[1],cwd:process.argv[3],tool_input:{file_path:process.argv[2]}}))' "$1" "$2" "$F")
+  out=$(printf '%s' "$json" | env PATH="$T/nogh-bin:/usr/bin:/bin:$(dirname "$(command -v node)")" node "$HERE/guard.js" 2>/dev/null); rc=$?
+  if [ "$rc" = 2 ]; then echo deny; return; fi
+  case "$out" in *'"permissionDecision":"ask"'*) echo ask;; "") echo allow;; *) echo error;; esac
+}
+t "Edit guard.js asks"                       ask   "$(runf Edit "$F/harness/guard.js")"
+t "Write gate.js asks"                       ask   "$(runf Write "$F/harness/gate.js")"
+t "Edit .claude/settings.json asks"          ask   "$(runf Edit "$F/.claude/settings.json")"
+t "Edit container-settings.json asks"        ask   "$(runf Edit "$F/harness/container-settings.json")"
+t "Write CLAUDE.md asks"                     ask   "$(runf Write "$F/CLAUDE.md")"
+t "Write into approvals/ asks"               ask   "$(runf Write "$F/approvals/0001.sig")"
+t "Edit a CI workflow asks"                  ask   "$(runf Edit "$F/.github/workflows/check.yml")"
+t "relative path to guard.js asks"           ask   "$(runf Edit harness/guard.js)"
+t "Edit a skill is allowed"                  allow "$(runf Edit "$F/.claude/skills/scouting/SKILL.md")"
+t "Edit a test script is allowed"            allow "$(runf Edit "$F/harness/test/guard.sh")"
+t "Write a doc is allowed"                   allow "$(runf Write "$F/docs/KARARLAR.md")"
+t "sed -i on guard.js asks"                  ask   "$(run $F "sed -i '' 's/a/b/' harness/guard.js")"
+t "redirect into settings.json asks"         ask   "$(run $F 'echo {} > .claude/settings.json')"
+t "cp over gate.js asks"                     ask   "$(run $F 'cp /tmp/x harness/gate.js')"
+t "rm of the public key asks"                ask   "$(run $F 'rm harness/keys/ceo.pub.pem')"
+t "reading guard.js is allowed"              allow "$(run $F 'cat harness/guard.js')"
+t "running guard tests is allowed"           allow "$(run $F 'sh harness/test/guard.sh')"
+t "commit message naming guard.js is allowed" allow "$(run $F 'git commit -m "fix: harness/guard.js handles x"')"
+t "non-Bash tool is ignored"                allow "$(printf '{"tool_name":"Read","cwd":"%s","tool_input":{}}' "$F" | node "$HERE/guard.js" >/dev/null 2>&1; echo allow)"
 t "garbage input fails closed"               deny  "$(printf 'not json' | node "$HERE/guard.js" >/dev/null 2>&1; [ $? = 2 ] && echo deny || echo other)"
 
 echo; if [ "$fail" -eq 0 ]; then echo "GUARD TESTS GREEN: $pass passed, 0 failed"; else echo "GUARD TESTS FAILED: $pass passed, $fail failed"; fi

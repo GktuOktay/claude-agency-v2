@@ -46,6 +46,19 @@ function strip(cmd) {
 function segments(s) { return s.split(/&&|\|\||;|\||\n/).map((x) => x.trim()).filter(Boolean); }
 function tokens(seg) { return seg.split(/\s+/).filter(Boolean).filter((t) => !/^\w+=/.test(t)); }
 
+// The files that enforce the envelope. A session that can rewrite them can lift its own limits (B11): changes need the CEO.
+const ENFORCEMENT = /(^|\/)(harness\/(guard|gate|stop|approval)\.js|harness\/keys\/|harness\/container-settings\.json|\.claude\/settings(\.local)?\.json|approvals\/|\.github\/workflows\/|CLAUDE\.md$)/;
+const FILE_TOOLS = new Set(["Write", "Edit", "MultiEdit", "NotebookEdit"]);
+const WRAPPERS = new Set(["sudo", "env", "time", "nohup", "command", "exec", "nice", "npx", "bunx"]);
+const baseCmd = (t) => { const c = t.find((x) => !WRAPPERS.has(x) && !x.startsWith("-")); return c ? path.basename(c) : ""; };
+const FILE_WRITERS = new Set(["cp", "mv", "rm", "ln", "chmod", "chown", "tee", "truncate", "dd", "install"]);
+// Deploy, publish, store and remote-access tools (B13). Each call is an envelope action: the CEO approves one by one.
+const REMOTE_BIN = new Set(["ssh", "scp", "sftp", "rsync", "sendmail", "mail", "mutt", "fastlane", "altool", "notarytool", "iTMSTransporter", "transporter",
+  "aws", "az", "gcloud", "vercel", "netlify", "firebase", "flyctl", "fly", "heroku", "wrangler", "cloudflared", "kubectl", "helm", "terraform", "pulumi", "eas", "appcenter"]);
+const PUBLISH = [["npm", "publish"], ["pnpm", "publish"], ["yarn", "publish"], ["dotnet", "nuget", "push"], ["nuget", "push"], ["twine", "upload"], ["cargo", "publish"],
+  ["docker", "push"], ["docker", "login"], ["xcrun", "altool"], ["xcrun", "notarytool"]];
+const LOCAL_HOST = /^(https?:\/\/)?(localhost|127\.0\.0\.1|\[::1\])([:\/]|$)/i;
+
 const ask = (why) => {
   process.stdout.write(JSON.stringify({ hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "ask", permissionDecisionReason: "CEO onayı gerekir: " + why } }));
   process.exit(0);
@@ -57,6 +70,11 @@ process.stdin.on("data", (d) => (raw += d));
 process.stdin.on("end", () => {
   let ev;
   try { ev = JSON.parse(raw); } catch { deny("unreadable hook input (fail closed)"); }
+  if (FILE_TOOLS.has(ev.tool_name)) {
+    const ti = ev.tool_input || {}; const p = String(ti.file_path || ti.notebook_path || "");
+    if (p && ENFORCEMENT.test(path.resolve(ev.cwd || process.cwd(), p))) ask("zorlama katmanı dosyası (" + path.basename(p) + "): bunu değiştirmek kendi sınırlarını değiştirmektir.");
+    process.exit(0);
+  }
   if (ev.tool_name !== "Bash") process.exit(0);
   const full = String((ev.tool_input && ev.tool_input.command) || "");
   const cwd = ev.cwd || process.cwd();
@@ -72,8 +90,24 @@ process.stdin.on("end", () => {
   if (/\.company\b|ceo\.key|approval\.js\s+(sign|keygen)|\bapprove\.sh\b|ceo-keygen/.test(noHeredoc)) ask("CEO imzası, CEO anahtarı veya ajan belirteci. Bu penceredeki onay, imzanın kendisidir.");
   if (/--no-verify\b/.test(full) && /\bgit\b/.test(full)) deny("--no-verify yasak: kancaları ve CI'ı atlatmak anayasaya aykırı.");
 
+  // Writes to the enforcement files through the shell (redirects, sed -i, cp, mv, rm ...). Inline interpreter writes are a known gap.
+  for (const seg of segments(noHeredoc.replace(/["'`]/g, " "))) {
+    const t = tokens(seg); const cmd = baseCmd(t);
+    const writes = FILE_WRITERS.has(cmd) || (cmd === "sed" && t.some((a) => /^(-[a-zA-Z]*i|--in-place)/.test(a))) || (cmd === "perl" && t.some((a) => /^-[a-zA-Z]*i/.test(a)));
+    if (writes && t.slice(1).some((a) => ENFORCEMENT.test(a))) ask("zorlama katmanı dosyasını değiştirme.");
+    for (const m of seg.matchAll(/>>?\s*(\S+)/g)) if (ENFORCEMENT.test(m[1])) ask("zorlama katmanı dosyasına yönlendirme.");
+  }
+
   for (const v of views) for (const seg of segments(v)) {
     const t = tokens(seg);
+    const bin = baseCmd(t); const rest = t.slice(t.findIndex((x) => path.basename(x) === bin) + 1);
+    if (REMOTE_BIN.has(bin)) ask("canlıya/uzak sisteme erişim veya dağıtım aracı (" + bin + ").");
+    for (const p of PUBLISH) if (bin === p[0] && p.slice(1).every((w, i) => rest[i] === w)) ask("paket/imaj yayını veya kayıt oturumu (" + p.join(" ") + ").");
+    if (bin === "curl" || bin === "wget") {
+      const writeCall = rest.some((a, i) => (/^(-X|--request)$/.test(a) && /^(POST|PUT|PATCH|DELETE)$/i.test(rest[i + 1] || "")) || /^(-d|--data(-\w+)?|-F|--form|-T|--upload-file|--json|--post-data|--post-file)(=|$)/.test(a));
+      const urls = rest.filter((a) => /^(https?:\/\/|[\w.-]+\.\w{2,}(\/|$))/.test(a) || LOCAL_HOST.test(a));
+      if (writeCall && urls.some((u) => !LOCAL_HOST.test(u))) ask("dış adrese veri gönderen/yazan HTTP çağrısı.");
+    }
     const gi = t.indexOf("git"); const ghi = t.indexOf("gh");
     if (gi >= 0) {
       const sub = t[gi + 1]; const args = t.slice(gi + 2);

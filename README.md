@@ -61,12 +61,16 @@ Ajan belirteci (`~/.company/agent.env`, mod 600) için `harness/README.md`'ye ba
 | `internal-auditor` | opus | yok | `internal-audit` |
 | `product-manager` | sonnet | yalnız `docs/product/` | `product-management` |
 | `delivery-manager` | sonnet | `plans/`, `STATE.md`, `docs/` | `delivery-management` |
+| `architecture-board` | opus | yalnız `docs/architecture/` (Bash yok) | `architecture-review` |
+| `talent-capacity` | sonnet | yalnız `docs/talent/` (Bash yok) | `talent-capacity` |
+| `quality-office` | sonnet | `docs/kalite/`, `docs/uyum/` (Bash salt-okuma) | `quality-compliance` |
+| `marketing` | sonnet | yalnız `docs/marka/` (Bash ve web yok; yayın CEO) | `marketing-brand` |
+| `tech-comms` | sonnet | yalnız `docs/dis/` (Bash ve web yok) | `technical-communication` |
 
-Ortak standartlar (tüm ilgili birimlere yüklenir): `graph-usage` (graphify), `visual-standards` (görsel dil).
+Ortak standartlar (tüm ilgili birimlere yüklenir): `graph-usage` (graphify), `visual-standards` (görsel dil), `writing-standards` (Türkçe yazım, `humanize-check.js`). Her birim kılavuzunun `evals/` altında kendini sınayan değerlendirme seti vardır.
 
 ## Henüz yapılmadı
 
-- Architecture board, Marketing, Quality office, Tech comms, Talent & capacity birimleri.
+- Birimlerin gerçek bir işte denenmesi (kılavuzlar ve değerlendirme setleri kâğıt üstünde sınandı, canlı çıktıyla notlanmadı).
 - `company-run.sh` uçtan uca bu depodaki haliyle henüz çalıştırılmadı (belirteç silindi); önceki denemedeki sürümü çalıştı, bu sürümün sözdizimi ve bağımlı bileşenleri `check` ile doğrulandı.
-- Ana makine oturumlarında kılavuz/kancaları ajanın kendi değiştirmesini engelleyen ayar (`.claude/settings.json` ve `harness/` şu an ajan tarafından düzenlenebilir; yalnızca CEO onaylı oturumlarda güvenli).
-- Kendi kılavuzlarımız için değerlendirme setleri (SOP-04).
+- Canlı testler: `company-run.sh` uçtan uca (B5), onay penceresinin gerçek oturumda denemesi (B12), kota bekle-devam (B8).

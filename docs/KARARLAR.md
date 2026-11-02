@@ -139,3 +139,12 @@ Eski kurulum: ~/.claude-backup-2026-11-01 (silme işlemi henüz yapılmadı).
 ## Revizyon 13: CI ve birleştirme kapısı (2026-11-02)
 - CI: `.github/workflows/check.yml` her PR'da ve main'e push'ta `harness/bin/check` çalıştırır (salt-okuma yetki, sır yok, action commit SHA'sına sabit; `lint.js` zorlar). İlk koşu yeşil.
 - GitHub dal koruması özel depoda ücretsiz planda yok (API 403). **Ruling:** para harcamak (Pro) ve depoyu herkese açmak CEO kararı olduğu için yapılmadı; yerine ana makine kapısı: `guard.js` kontrolleri yeşil olmayan PR'ın `gh pr merge`'ünü reddeder (deny; main'e giden birleştirme ayrıca CEO onayı ister). Yanlışsa maliyet: GitHub arayüzünden elle birleştirme hâlâ mümkün.
+
+## Revizyon 14: Kadro tamamlandı, araçlar ve sertleştirme (2026-11-02)
+- Beş yeni birim ve kılavuzu: `architecture-board` (opus; ortak karar: yeni teknoloji CEO'ya da gösterilir), `talent-capacity` (veriyle konuşur, n<3 ise eğilim çıkarmaz, rol eklemez), `quality-office` (izlenebilirlik + uyum, hukuki hüküm yok), `marketing` (iddia tablosu, yayın CEO), `tech-comms` (dış doküman kaynağı, biçim dönüşümü ana oturumda). Ortak standart `writing-standards`. Toplam 16 birim; hiçbirinde `Agent` aracı yok; web araçları yalnız Product ve Scout'ta; yeni birimlerin hiçbirinde web+Bash birlikte yok.
+- SOP-04: `evals/` altında 16 değerlendirme seti. **Ruling:** ölçütler mekanik (bölüm, regex, sayı) ve set kendini sınar (geçer örneği geçmeli, kalır örneği kalmalı); içeriğin doğruluğunu yargılamaz, onu Internal audit yapar — yanlışsa maliyet: ölçüt biçime bakar, kötü ama biçimli çıktı geçebilir.
+- B9, B10: `scorecard.js` ve `humanize-check.js` (kalıp listesi küçük; temiz çıkış kalite kanıtı değil).
+- B7: `notify.js` (`Notification` kancası + koşu sonu). B13: `guard.js` deploy/yayın/uzak erişim araçlarını tek tek CEO onayına bağlar. B11: zorlama dosyalarına yazma (Write/Edit ve Bash yönlendirme/sed -i/cp/mv/rm) CEO onayı ister.
+- **Ruling (Tip 2):** B11'de korunan liste yalnızca zorlama katmanı; `.claude/agents` ve `skills` korunmadı (ana oturum bunları sürekli düzenler, her seferinde onay istemek CEO'ya yük; konteynerde zaten salt-okunur). Yanlışsa maliyet: ana makinede bir kılavuz sessizce değişebilir; denetimi PR ve CI yapar.
+- Bilinen açıklar: satır içi yorumlayıcı yazmaları (`python -c`, `node -e`) yakalanmaz; deploy araç listesi isme dayalı. Canlı testler yapılmadı: B5, B8, B12.
+- **Not:** `.claude/settings.json` değişikliği (Write|Edit kancası ve Notification) bu oturumda yeniden başlatılana kadar geçerli olmayabilir.
