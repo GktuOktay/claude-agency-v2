@@ -36,6 +36,7 @@ Tartışma ve araştırma → Spec paketi + eleştiri + ön görüş → CEO İM
 ./harness/bin/check              # tek doğrulama komutu: biçim, testler, gizli bilgi taraması
 ./harness/bin/ceo-keygen.sh      # BİR KEZ: CEO anahtarı (parola yok; --passphrase ile korumalı varyant)
 docker build -t company-agent:dev harness/docker   # ajan imajı: .NET 10 SDK + Node + Claude Code + graphify (sürümler sabit)
+sh harness/test/e2e.sh           # ana makine→konteyner yolu, sahte claude ile (18 test; Docker ve vekil gerekir)
 sh harness/test/image.sh         # imaj doğrulaması (14 test; 6-8 için önce proxy-up.sh)
 ./harness/bin/visual-check.sh <sayfa-dizini> <çıktı-dizini>   # ayrı, ağsız konteynerde ekran görüntüsü + axe
 ./harness/bin/proxy-up.sh        # internal ağ + izinli listeli çıkış vekili

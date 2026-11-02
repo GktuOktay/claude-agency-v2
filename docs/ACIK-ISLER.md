@@ -21,7 +21,7 @@ Son güncelleme: 2026-11-02. Tek takip yeri bu dosya. İş bitince `[x]` yapıl�
 - [x] **B2. `Stop` hook'u:** `harness/stop.js` + 11 test (PR #3). Sınırı: Bash ile yapılan düzenlemeleri ve testin geçip geçmediğini görmez.
 - [x] **B3. Kalan birimler:** Architecture board, Talent & capacity, Quality office, Marketing, Tech comms yazıldı (16 birim). Kılavuzlar gerçek işte denenmedi.
 - [x] **B4. CI:** `.github/workflows/check.yml` (PR #11), ilk koşu yeşil. Kırmızı CI birleştirmeyi henüz **engellemiyor**: dal koruması A8.
-- [ ] **B5. `company-run.sh` uçtan uca koşu** (belirteç + anahtar sonrası). **Canlı test: CEO ile birlikte, ayrı iş.**
+- [ ] **B5. `company-run.sh` uçtan uca koşu.** Kısmen yapıldı: `harness/test/e2e.sh` bütün ana makine→konteyner yolunu sahte `claude` ile 18 testte doğruluyor (imza→bağlama kipi, imza sonrası spec değişirse plan kipine dönüş, approvals salt-okunur, token geçişi, vekil, doğrudan internet kapalı, çıkış kodu, gevşek token izni reddi). **Model davranışı doğrulanmadı:** gerçek token ve gerçek ajan koşusu hâlâ yok; token'ı yalnızca senin terminalin üretebilir (A3).
 - [x] **B6. Kılavuz değerlendirme setleri:** `evals/` altında 16 set, her biri 3 vaka; set kendini sınar (`eval.js self`, `lint.js` CI'da çalıştırır). Gerçek birim çıktısını notlama (`eval.js grade`) canlı koşu gerektirir (B5 sonrası).
 - [x] **B7. Durma bildirimi:** `harness/notify.js` (`Notification` kancası + `company-run.sh` koşu sonu); macOS bildirimi, metin argüman olarak geçer, başarısızlıkta sessiz. Gerçek masaüstünde görsel bildirim denenmedi (testte sahte `osascript`).
 - [ ] **B8. Kota bekle-devam doğrulaması.** Gerçek kota dolumu gerektirir: canlı test, yapılmadı. Çıkış mesajı biçimi bilinmeden kod yazmak tahmin olurdu.
