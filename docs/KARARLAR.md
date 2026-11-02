@@ -96,3 +96,9 @@ Eski kurulum: ~/.claude-backup-2026-11-01 (silme işlemi henüz yapılmadı).
 - **A2: parola yok.** Spec imzası için parola girilmeyecek. Yeni model: özel anahtar parolasız (`~/.company/keys/ceo.key.pem`, mod 600, repo ve konteyner dışı); imza komutları ve anahtara dokunan her komut `guard.js` ile CEO kararına bağlı (uygulama onay penceresi = tek tık). Başsız çalışma imzalayamaz. Taviz: ana makinedeki oturum anahtarı rastgele kodla okuyabilir; bu risk "CEO gözetimindeki ana oturum güvenilir" varsayımıyla kabul edildi. Daha sıkı yol (sonradan): `ceo-keygen.sh --passphrase` veya Touch ID.
 - **A10:** Pilot iş şimdi yok; CEO projeler üzerinde zamanla deneyecek.
 - Not: gerçek CEO anahtarı üretimi otomatik mod sınıflandırıcısı tarafından engellendi; anahtar CEO'nun kendi komutuyla üretilecek.
+
+## Revizyon 6: Ajan imajı (2026-11-02)
+- İmaj yeniden kuruldu: `mcr.microsoft.com/dotnet/sdk:10.0` tabanı + Node 22 + Claude Code 2.1.316 + graphify 0.9.54 (hepsi sabit sürüm; `lint.js` denetler). Çözülen hata: tabanda uid 1000 `ubuntu`'ya aitti, silinip `node` kullanıcısı açıldı. Konteyner root değil, kök dosya sistemi salt-okunur.
+- **A6:** NuGet ve npm çıkışı varsayılan açık (`COMPANY_REGISTRIES`, varsayılan `nuget,npm`; `none` kapatır). Deneyle doğrulandı: NuGet için yalnızca `api.nuget.org`, npm için `registry.npmjs.org` gerekti; diğer adresler kapalı kaldı. Risk: indirilen paket konteynerde çalışır; sınır: konteynerde belirteçten başka sır yok, başka çıkış yok, canlıya denetim ve CEO onayı olmadan hiçbir şey çıkmaz.
+- GFY-07 / ENV-10 / ENV-11 kapandı: graphify ve .NET artık imajda.
+- CEO anahtarı üretildi (A2); genel anahtar `harness/keys/ceo.pub.pem`.

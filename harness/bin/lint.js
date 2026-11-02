@@ -136,6 +136,17 @@ for (const f of fs.existsSync(siteDir) ? fs.readdirSync(siteDir).filter((x) => x
   }
   if (problems.length) fail(`${L}: ${[...new Set(problems)].join("; ")}`); else ok(`${L}: visual standards (viewport, dark theme, labelled svgs, hosts)`);
 }
+// agent image: pinned versions, no floating tags (supply chain)
+try {
+  const df = fs.readFileSync(path.join(ROOT, "harness", "docker", "Dockerfile"), "utf8");
+  const bad = [];
+  if (!/ARG CLAUDE_CODE_VERSION=\d+\.\d+\.\d+/.test(df)) bad.push("Claude Code version not pinned");
+  if (!/ARG GRAPHIFY_VERSION=\d+\.\d+\.\d+/.test(df)) bad.push("graphify version not pinned");
+  for (const m of df.matchAll(/^FROM\s+(\S+)/gm)) if (/:latest$|^[^:\s]+$/.test(m[1]) && !/^\w+$/.test(m[1])) bad.push("floating base image: " + m[1]);
+  if (/\bsudo\b|--privileged/.test(df)) bad.push("privilege escalation in Dockerfile");
+  if (bad.length) fail("harness/docker/Dockerfile: " + bad.join("; ")); else ok("harness/docker/Dockerfile: pinned versions, no floating tags");
+} catch (e) { fail("harness/docker/Dockerfile: " + e.message); }
+
 // graph output stays out of git
 const gi = fs.existsSync(path.join(ROOT, ".gitignore")) ? fs.readFileSync(path.join(ROOT, ".gitignore"), "utf8") : "";
 if (!/graphify-out/.test(gi)) fail(".gitignore: graphify-out/ must be ignored (derived output)"); else ok(".gitignore: graphify-out/ ignored");
