@@ -172,6 +172,23 @@ try {
   if (bad.length) fail("container flags: " + bad.join("; ")); else ok("container flags: no weakening flags, --no-sandbox only in the isolated visual container");
 }
 
+// CI workflows: pinned actions, minimal permissions, no dangerous triggers (supply chain)
+{
+  const wfDir = path.join(ROOT, ".github", "workflows"); const bad = [];
+  for (const f of fs.existsSync(wfDir) ? fs.readdirSync(wfDir).filter((x) => /\.ya?ml$/.test(x)) : []) {
+    const s = fs.readFileSync(path.join(wfDir, f), "utf8");
+    const code = s.split("\n").filter((l) => !/^\s*#/.test(l)).join("\n");
+    for (const m of code.matchAll(/^\s*-?\s*uses:\s*(\S+)/gm)) if (!/^[\w.-]+\/[\w.\/-]+@[0-9a-f]{40}$/.test(m[1]) && !m[1].startsWith("./")) bad.push(`${f}: action not pinned to a commit SHA: ${m[1]}`);
+    if (!/^permissions:/m.test(code)) bad.push(`${f}: top-level permissions block missing`);
+    if (/permissions:[\s\S]{0,80}(write-all|contents:\s*write)/.test(code)) bad.push(`${f}: write permissions (CI must not publish or push)`);
+    if (/pull_request_target/.test(code)) bad.push(`${f}: pull_request_target is forbidden`);
+    if (/\$\{\{\s*github\.event\.(issue|pull_request|comment|head_commit)[^}]*\}\}/.test(code) && /run:/.test(code)) bad.push(`${f}: untrusted event text interpolated into a script`);
+    if (/secrets\./.test(code)) bad.push(`${f}: CI check must not use secrets`);
+  }
+  if (!fs.existsSync(path.join(wfDir, "check.yml"))) bad.push("check.yml workflow missing");
+  if (bad.length) fail("CI workflows: " + bad.join("; ")); else ok("CI workflows: actions pinned to SHAs, read-only permissions, no secrets, no dangerous triggers");
+}
+
 // graph output stays out of git
 const gi = fs.existsSync(path.join(ROOT, ".gitignore")) ? fs.readFileSync(path.join(ROOT, ".gitignore"), "utf8") : "";
 if (!/graphify-out/.test(gi)) fail(".gitignore: graphify-out/ must be ignored (derived output)"); else ok(".gitignore: graphify-out/ ignored");
