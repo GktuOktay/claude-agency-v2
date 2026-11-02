@@ -1,0 +1,15 @@
+#!/bin/sh
+# harness/bin/check: THE single verification command for this repository.
+# Humans, agents and CI all answer "is the company healthy?" with this one command.
+set -u
+HERE=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+REPO=$(dirname "$HERE")
+rc=0
+step() { echo "==> $1"; shift; "$@" || rc=1; echo; }
+step "shell syntax"            sh -c 'for f in '"$HERE"'/bin/*.sh '"$HERE"'/test/run.sh; do sh -n "$f" || exit 1; done; echo "ok    all shell scripts parse"'
+step "node syntax"             sh -c 'for f in '"$HERE"'/approval.js '"$HERE"'/gate.js '"$HERE"'/bin/lint.js '"$HERE"'/docker/proxy.js; do node --check "$f" || exit 1; done; echo "ok    all node scripts parse"'
+step "agents and playbooks"    node "$HERE/bin/lint.js"
+step "approval and gate tests" sh "$HERE/test/run.sh"
+step "no secrets in the repo"  sh -c 'cd '"$REPO"' && ! grep -rIl --exclude-dir=.git --exclude-dir=node_modules -E "sk-ant-[A-Za-z0-9_-]{20,}|BEGIN (RSA |OPENSSH |ENCRYPTED )?PRIVATE KEY" . && echo "ok    no token or private key patterns"'
+if [ "$rc" -eq 0 ]; then echo "CHECK GREEN (full)"; else echo "CHECK FAILED" >&2; fi
+exit "$rc"

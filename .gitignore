@@ -1,0 +1,10 @@
+# Secrets and machine state never enter this repository
+.company/
+*.env
+*.key.pem
+*.sig.json
+node_modules/
+.DS_Store
+# test workspaces
+ws*/
+tmp/
