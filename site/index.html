@@ -316,11 +316,11 @@ footer { padding-block: 36px 52px; color: var(--muted); font-size: 0.82rem; }
         </g>
         <!-- units: built = solid green; planned = dashed grey -->
         <g font-size="13.5">
-          <g><rect x="36" y="196" width="268" height="58" rx="8" fill="var(--surface)" stroke="var(--plan)" stroke-dasharray="5 4" stroke-width="1.6"/><text x="50" y="220" font-weight="700" style="fill:var(--muted)">Product</text><text class="m" x="50" y="240" font-size="10.5">piyasa, yol haritası</text></g>
+          <g><rect x="36" y="196" width="268" height="58" rx="8" fill="var(--auto-soft)" stroke="var(--auto)" stroke-width="2"/><circle cx="286" cy="212" r="5" fill="var(--auto)"/><text x="50" y="220" font-weight="700">Product</text><text class="m" x="50" y="240" font-size="10.5">kaynaklı karar · sonnet</text></g>
           <g><rect x="36" y="264" width="268" height="58" rx="8" fill="var(--auto-soft)" stroke="var(--auto)" stroke-width="2"/><circle cx="286" cy="280" r="5" fill="var(--auto)"/><text x="50" y="288" font-weight="700">Business analyst</text><text class="m" x="50" y="308" font-size="10.5">teknik spec · opus</text></g>
           <g><rect x="36" y="332" width="268" height="58" rx="8" fill="var(--auto-soft)" stroke="var(--auto)" stroke-width="2"/><circle cx="286" cy="348" r="5" fill="var(--auto)"/><text x="50" y="356" font-weight="700">Spec critic</text><text class="m" x="50" y="376" font-size="10.5">boşluk arar · yazma yok</text></g>
           <g><rect x="36" y="400" width="268" height="58" rx="8" fill="var(--surface)" stroke="var(--plan)" stroke-dasharray="5 4" stroke-width="1.6"/><text x="50" y="424" font-weight="700" style="fill:var(--muted)">Scout</text><text class="m" x="50" y="444" font-size="10.5">repo, API, MCP tarama</text></g>
-          <g><rect x="36" y="468" width="268" height="58" rx="8" fill="var(--surface)" stroke="var(--plan)" stroke-dasharray="5 4" stroke-width="1.6"/><text x="50" y="492" font-weight="700" style="fill:var(--muted)">Delivery</text><text class="m" x="50" y="512" font-size="10.5">plan, issue, PR</text></g>
+          <g><rect x="36" y="468" width="268" height="58" rx="8" fill="var(--auto-soft)" stroke="var(--auto)" stroke-width="2"/><circle cx="286" cy="484" r="5" fill="var(--auto)"/><text x="50" y="492" font-weight="700">Delivery</text><text class="m" x="50" y="512" font-size="10.5">plan, issue, PR · main: CEO</text></g>
 
           <g><rect x="346" y="196" width="268" height="58" rx="8" fill="var(--auto-soft)" stroke="var(--auto)" stroke-width="2"/><circle cx="596" cy="212" r="5" fill="var(--auto)"/><text x="360" y="220" font-weight="700">.NET engineer</text><text class="m" x="360" y="240" font-size="10.5">imzalıysa yazar · sonnet</text></g>
           <g><rect x="346" y="264" width="268" height="58" rx="8" fill="var(--surface)" stroke="var(--plan)" stroke-dasharray="5 4" stroke-width="1.6"/><text x="360" y="288" font-weight="700" style="fill:var(--muted)">React engineer</text><text class="m" x="360" y="308" font-size="10.5">arayüz, durumlar</text></g>
@@ -339,11 +339,11 @@ footer { padding-block: 36px 52px; color: var(--muted); font-size: 0.82rem; }
     <div class="only-narrow">
       <div class="org">
         <div class="group"><span class="label">Ürün hattı</span>
-          <div class="unit planned"><b>Product<span class="st off">planlı</span></b><span class="s">piyasa, yol haritası</span></div>
+          <div class="unit built"><b>Product<span class="st on">hazır</span></b><span class="s">kaynaklı karar, yol haritası</span></div>
           <div class="unit built"><b>Business analyst<span class="st on">hazır</span></b><span class="s">teknik spec</span></div>
           <div class="unit built"><b>Spec critic<span class="st on">hazır</span></b><span class="s">boşluk arar, yazma yok</span></div>
           <div class="unit planned"><b>Scout<span class="st off">planlı</span></b><span class="s">repo, API, MCP tarama</span></div>
-          <div class="unit planned"><b>Delivery<span class="st off">planlı</span></b><span class="s">plan, issue, PR</span></div></div>
+          <div class="unit built"><b>Delivery<span class="st on">hazır</span></b><span class="s">plan, issue, PR; main: CEO</span></div></div>
         <div class="group"><span class="label">Üretim</span>
           <div class="unit built"><b>.NET engineer<span class="st on">hazır</span></b><span class="s">imzalıysa yazar</span></div>
           <div class="unit planned"><b>React engineer<span class="st off">planlı</span></b><span class="s">arayüz, durumlar</span></div>
@@ -415,18 +415,18 @@ footer { padding-block: 36px 52px; color: var(--muted); font-size: 0.82rem; }
 
   <section aria-labelledby="h-st">
     <p class="label">Şu anki durum</p>
-    <h2 id="h-st">Temel kuruldu, ilk beş birim çalışıyor</h2>
+    <h2 id="h-st">Temel kuruldu, yedi birim çalışıyor</h2>
     <div class="dotsrow" style="margin-top:16px">
-      <div class="card"><div class="big">5<small> / 13 birim</small></div><div class="dots" data-total="13" data-on="5" role="img" aria-label="13 birimden 5'i hazır"></div><p>Her biri aynı 9 başlıklı kılavuzla.</p></div>
-      <div class="card"><div class="big">29<small> / 29 kontrol</small></div><div class="dots" data-total="29" data-on="29" role="img" aria-label="29 kontrolün 29'u yeşil"></div><p>13 biçim denetimi, 16 kapı testi.</p></div>
+      <div class="card"><div class="big">7<small> / 13 birim</small></div><div class="dots" data-total="13" data-on="7" role="img" aria-label="13 birimden 7'si hazır"></div><p>Her biri aynı 9 başlıklı kılavuzla.</p></div>
+      <div class="card"><div class="big">73<small> / 73 kontrol</small></div><div class="dots" data-total="73" data-on="73" role="img" aria-label="73 kontrolün 73'ü yeşil"></div><p>24 biçim ve görsel kontrolü, 16 imza-kapı testi, 33 zarf testi.</p></div>
       <div class="card"><div class="big">1<small> açık bulundu</small></div><div class="dots" data-total="1" data-on="1" role="img" aria-label="1 açık bulundu ve kapatıldı"></div><p>Bash ile yazma yolu. Gerçek ajanla bulundu, kapatıldı.</p></div>
     </div>
     <p class="label" style="margin-top:22px">Sıradaki</p>
     <div class="next">
-      <div><b>Product, Delivery</b>Fikirden issue ve PR'a zincir</div>
+      <div><b>Scout, AppSec, DevOps</b>Kalan birimler, kılavuzlarıyla</div>
       <div><b>.NET imajı</b>Konteynerde derleme (şu an yalnızca Node)</div>
       <div><b>Stop hook</b>"Kanıtsız bitti denmez" araçla</div>
-      <div><b>Kalan birimler</b>Kılavuzlarıyla birlikte</div>
+      <div><b>Graphify imajda</b>Konteynerdeki ajan da grafiği sorgulasın</div>
     </div>
   </section>
 

@@ -89,5 +89,56 @@ if (fs.existsSync(path.join(ROOT, "harness", "keys"))) {
   else ok("harness/keys: only public keys");
 }
 
+// --- web tools only where research is the job (prompt-injection surface stays small)
+const WEB_OK = new Set(["product-manager", "scout"]);
+for (const f of fs.existsSync(agentsDir) ? fs.readdirSync(agentsDir).filter((x) => x.endsWith(".md")) : []) {
+  const p = frontmatter(path.join(agentsDir, f));
+  if (!p) continue;
+  const tools = (p.fm.tools || "").split(",").map((s) => s.trim());
+  const web = tools.filter((t) => t === "WebFetch" || t === "WebSearch");
+  if (web.length && !WEB_OK.has(p.fm.name)) fail(`agents/${f}: web tools (${web.join(",")}) only for ${[...WEB_OK].join(", ")}`);
+}
+ok("web tools limited to research units");
+
+// --- host guard wired into project settings (envelope on the host)
+try {
+  const hs = JSON.parse(fs.readFileSync(path.join(ROOT, ".claude", "settings.json"), "utf8"));
+  const pre = JSON.stringify((hs.hooks && hs.hooks.PreToolUse) || []);
+  if (!/guard\.js/.test(pre)) fail(".claude/settings.json: guard hook (harness/guard.js) is not wired for Bash");
+  else ok(".claude/settings.json: envelope guard wired for Bash");
+} catch (e) { fail(".claude/settings.json: " + e.message); }
+
+// --- visual standards (SOP: visual-standards)
+const specT = path.join(ROOT, "templates", "spec-tam.md");
+if (fs.existsSync(specT)) {
+  const n = (fs.readFileSync(specT, "utf8").match(/```mermaid/g) || []).length;
+  if (n < 4) fail(`templates/spec-tam.md: expected at least 4 mermaid diagram slots (UX flow, architecture, data, deployment), found ${n}`);
+  else ok(`templates/spec-tam.md: ${n} diagram slots`);
+}
+const siteDir = path.join(ROOT, "site");
+const ALLOWED_HOSTS = ["fonts.googleapis.com", "fonts.gstatic.com", "cdnjs.cloudflare.com", "cdn.jsdelivr.net", "unpkg.com"];
+for (const f of fs.existsSync(siteDir) ? fs.readdirSync(siteDir).filter((x) => x.endsWith(".html")) : []) {
+  const t = fs.readFileSync(path.join(siteDir, f), "utf8"), L = `site/${f}`;
+  const problems = [];
+  if (!/<meta\s+name="viewport"/.test(t)) problems.push("viewport meta missing");
+  if (!/prefers-color-scheme:\s*dark/.test(t)) problems.push("no dark theme");
+  if (!/<title>[^<]{3,}<\/title>/.test(t)) problems.push("title missing");
+  for (const m of t.matchAll(/<svg\b([^>]*)>/g)) {
+    const a = m[1];
+    if (/aria-hidden="true"/.test(a)) continue;
+    if (!/role="img"/.test(a)) problems.push("svg without role=img: " + a.slice(0, 50).trim());
+    else if (!/aria-label="[^"]+"/.test(a) && !/<title>/.test(t.slice(m.index, m.index + 400))) problems.push("svg role=img without a label");
+  }
+  for (const m of t.matchAll(/<img\b([^>]*)>/g)) if (!/\balt=/.test(m[1])) problems.push("img without alt");
+  for (const m of t.matchAll(/(?:src|href)="(https?:\/\/[^"]+)"/g)) {
+    let h = ""; try { h = new URL(m[1]).hostname; } catch {}
+    if (h && !ALLOWED_HOSTS.includes(h)) problems.push("external host not allowed: " + h);
+  }
+  if (problems.length) fail(`${L}: ${[...new Set(problems)].join("; ")}`); else ok(`${L}: visual standards (viewport, dark theme, labelled svgs, hosts)`);
+}
+// graph output stays out of git
+const gi = fs.existsSync(path.join(ROOT, ".gitignore")) ? fs.readFileSync(path.join(ROOT, ".gitignore"), "utf8") : "";
+if (!/graphify-out/.test(gi)) fail(".gitignore: graphify-out/ must be ignored (derived output)"); else ok(".gitignore: graphify-out/ ignored");
+
 console.log(`\nLINT ${failures ? "FAILED" : "GREEN"}: ${checks} ok, ${failures} failed`);
 process.exit(failures ? 1 : 0);

@@ -18,20 +18,21 @@ Tartışma ve araştırma → Spec paketi + eleştiri + ön görüş → CEO İM
 | Kural | Seviye | Nasıl |
 |---|---|---|
 | İmzasız kod yok | **Enforced** | Konteyner bağlama modu imzaya göre seçilir (imzasız: çalışma alanı salt-okunur, yalnız `specs/` ve `docs/` yazılabilir) + `PreToolUse` kapısı |
-| Ajan imza atamaz | **Enforced** | ed25519 imza, parola korumalı CEO anahtarı repo ve konteyner dışında; imza dizini konteynerde salt-okunur |
+| Ajan imza atamaz | **Enforced** (konteynerde), kısmen (ana makinede) | ed25519 imza; özel anahtar ne repoda ne konteynerde. **Parola yok:** imza, `guard.js`'in gösterdiği onay penceresine CEO'nun tıklamasıdır, başsız çalışma imzalayamaz. Ana makinede anahtarı okumak/imzalamak `ask`, `Read(~/.company/**)` yasak; ama rastgele kodla okumak tamamen engellenemez: ana makine oturumu CEO gözetiminde güvenilir kabul edilir |
 | İmzalı spec değişirse imza düşer | **Enforced** | İmza spec içeriğinin özetine bağlı |
 | Ağ çıkışı | **Enforced** | `--internal` Docker ağı + yalnızca `api.anthropic.com:443` geçiren vekil |
 | Ajan kendi kılavuzunu değiştiremez | **Enforced** | `.claude/agents`, `.claude/skills` konteynerde salt-okunur bağlanır |
 | Yapan doğrulamaz | **Enforced** | `internal-auditor` ve `spec-critic` birimlerinin yazma aracı yok (`lint.js` denetler) |
 | Kılavuz biçimi standart | **Validated** | `harness/bin/lint.js` |
 | "Bitti = taze kanıt" | **Documented** | Anayasa + denetçi kılavuzu (henüz `Stop` hook'u ile zorlanmıyor) |
-| Zarf (deploy, push, yayın, silme) | **Enforced** (kısmen) | Konteynerde `git push`, `rm`, `curl`, `docker` yasak. Ana makinedeki oturumlar için ayrıca ayar gerekir |
+| Zarf (main'e push/merge, release, silme, geri alınamaz git) | **Enforced** (kısmen) | Ana makinede `harness/guard.js` kancası bunları CEO onayına çevirir; başsız çalışmada reddedilir. Gerçek Claude'da `allow` kuralı varken bile engelledi (T-O, `docs/GEREKSINIM-ANALIZI.md` §12.2). Deploy ve mağaza gönderimi için henüz komut/araç yok |
+| Grafik ve görsel kullanımı | **Validated** (kısmen) | `lint.js`: spec şablonunda 4 diyagram yuvası, `site/*.html` için viewport, koyu tema, etiketli svg, izinli kaynaklar; `graphify-out/` git dışı. Gözle kontrol ve "kaynaksız sayı yok" talimat seviyesinde |
 
 ## Hızlı başlangıç
 
 ```bash
 ./harness/bin/check              # tek doğrulama komutu: biçim, testler, gizli bilgi taraması
-./harness/bin/ceo-keygen.sh      # BİR KEZ, gerçek terminalde: CEO anahtarı (parola sende kalır)
+./harness/bin/ceo-keygen.sh      # BİR KEZ: CEO anahtarı (parola yok; --passphrase ile korumalı varyant)
 ./harness/bin/build-image.sh     # ajan imajı (resmi Node + sabitlenmiş Claude Code paketi)
 ./harness/bin/proxy-up.sh        # internal ağ + izinli listeli çıkış vekili
 ./harness/bin/approve.sh <proje> # CEO bir projenin aktif spec'ini imzalar
@@ -50,12 +51,17 @@ Ajan belirteci (`~/.company/agent.env`, mod 600) için `harness/README.md`'ye ba
 | `dotnet-engineer` | sonnet | imzalıysa çalışma alanı | `dotnet-engineering` |
 | `qa-engineer` | sonnet | yalnız test dosyaları | `qa-verification` |
 | `internal-auditor` | opus | yok | `internal-audit` |
+| `product-manager` | sonnet | yalnız `docs/product/` | `product-management` |
+| `delivery-manager` | sonnet | `plans/`, `STATE.md`, `docs/` | `delivery-management` |
+
+Ortak standartlar (tüm ilgili birimlere yüklenir): `graph-usage` (graphify), `visual-standards` (görsel dil).
 
 ## Henüz yapılmadı
 
-- Product, Delivery, React engineer, AppSec, DevOps/SRE, Architecture board, Scout, Marketing, Quality office, Tech comms, Talent & capacity birimleri.
+- React engineer, AppSec, DevOps/SRE, Architecture board, Scout, Marketing, Quality office, Tech comms, Talent & capacity birimleri.
+- Graphify ve görsel standartları henüz **ajan imajında yok**: graphify yalnızca ana makinede kurulu (v0.9.54); konteynerdeki ajan grafiği sorgulayamaz.
 - `Stop` hook'u ile "kanıtsız bitti denmez" zorlaması.
 - .NET SDK'lı ajan imajı. **Mevcut imaj yalnızca Node'dur; `dotnet build` konteynerde çalışmaz.** Paket kayıtlarına (NuGet, npm) çıkış da kapalı; açılacaksa supply-chain riski için Architecture board kararı gerekir.
 - `company-run.sh` uçtan uca bu depodaki haliyle henüz çalıştırılmadı (belirteç silindi); önceki denemedeki sürümü çalıştı, bu sürümün sözdizimi ve bağımlı bileşenleri `check` ile doğrulandı.
-- Ana makinedeki (konteyner dışı) oturumların zarf ayarları.
+- Ana makine oturumlarında kılavuz/kancaları ajanın kendi değiştirmesini engelleyen ayar (`.claude/settings.json` ve `harness/` şu an ajan tarafından düzenlenebilir; yalnızca CEO onaylı oturumlarda güvenli).
 - Kendi kılavuzlarımız için değerlendirme setleri (SOP-04).

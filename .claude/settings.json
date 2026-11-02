@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "deny": ["Read(~/.company/**)", "Edit(~/.company/**)", "Write(~/.company/**)"]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          { "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/harness/guard.js\"" }
+        ]
+      }
+    ]
+  }
+}

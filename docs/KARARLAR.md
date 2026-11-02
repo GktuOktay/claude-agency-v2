@@ -83,3 +83,16 @@ Eski kurulum: ~/.claude-backup-2026-11-01 (silme işlemi henüz yapılmadı).
 - Bulgu: yalnızca `Write`/`Edit` hook'u yetmez (Bash ile yazma yolu gerçek ajanda denendi). Çözüm: imzaya göre konteyner bağlama modu (ENV-07). Hook kapalı-başarısız yapıldı (ENV-08).
 - İlk beş birim: business-analyst, spec-critic, dotnet-engineer, qa-engineer, internal-auditor.
 - Açık: .NET SDK'lı imaj; paket kaydı çıkış izni (supply-chain); `Stop` hook'u; kalan birimler.
+
+## Revizyon 4: Product, Delivery, graphify ve görsel standartlar (2026-11-02)
+- Yeni birimler: `product-manager` (kaynaklı karar, web araçları yalnızca bu birimde ve ileride Scout'ta) ve `delivery-manager` (plan, issue, PR, CI, durum; kod yazmaz).
+- Zarf ana makinede de zorlanıyor: `harness/guard.js` (Bash kancası) `main`'e push/merge, force push, release, depo yönetimi, geri alınamaz git komutlarını CEO onayına çevirir; `--no-verify` tümden yasak. Kanca kapalı-başarısız. Gerçek Claude ile doğrulandı: `allow` kuralı olsa bile force push ve main'e push engellendi.
+- Entegrasyon dalı düzeni (DEL-05): görev PR'ları `integration/NNNN-<ad>` dalına otonom, oradan `main`'e CEO onayıyla.
+- İki ortak standart (kural 8 ve 9): `graph-usage` (graphify: önce grafik, INFERRED kenar kanıt değil, yalnızca kod çıkarımı kota dostu, çıktı git dışı, sır dosyaları kapsam dışı) ve `visual-standards` (diyagram ne zaman zorunlu, anlamsal renk, iki tema, ikili görsel depoda yok, her sayı kaynaklı, sayfa gözle görülür).
+- Açık: graphify ve görsel araçlar ajan imajında yok (ENV-10); `.claude/settings.json` ve `harness/` ana makinede ajan tarafından düzenlenebilir (CEO onaylı oturum varsayımı).
+
+## Revizyon 5: CEO talimatları (2026-11-02)
+- **A1:** Push, PR ve birleştirmeyi CEO'ya bırakmadan asistan yapar. Birleştirme `main`'e gittiği için `guard.js` onay penceresi gösterir; CEO'nun sohbetteki açık talimatı bunun gerekçesidir, kancayı aşmak yok.
+- **A2: parola yok.** Spec imzası için parola girilmeyecek. Yeni model: özel anahtar parolasız (`~/.company/keys/ceo.key.pem`, mod 600, repo ve konteyner dışı); imza komutları ve anahtara dokunan her komut `guard.js` ile CEO kararına bağlı (uygulama onay penceresi = tek tık). Başsız çalışma imzalayamaz. Taviz: ana makinedeki oturum anahtarı rastgele kodla okuyabilir; bu risk "CEO gözetimindeki ana oturum güvenilir" varsayımıyla kabul edildi. Daha sıkı yol (sonradan): `ceo-keygen.sh --passphrase` veya Touch ID.
+- **A10:** Pilot iş şimdi yok; CEO projeler üzerinde zamanla deneyecek.
+- Not: gerçek CEO anahtarı üretimi otomatik mod sınıflandırıcısı tarafından engellendi; anahtar CEO'nun kendi komutuyla üretilecek.
