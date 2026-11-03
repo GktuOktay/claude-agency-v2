@@ -36,6 +36,7 @@ Son güncelleme: 2026-11-02. Tek takip yeri bu dosya. İş bitince `[x]` yapıl�
 
 - [x] **B17. Döngü engelleyici:** `harness/loop.js` (aynı çağrı 5 kez veya 2-3 çağrılık döngü 3 tur → ajana "farklı yol dene ya da dur"); ana makine ve konteynerde bağlı; 16 test. Sınır: yalnızca çağrı girdisine bakar, sonucu görmez; hatalı ama her seferinde farklı girdili tekrar yakalanmaz (onu `maxTurns` ve "3 başarısız deneme" kuralı sınırlar).
 - [x] **B18. Tanıtım sayfası derinleştirme:** teknik bölümler (iş yolu, kancalar, konteyner/bağlama kipleri, imza kaydı, doğrulama ve sınırlar) ve etkileşimli düğüm haritası; harita verisi `site-data.js` ile ajan dosyalarından üretilir, `lint.js` bayatlamayı yakalar.
+- [x] **B19. Sistem haritası (tanıtım sayfası):** referans olarak verilen agency-map sayfasının kapsamı (kancalar, kapılar, birimler, kılavuzlar, altyapı, düğüm haritası, arama) bizim sistemimiz için; 28 kapı seviye etiketiyle (14 zorlanan, 7 denetlenen, 7 yalnızca talimat), her biri dayandığı dosyaya bağlı (dosya yoksa lint kırmızı). Kancalar ayar dosyalarından, birimler ajan dosyalarından, kılavuzlar skill dosyalarından, test sayıları test dosyalarından üretilir.
 
 ## C. Bilinen sınırlar ve riskler
 

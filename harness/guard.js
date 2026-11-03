@@ -88,7 +88,8 @@ process.stdin.on("end", () => {
   const branch = currentBranch(cwd);
 
   if (/\.company\b|ceo\.key|approval\.js\s+(sign|keygen)|\bapprove\.sh\b|ceo-keygen/.test(noHeredoc)) ask("CEO imzası, CEO anahtarı veya ajan belirteci. Bu penceredeki onay, imzanın kendisidir.");
-  if (/--no-verify\b/.test(full) && /\bgit\b/.test(full)) deny("--no-verify yasak: kancaları ve CI'ı atlatmak anayasaya aykırı.");
+  // heredoc bodies are data (a script or a message), not arguments: only the command line itself can carry the flag
+  if (/--no-verify\b/.test(noHeredoc) && /\bgit\b/.test(noHeredoc)) deny("--no-verify yasak: kancaları ve CI'ı atlatmak anayasaya aykırı.");
 
   // Writes to the enforcement files through the shell (redirects, sed -i, cp, mv, rm ...). Inline interpreter writes are a known gap.
   for (const seg of segments(noHeredoc.replace(/["'`]/g, " "))) {
