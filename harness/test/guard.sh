@@ -99,6 +99,7 @@ runf() { # runf <tool> <path>
   case "$out" in *'"permissionDecision":"ask"'*) echo ask;; "") echo allow;; *) echo error;; esac
 }
 t "Edit guard.js asks"                       ask   "$(runf Edit "$F/harness/guard.js")"
+t "Edit loop.js asks"                        ask   "$(runf Edit "$F/harness/loop.js")"
 t "Write gate.js asks"                       ask   "$(runf Write "$F/harness/gate.js")"
 t "Edit .claude/settings.json asks"          ask   "$(runf Edit "$F/.claude/settings.json")"
 t "Edit container-settings.json asks"        ask   "$(runf Edit "$F/harness/container-settings.json")"

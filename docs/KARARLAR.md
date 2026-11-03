@@ -157,3 +157,7 @@ Eski kurulum: ~/.claude-backup-2026-11-01 (silme işlemi henüz yapılmadı).
 ## Revizyon 16: Doğrulama notları (2026-11-02)
 - `npm audit` Playwright ve axe paketlerinde (`/opt/visual`, konteynerde, vekil üzerinden): 0 açık. B15'in açık maddesi kapandı. x64 ölçümü ve axe MPL-2.0 hukuk teyidi açık.
 - graphify kod grafiği `.env` ve `secrets.yml` içeriğini almadı (sahte sırlarla deneme). Anlamsal yol denenmedi.
+
+## Revizyon 17: Döngü engelleyici ve tanıtım sayfası derinleştirme (2026-11-03)
+- CEO: eksikler risk değil; döngü engellemeyi yapalım. `loop.js`: aynı araç + aynı girdi 5 kez üst üste ya da 2-3 çağrılık döngü 3 tur → çıkış kodu 2. **Ruling (Tip 2):** hata durumunda açık (bozuk bir döngü denetçisi oturumu kilitlememeli); plan/görev araçları muaf (aynı `advance` çağrısı meşru); eşik `COMPANY_LOOP_MAX` ile değişir. Yanlışsa maliyet: meşru bir tekrar (ör. kasıtlı yoklama) bir kez engellenir, ajan farklı çağrıyla devam eder. `loop.js` zorlama dosyası listesine girdi.
+- Tanıtım sayfası: teknik bölümler + düğüm haritası (34 düğüm, 54 bağ). Harita verisi elle değil `harness/bin/site-data.js` ile `.claude/agents/` ve elle yazılmış ilişki listesinden üretilir; `lint.js --check` ile bayatlık CI'da yakalanır. **Ruling:** ilişki listesi elle bakımlı (hangi birim kimi besliyor kaynaktan çıkarılamaz); yeni birim eklenince `site-data.js` UNITS tablosuna girmezse build hata verir.

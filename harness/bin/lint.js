@@ -136,6 +136,7 @@ for (const f of fs.existsSync(siteDir) ? fs.readdirSync(siteDir).filter((x) => x
   for (const m of t.matchAll(/<svg\b([^>]*)>/g)) {
     const a = m[1];
     if (/aria-hidden="true"/.test(a)) continue;
+    if (/role="group"/.test(a) && /aria-label="[^"]+"/.test(a)) continue; // interactive graphic with focusable, labelled children
     if (!/role="img"/.test(a)) problems.push("svg without role=img: " + a.slice(0, 50).trim());
     else if (!/aria-label="[^"]+"/.test(a) && !/<title>/.test(t.slice(m.index, m.index + 400))) problems.push("svg role=img without a label");
   }
@@ -210,6 +211,9 @@ try {
   const notif = JSON.stringify((hs.hooks && hs.hooks.Notification) || []);
   if (!/notify\.js/.test(notif)) fail(".claude/settings.json: Notification hook (harness/notify.js) is not wired"); else ok(".claude/settings.json: CEO notification hook wired");
   const pre = (hs.hooks && hs.hooks.PreToolUse) || [];
+  if (!/loop\.js/.test(JSON.stringify(pre))) fail(".claude/settings.json: loop guard (harness/loop.js) is not wired"); else ok(".claude/settings.json: loop guard wired (all tools)");
+  const cs = JSON.parse(fs.readFileSync(path.join(ROOT, "harness", "container-settings.json"), "utf8"));
+  if (!/loop\.js/.test(JSON.stringify((cs.hooks && cs.hooks.PreToolUse) || []))) fail("container-settings.json: loop guard (loop.js) is not wired"); else ok("container-settings.json: loop guard wired");
   const fileGuard = pre.some((h) => /Write/.test(h.matcher || "") && /Edit/.test(h.matcher || "") && /guard\.js/.test(JSON.stringify(h.hooks || [])));
   if (!fileGuard) fail(".claude/settings.json: enforcement files are not protected (guard.js must also be wired for Write|Edit)"); else ok(".claude/settings.json: enforcement files protected (Write|Edit through the guard)");
 } catch (e) { fail(".claude/settings.json: " + e.message); }
@@ -217,6 +221,12 @@ for (const t of ["scorecard.md", "uyum-kontrol.md", "olay-postmortem.md", "deste
   if (!fs.existsSync(path.join(ROOT, "templates", t))) fail(`templates/${t} missing`);
 }
 ok("process templates present (scorecard, compliance, incident, support triage)");
+
+// the intro page's node map is generated from the real agents: it must not drift
+try {
+  require("child_process").execFileSync("node", [path.join(__dirname, "site-data.js"), "--check"], { stdio: "pipe" });
+  ok("site/index.html: node-map data matches the agents and relations");
+} catch (e) { fail("site/index.html: node-map data is stale or invalid (run node harness/bin/site-data.js --write): " + String(e.stderr || e.message).trim().split("\n")[0]); }
 
 // graph output stays out of git
 const gi = fs.existsSync(path.join(ROOT, ".gitignore")) ? fs.readFileSync(path.join(ROOT, ".gitignore"), "utf8") : "";
