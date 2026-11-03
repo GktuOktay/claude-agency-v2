@@ -44,8 +44,8 @@ const UNITS = {
 };
 
 const OTHER = [
-  { id: "ceo", col: "top", row: 0, label: "CEO (sen)", kind: "kişi", role: "Karar verir: spec'i imzalar, main'e birleştirmeyi, deploy'u ve yayını tek tek onaylar.", tech: "Anahtar ~/.company/keys altında, repoda yalnızca genel anahtar. İmza = onay penceresindeki tıklama." },
-  { id: "cos", col: "top", row: 1, label: "Chief of Staff", kind: "kişi", role: "Bu oturum. Birimleri görevlendirir, sonuçları toplar, kanıtı gösterir; CEO ile konuşan tek arayüz.", tech: "CLAUDE.md anayasasını okur. Ana makinede guard, loop, stop ve notify kancaları onun oturumunda çalışır." },
+  { id: "ceo", col: "top", row: 0, label: "Approver (insan)", kind: "kişi", role: "Karar verir: spec'i imzalar, main'e birleştirmeyi, deploy'u ve yayını tek tek onaylar.", tech: "Anahtar ~/.company/keys altında, repoda yalnızca genel anahtar. İmza = onay penceresindeki tıklama." },
+  { id: "cos", col: "top", row: 1, label: "Orchestrator (ana oturum)", kind: "kişi", role: "Bu oturum. Birimleri görevlendirir, sonuçları toplar, kanıtı gösterir; CEO ile konuşan tek arayüz.", tech: "CLAUDE.md proje talimatlarını (system prompt) okur. Ana makinede guard, loop, stop ve notify kancaları onun oturumunda çalışır." },
   { id: "approval", col: "h", row: 0, label: "approval.js", kind: "zorlama", role: "Spec'in SHA-256 özetini ed25519 ile imzalar ve doğrular; imza kaydını approvals/ altına yazar.", tech: "keygen | sign | verify. Bağımlılıksız Node. Özel anahtar hiçbir konteynere bağlanmaz.", file: "harness/approval.js" },
   { id: "gate", col: "h", row: 1, label: "gate.js", kind: "zorlama", role: "Konteynerde kod yazımını imza yoksa engeller; approvals/, .claude/, .git/ ve çalışma alanı dışı hep kapalı.", tech: "PreToolUse (Write, Edit, MultiEdit, NotebookEdit). Engel: çıkış kodu 2. Hata veya bozuk girdide kapalı kalır (fail closed). 20 test.", file: "harness/gate.js" },
   { id: "guard", col: "h", row: 2, label: "guard.js", kind: "zorlama", role: "Ana makinede zarf eylemlerini CEO kararına çevirir: main push/merge, deploy ve yayın araçları, silme, imza, zorlama dosyalarına yazma. CI yeşil değilse merge'ü reddeder.", tech: "PreToolUse (Bash ve Write/Edit). Çıktı: JSON 'ask' (onay penceresi) veya çıkış kodu 2. Fail closed. 85 test.", file: "harness/guard.js" },
@@ -121,7 +121,7 @@ const GATES = [
   ["G06", "İmza spec özetine bağlı", "İmza", "approval.js", "araç", "Enforced", "İmzadan sonra değişen spec: imza düşer, kapı kapanır.", ["harness/approval.js", "harness/test/run.sh"]],
   ["G07", "İmzasız kod yazımı kapısı", "Yürütme", "gate.js + bağlama kipi", "kanca", "Enforced", "Plan kipinde src/ ve kod alanına her yazma.", ["harness/gate.js", "harness/test/run.sh"]],
   ["G08", "Korumalı yollar", "Yürütme", "gate.js", "kanca", "Enforced", "approvals/, .claude/, .git/ ve çalışma alanı dışına yazma; imza kaydı sahteciliği.", ["harness/gate.js", "harness/test/run.sh"]],
-  ["G09", "Kılavuzlar salt-okunur", "Yürütme", "company-run.sh", "araç", "Enforced", "Ajanın kendi kılavuzunu veya anayasayı değiştirmesi (SOP-03).", ["harness/bin/company-run.sh", "harness/test/e2e.sh"]],
+  ["G09", "Kılavuzlar salt-okunur", "Yürütme", "company-run.sh", "araç", "Enforced", "Ajanın kendi kılavuzunu veya proje talimatlarını (CLAUDE.md) değiştirmesi (SOP-03).", ["harness/bin/company-run.sh", "harness/test/e2e.sh"]],
   ["G10", "Ağ çıkışı izinli liste", "Yürütme", "proxy.js + internal ağ", "araç", "Enforced", "İzinli üç ad dışındaki her dış bağlantı.", ["harness/docker/proxy.js", "harness/bin/proxy-up.sh", "harness/test/image.sh"]],
   ["G11", "Döngü engeli", "Yürütme", "loop.js", "kanca", "Enforced", "Aynı çağrıyı 5 kez veya kısa döngüyü 3 tur tekrarlama.", ["harness/loop.js", "harness/test/loop.sh"]],
   ["G12", "Kanıtsız bitti denmez", "Teslim", "stop.js", "kanca", "Enforced", "Kod değişip derleme/test çalışmadan biten tur (bir kez geri çevirir; Bash düzenlemelerini görmez).", ["harness/stop.js", "harness/test/stop.sh"]],
