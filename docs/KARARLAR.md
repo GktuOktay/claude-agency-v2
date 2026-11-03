@@ -153,3 +153,7 @@ Eski kurulum: ~/.claude-backup-2026-11-01 (silme işlemi henüz yapılmadı).
 - `harness/test/e2e.sh`: `company-run.sh` bir `claude` yer tutucusuyla çalıştırılır (geçici anahtar, sahte token, geçici çalışma alanı; gerçek CEO anahtarına ve gerçek token'a dokunulmaz). 18 test yeşil: imzasızken kod alanı salt-okunur, imzalıyken yazılabilir, imzadan sonra spec değişirse plan kipine döner, `approvals/` her kipte salt-okunur, doğrudan internet kapalı, hata çıkış koduna yansır.
 - **Ruling:** bu test CI'a konmadı (Docker ve ~2 GB imaj gerekir); `check` yalnızca söz dizimini denetler — yanlışsa maliyet: yol bozulursa CI yakalamaz, elle çalıştırmak gerekir.
 - Kalan: model davranışı (B5 canlı kısmı), B8, B12. Bunlar gerçek token, gerçek kota ve etkileşimli oturum ister.
+
+## Revizyon 16: Doğrulama notları (2026-11-02)
+- `npm audit` Playwright ve axe paketlerinde (`/opt/visual`, konteynerde, vekil üzerinden): 0 açık. B15'in açık maddesi kapandı. x64 ölçümü ve axe MPL-2.0 hukuk teyidi açık.
+- graphify kod grafiği `.env` ve `secrets.yml` içeriğini almadı (sahte sırlarla deneme). Anlamsal yol denenmedi.
