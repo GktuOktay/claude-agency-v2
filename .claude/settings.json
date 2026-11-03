@@ -9,6 +9,14 @@
   "hooks": {
     "PreToolUse": [
       {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/harness/loop.js\""
+          }
+        ]
+      },
+      {
         "matcher": "Bash",
         "hooks": [
           {

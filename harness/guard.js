@@ -47,7 +47,7 @@ function segments(s) { return s.split(/&&|\|\||;|\||\n/).map((x) => x.trim()).fi
 function tokens(seg) { return seg.split(/\s+/).filter(Boolean).filter((t) => !/^\w+=/.test(t)); }
 
 // The files that enforce the envelope. A session that can rewrite them can lift its own limits (B11): changes need the CEO.
-const ENFORCEMENT = /(^|\/)(harness\/(guard|gate|stop|approval)\.js|harness\/keys\/|harness\/container-settings\.json|\.claude\/settings(\.local)?\.json|approvals\/|\.github\/workflows\/|CLAUDE\.md$)/;
+const ENFORCEMENT = /(^|\/)(harness\/(guard|gate|stop|approval|loop)\.js|harness\/keys\/|harness\/container-settings\.json|\.claude\/settings(\.local)?\.json|approvals\/|\.github\/workflows\/|CLAUDE\.md$)/;
 const FILE_TOOLS = new Set(["Write", "Edit", "MultiEdit", "NotebookEdit"]);
 const WRAPPERS = new Set(["sudo", "env", "time", "nohup", "command", "exec", "nice", "npx", "bunx"]);
 const baseCmd = (t) => { const c = t.find((x) => !WRAPPERS.has(x) && !x.startsWith("-")); return c ? path.basename(c) : ""; };

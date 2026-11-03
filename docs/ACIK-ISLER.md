@@ -34,6 +34,9 @@ Son güncelleme: 2026-11-02. Tek takip yeri bu dosya. İş bitince `[x]` yapıl�
 - [x] **B16. Tanıtım sayfası erişilebilirliği:** `html-has-lang` ve `color-contrast` düzeltildi; `visual-check.sh` ile iki temada axe 0 ihlal; eski parola ve test sayısı metinleri güncellendi. Ayrıca Playwright/Chromium yama takvimi (S-04).
 - [x] **B14. Hukuk/Uyum ve Operasyon süreçleri:** `docs/surecler/` (iki akış diyagramlı belge) + şablonlar (`uyum-kontrol`, `olay-postmortem`, `destek-triyaj`) + Kalite ofisi birimi. İzleme/uyarı aracı ve gerçek olay denemesi yok.
 
+- [x] **B17. Döngü engelleyici:** `harness/loop.js` (aynı çağrı 5 kez veya 2-3 çağrılık döngü 3 tur → ajana "farklı yol dene ya da dur"); ana makine ve konteynerde bağlı; 16 test. Sınır: yalnızca çağrı girdisine bakar, sonucu görmez; hatalı ama her seferinde farklı girdili tekrar yakalanmaz (onu `maxTurns` ve "3 başarısız deneme" kuralı sınırlar).
+- [x] **B18. Tanıtım sayfası derinleştirme:** teknik bölümler (iş yolu, kancalar, konteyner/bağlama kipleri, imza kaydı, doğrulama ve sınırlar) ve etkileşimli düğüm haritası; harita verisi `site-data.js` ile ajan dosyalarından üretilir, `lint.js` bayatlamayı yakalar.
+
 ## C. Bilinen sınırlar ve riskler
 
 - Ana makinede oturumdaki ajan CEO anahtarını rastgele kodla okuyabilir (parolasız anahtar kararının bedeli); "CEO gözetimindeki oturum güvenilir" varsayımı.

@@ -124,6 +124,76 @@ button.primary { background: var(--gate); border-color: var(--gate); color: var(
 .next b { display: block; color: var(--ink); font-size: 0.92rem; margin-bottom: 2px; }
 footer { padding-block: 36px 52px; color: var(--muted); font-size: 0.82rem; }
 
+
+/* technical sections and node map */
+code { font-family: var(--mono); font-size: 0.84em; background: var(--auto-soft); border-radius: 4px; padding: 1px 5px; overflow-wrap: anywhere; }
+.steps { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; counter-reset: s; }
+.steps li { counter-increment: s; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px 12px 58px; position: relative; min-width: 0; }
+.steps li::before { content: counter(s); position: absolute; left: 14px; top: 12px; width: 30px; height: 30px; border-radius: 50%; border: 2px solid var(--auto); color: var(--auto);
+  display: grid; place-items: center; font-family: var(--mono); font-size: 0.82rem; font-weight: 500; }
+.steps li.ceo { border-color: var(--gate); } .steps li.ceo::before { border-color: var(--gate); color: var(--gate); }
+.steps b { display: block; } .steps span { color: var(--muted); font-size: 0.88rem; }
+.grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.hooks { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.hook h3 { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+.hook h3 small { font-family: var(--mono); font-size: 0.7rem; color: var(--muted); font-weight: 500; letter-spacing: 0; }
+.kvl > div { display: grid; grid-template-columns: 8.5em minmax(0, 1fr); gap: 8px; padding: 7px 0; border-top: 1px solid var(--line); font-size: 0.86rem; }
+.kvl > div:first-child { border-top: 0; }
+.kvl dt, .kvl .k { color: var(--muted); font-family: var(--mono); font-size: 0.74rem; letter-spacing: 0.04em; text-transform: uppercase; padding-top: 2px; }
+.kvl dd, .kvl .v { margin: 0; overflow-wrap: anywhere; }
+.mt { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr); font-size: 0.84rem; }
+.mt > div { padding: 8px 8px; border-top: 1px solid var(--line); overflow-wrap: anywhere; }
+.mt > .h { font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); border-top: 0; }
+.mt .rw { color: var(--auto); font-weight: 700; } .mt .ro { color: var(--gate); font-weight: 700; } .mt .no { color: var(--muted); }
+.snip { font-family: var(--mono); font-size: 0.78rem; background: var(--ink); color: var(--bg); border-radius: 8px; padding: 12px; overflow-x: auto; margin: 0; white-space: pre; }
+.lim { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.lim li { border-left: 3px solid var(--plan); padding: 4px 0 4px 12px; font-size: 0.9rem; color: var(--muted); }
+.lim li b { color: var(--ink); }
+.vt { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; font-size: 0.88rem; }
+.vt > div { padding: 6px 0; border-top: 1px solid var(--line); } .vt > .n { font-family: var(--mono); font-variant-numeric: tabular-nums; text-align: right; }
+.vt > .t { border-top: 2px solid var(--ink); font-weight: 700; }
+
+.map { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+.mapcard { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px; }
+#mapsvg { width: 100%; height: auto; }
+#mapsvg g.node { cursor: pointer; }
+#mapsvg g.node rect { fill: var(--surface); stroke: var(--ink); stroke-width: 1.5; }
+#mapsvg g.k-unit rect { fill: var(--auto-soft); stroke: var(--auto); stroke-width: 2; }
+#mapsvg g.k-person rect { fill: var(--gate-soft); stroke: var(--gate); stroke-width: 2.2; }
+#mapsvg g.k-enf rect { fill: var(--surface); stroke: var(--ink); stroke-width: 1.8; }
+#mapsvg g.k-rec rect { fill: var(--bg); stroke: var(--plan); stroke-dasharray: 5 4; stroke-width: 1.6; }
+#mapsvg g.node text { font-size: 12.5px; font-weight: 700; pointer-events: none; }
+#mapsvg g.node.sel rect { stroke-width: 4; }
+#mapsvg g.node.dim { opacity: 0.3; }
+#mapsvg g.node:focus-visible rect { stroke: var(--gate); stroke-width: 4; }
+#mapsvg .edge { fill: none; stroke: var(--plan); stroke-width: 1; opacity: 0.22; }
+#mapsvg .edge.denetim { stroke-dasharray: 6 4; }
+#mapsvg .top .edge { opacity: 1; stroke-width: 2.4; stroke: var(--ink); }
+#mapsvg .top .edge.out { stroke: var(--auto); } #mapsvg .top .edge.in { stroke: var(--gate); }
+#mapsvg .colh { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.08em; fill: var(--muted); font-weight: 500; }
+.mapkey { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 0.8rem; color: var(--muted); margin-top: 8px; }
+.mapkey span { display: inline-flex; align-items: center; gap: 6px; }
+.mapkey svg { display: inline-block; flex: none; }
+.detail { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; min-width: 0; position: sticky; top: 12px; }
+.detail h3 { font-size: 1.25rem; margin-bottom: 4px; }
+.detail h4 { margin: 14px 0 4px; font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+.tag { display: inline-block; font-family: var(--mono); font-size: 0.66rem; letter-spacing: 0.06em; text-transform: uppercase; border: 1px solid var(--ink); border-radius: 999px; padding: 1px 8px; margin-bottom: 8px; }
+.tag.unit { border-color: var(--auto); color: var(--auto); } .tag.person { border-color: var(--gate); color: var(--gate); }
+.detail .tech { font-size: 0.84rem; color: var(--muted); margin-top: 8px; overflow-wrap: anywhere; }
+.rels { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; max-height: 420px; overflow: auto; }
+.rels li { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 0.84rem; }
+.rels li p { color: var(--muted); font-size: 0.8rem; margin-top: 2px; }
+.rels button { min-height: 32px; padding: 3px 8px; font-size: 0.84rem; font-weight: 700; margin-right: 4px; }
+.rels .how { font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+.nodelist { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.nodelist button { min-height: 36px; font-size: 0.8rem; padding: 4px 9px; }
+.nodelist button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+@media (max-width: 860px) {
+  .grid2, .hooks, .map { grid-template-columns: 1fr; }
+  .detail { position: static; }
+  .kvl > div { grid-template-columns: 1fr; gap: 2px; }
+}
+
 @media (max-width: 860px) {
   .only-wide { display: none; } .only-narrow { display: block; }
   .track { grid-template-columns: 1fr; }
@@ -377,7 +447,7 @@ footer { padding-block: 36px 52px; color: var(--muted); font-size: 0.82rem; }
           <button type="button" id="b-sign" class="primary">CEO: imzala</button>
           <button type="button" id="b-reset">Sıfırla</button>
         </div>
-        <p class="note">Simülasyon. Gerçek davranış Docker'da gerçek Claude ile ve 20 imza-kapı ve 84 zarf testiyle doğrulandı.</p>
+        <p class="note">Simülasyon. Gerçek davranış Docker'da gerçek Claude ile ve 20 imza-kapı ve 85 zarf testiyle doğrulandı.</p>
       </div>
       <div class="panel" style="padding:0"><div class="console" id="con" role="log" aria-live="polite"></div></div>
     </div>
@@ -416,12 +486,130 @@ footer { padding-block: 36px 52px; color: var(--muted); font-size: 0.82rem; }
     <div class="legend"><span>Dolu: araç engelliyor</span><span>Çizgili: kısmen</span><span>Beyaz: betik yakalıyor</span><span>Kesikli: yalnızca talimat ("bitti = taze kanıt")</span></div>
   </section>
 
+
+  <section aria-labelledby="h-way">
+    <p class="label">Teknik ayrıntı · 1</p>
+    <h2 id="h-way">Bir işin teknik yolu</h2>
+    <p class="cap">Sekiz adım. Kırmızı çerçeveli iki adım senin kararın; gerisi araçla sınırlanmış otonom hat.</p>
+    <ol class="steps">
+      <li><b>Anlatım → spec taslağı</b><span><code>business-analyst</code> konuşmayı <code>specs/active/NNNN-ad.md</code> dosyasına çevirir: <code>templates/spec-tam.md</code> (14 bölüm, EARS gereksinimler, dört diyagram yuvası) ya da küçük işler için <code>spec-hizli.md</code>. İmzasız kipte yalnızca <code>specs/</code> ve <code>docs/</code> yazılabilir.</span></li>
+      <li><b>Bağımsız görüşler</b><span><code>spec-critic</code> cevapsız soruları, <code>architecture-board</code> teknoloji gerekçesini, <code>talent-capacity</code> tahmini, <code>appsec</code> tehdit modelini (durak A) okur. Cevapsız soru sıfırlanmadan imzaya gidilmez.</span></li>
+      <li class="ceo"><b>İmza (kapı 1, sen)</b><span><code>approve.sh</code> → <code>approval.js sign</code>: spec'in SHA-256 özeti ed25519 ile imzalanır, kayıt <code>approvals/</code> altına düşer. Onay penceresindeki tıklama imzanın kendisidir. Spec bir karakter değişirse özet tutmaz, imza düşer.</span></li>
+      <li><b>Kip seçimi</b><span><code>company-run.sh</code> tam bir aktif spec ve geçerli imza arıyor: varsa <em>build</em> (çalışma alanı yazılabilir), yoksa <em>plan</em> (salt-okunur, yalnızca <code>specs/</code> ve <code>docs/</code> yazılabilir). Karar işletim sistemi bağlama kipiyle uygulanır, talimatla değil.</span></li>
+      <li><b>Yürütme</b><span>Sertleştirilmiş konteynerde <code>claude -p --agent &lt;birim&gt;</code>. Her araç çağrısı <code>loop.js</code> ve (yazımlarda) <code>gate.js</code> kancasından geçer; ağ yalnızca izinli listeli vekile açık.</span></li>
+      <li><b>Doğrulama</b><span><code>harness/bin/check</code> yeşil olmalı; <code>qa-engineer</code> her kriteri bir kanıta eşler, <code>appsec</code> kodu denetler (durak B), <code>internal-auditor</code> bağımsız bakar, <code>stop.js</code> kanıtsız "bitti"yi geri çevirir.</span></li>
+      <li><b>Teslim</b><span><code>delivery-manager</code> görev PR'larını <code>integration/NNNN-ad</code> dalına açar. CI (<code>check.yml</code>) yeşil olmadan <code>guard.js</code> <code>gh pr merge</code>'ü reddeder.</span></li>
+      <li class="ceo"><b>Çıkış (kapı 2, sen)</b><span><code>main</code>'e birleştirme, deploy, mağaza ve herkese açık yayın <code>guard.js</code> üzerinden her seferinde ayrı onay penceresi açar. DevOps yalnızca paketi hazırlar, canlıya erişim aracı yoktur.</span></li>
+    </ol>
+  </section>
+
+  <section aria-labelledby="h-hooks">
+    <p class="label">Teknik ayrıntı · 2</p>
+    <h2 id="h-hooks">Kancalar: kim neyi, nasıl durdurur</h2>
+    <p class="cap">Beş kanca. "Kapalı" hata olursa engeller, "açık" hata olursa işi bozmaz: bir bildirim hatası oturumu kilitlememeli, bir imza hatası ise geçirmemeli.</p>
+    <div class="hooks">
+      <div class="card hook"><h3>gate.js <small>konteyner</small></h3>
+        <dl class="kvl"><div><dt>Olay</dt><dd>PreToolUse: Write, Edit, MultiEdit, NotebookEdit</dd></div><div><dt>Karar</dt><dd>çıkış kodu 2 = engel</dd></div><div><dt>Hata</dt><dd><b>kapalı</b> (bozuk girdi, eksik anahtar: engeller)</dd></div><div><dt>Engeller</dt><dd>imzasız kod yazımı, <code>approvals/</code>, <code>.claude/</code>, <code>.git/</code>, çalışma alanı dışı</dd></div><div><dt>Test</dt><dd>20</dd></div></dl></div>
+      <div class="card hook"><h3>guard.js <small>ana makine</small></h3>
+        <dl class="kvl"><div><dt>Olay</dt><dd>PreToolUse: Bash, Write, Edit</dd></div><div><dt>Karar</dt><dd>JSON <code>ask</code> (onay penceresi) veya çıkış kodu 2</dd></div><div><dt>Hata</dt><dd><b>kapalı</b></dd></div><div><dt>Sorar</dt><dd>main push/merge, force, tag, <code>rm -r</code>, imza, deploy ve yayın araçları (ssh, docker push, npm publish, bulut CLI'ları, dış POST), zorlama dosyalarına yazma</dd></div><div><dt>Reddeder</dt><dd><code>--no-verify</code>; CI yeşil değilken <code>gh pr merge</code></dd></div><div><dt>Test</dt><dd>85</dd></div></dl></div>
+      <div class="card hook"><h3>stop.js <small>kanıt</small></h3>
+        <dl class="kvl"><div><dt>Olay</dt><dd>Stop</dd></div><div><dt>Karar</dt><dd><code>decision: block</code>, bir kez; <code>stop_hook_active</code> döngüyü önler</dd></div><div><dt>Hata</dt><dd><b>açık</b></dd></div><div><dt>Kural</dt><dd>tur kod dosyası düzenledi, sonrasında derleme/test/check çalışmadı ve metinde "doğrulanmadı" yok</dd></div><div><dt>Sınır</dt><dd>Bash ile yapılan düzenlemeyi görmez; testin geçtiğini değil çalıştığını arar</dd></div><div><dt>Test</dt><dd>11</dd></div></dl></div>
+      <div class="card hook"><h3>loop.js <small>yeni</small></h3>
+        <dl class="kvl"><div><dt>Olay</dt><dd>PreToolUse: tüm araçlar (ana makine ve konteyner)</dd></div><div><dt>Karar</dt><dd>çıkış kodu 2, ajana "farklı yol dene ya da dur" der</dd></div><div><dt>Hata</dt><dd><b>açık</b></dd></div><div><dt>Kural</dt><dd>aynı araç + aynı girdi 5 kez üst üste, veya 2-3 çağrılık döngü 3 tur; girdi anahtar sırası fark etmez</dd></div><div><dt>Muaf</dt><dd>plan ve görev listesi araçları</dd></div><div><dt>Ayar</dt><dd><code>COMPANY_LOOP_MAX</code> (0 = kapalı)</dd></div><div><dt>Test</dt><dd>16</dd></div></dl></div>
+      <div class="card hook"><h3>notify.js <small>bildirim</small></h3>
+        <dl class="kvl"><div><dt>Olay</dt><dd>Notification; koşu bitince <code>company-run.sh</code></dd></div><div><dt>Etki</dt><dd>macOS masaüstü bildirimi</dd></div><div><dt>Hata</dt><dd><b>açık</b></dd></div><div><dt>Güvenlik</dt><dd>metin kabuğa değil, <code>osascript</code>'e argüman olarak gider</dd></div><div><dt>Sınır</dt><dd>gerçek masaüstünde görsel olarak denenmedi (testte sahte <code>osascript</code>)</dd></div></dl></div>
+      <div class="card hook"><h3>İzin listesi <small>konteyner</small></h3>
+        <dl class="kvl"><div><dt>İzinli</dt><dd>okuma, yazma, <code>git add/commit</code>, <code>dotnet build/test</code>, <code>npm test/run/ci/audit</code></dd></div><div><dt>Yasak</dt><dd><code>rm</code>, <code>mv</code>, <code>sudo</code>, <code>curl</code>, <code>ssh</code>, <code>docker</code>, <code>git push/reset/rebase/clean</code>, <code>.env</code> ve <code>~/.company</code> okuma</dd></div><div><dt>Başsız kip</dt><dd>onay verecek kimse yok: listedışı komut ajanı durdurur</dd></div></dl></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-box">
+    <p class="label">Teknik ayrıntı · 3</p>
+    <h2 id="h-box">Konteyner ve bağlama kipleri</h2>
+    <p class="cap">Ajan her zaman aynı sertleştirilmiş kutuda çalışır. İmza yalnızca çalışma alanının yazılabilir olup olmadığını değiştirir.</p>
+    <div class="grid2">
+      <div class="card"><h3>Kutu</h3>
+        <dl class="kvl" style="margin-top:8px"><div><dt>İmaj</dt><dd><code>node:22-bookworm-slim</code> + .NET SDK 10, Claude Code 2.1.316, graphify 0.9.54</dd></div><div><dt>Görsel</dt><dd>Playwright 1.64.1 + axe 4.14.0, ayrı ağsız konteynerde (<code>visual-check.sh</code>)</dd></div><div><dt>Bayraklar</dt><dd><code>--read-only --cap-drop ALL --security-opt no-new-privileges --user 1000:1000</code></dd></div><div><dt>Sınırlar</dt><dd>4 GB bellek, 512 pid, 2 cpu, tmpfs <code>/tmp</code> ve <code>/home/node</code></dd></div><div><dt>Ağ</dt><dd><code>company-int</code> (internal) + CONNECT vekili; izinli: <code>api.anthropic.com</code>, <code>api.nuget.org</code>, <code>registry.npmjs.org</code></dd></div><div><dt>Sır</dt><dd>token <code>--env-file</code> ile verilir, betik okumaz; CEO anahtarı hiç bağlanmaz</dd></div></dl></div>
+      <div class="card"><h3>Hangi yol, hangi kipte</h3>
+        <div class="mt" style="margin-top:8px">
+          <div class="h">Yol</div><div class="h">Plan (imza yok)</div><div class="h">Build (imzalı)</div>
+          <div><code>/work</code> çalışma alanı</div><div class="ro">salt-okunur</div><div class="rw">yazılabilir</div>
+          <div><code>specs/</code>, <code>docs/</code></div><div class="rw">yazılabilir</div><div class="rw">yazılabilir</div>
+          <div><code>approvals/</code></div><div class="ro">salt-okunur</div><div class="ro">salt-okunur</div>
+          <div><code>/harness</code> kancalar</div><div class="ro">salt-okunur</div><div class="ro">salt-okunur</div>
+          <div>birimler, kılavuzlar, <code>CLAUDE.md</code></div><div class="ro">salt-okunur</div><div class="ro">salt-okunur</div>
+          <div><code>~/.company</code></div><div class="no">bağlanmaz</div><div class="no">bağlanmaz</div>
+        </div>
+        <p class="note">Birimler kendi kılavuzunu değiştiremez: kılavuzlar konteynerde salt-okunurdur (SOP-03).</p></div>
+    </div>
+    <div class="card" style="margin-top:16px"><h3>İmza kaydı</h3>
+      <p class="note" style="margin:4px 0 10px">Dosya <code>approvals/specs__active__0001-ad.md.sig.json</code>. Doğrulama özeti yeniden hesaplar; tutmazsa kapı kapanır.</p>
+<pre class="snip" tabindex="0" role="region" aria-label="İmza kaydı örneği">{
+  "version": 1,
+  "spec": "specs/active/0001-ad.md",
+  "sha256": "&lt;spec içeriğinin özeti&gt;",
+  "signature": "&lt;ed25519, genel anahtar harness/keys/ceo.pub.pem ile doğrulanır&gt;"
+}</pre></div>
+  </section>
+
+  <section aria-labelledby="h-ver">
+    <p class="label">Teknik ayrıntı · 4</p>
+    <h2 id="h-ver">Neyin kanıtı var, neyin yok</h2>
+    <p class="cap">Her şey tek komutla ve her PR'da GitHub Actions'ta sınanır. Dürüst sınırlar aşağıda.</p>
+    <div class="grid2">
+      <div class="card"><h3>Doğrulama katmanları</h3>
+        <div class="vt" style="margin-top:8px">
+          <div>Kılavuz biçimi, değerlendirme setleri, kancaların bağlantısı, CI kuralları (<code>lint.js</code>)</div><div class="n">54</div>
+          <div>İmza ve kapı (<code>gate.js</code>, <code>approval.js</code>)</div><div class="n">20</div>
+          <div>Zarf kapısı (<code>guard.js</code>)</div><div class="n">85</div>
+          <div>Kanıt kancası (<code>stop.js</code>)</div><div class="n">11</div>
+          <div>Araçlar (scorecard, yazım, eval, bildirim)</div><div class="n">26</div>
+          <div>Döngü engelleyici (<code>loop.js</code>)</div><div class="n">16</div>
+          <div class="t">Toplam, her PR'da</div><div class="n t">212</div>
+        </div>
+        <p class="note">Elle çalışan, CI dışı: 18 uçtan uca test (sahte ajanla), 14 imaj testi.</p></div>
+      <div class="card"><h3>Bilinen sınırlar</h3>
+        <ul class="lim" style="margin-top:8px">
+          <li><b>Model davranışı kanıtlanmadı.</b> Hat sahte ajanla baştan sona sınandı; gerçek ajan koşusu için token gerekiyor.</li>
+          <li><b>Birimler gerçek işte çalışmadı.</b> Kılavuzlar ve değerlendirme setleri kâğıt üstünde sınandı.</li>
+          <li><b>GitHub arayüzünden elle birleştirme</b> guard'ı atlar (bu planda dal koruması yok).</li>
+          <li><b>Satır içi yazma</b> (<code>python -c</code>, <code>node -e</code>) zorlama dosyası korumasında yakalanmaz.</li>
+          <li><b>İzleme aracı yok.</b> Olay süreci ve şablonlar hazır, canlıyı izleyen bir şey değil.</li>
+          <li><b>Yalnızca arm64'te ölçüldü.</b> Görsel doğrulama x64'te denenmedi.</li>
+        </ul></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-map">
+    <p class="label">Teknik ayrıntı · 5</p>
+    <h2 id="h-map">Düğüm haritası: kim kiminle, ne için ilişkili</h2>
+    <p class="cap">Bir düğüme dokun. Bağlandığı her düğüm, ne iş yaptığıyla birlikte sağda listelenir. Birim bilgileri depodaki ajan dosyalarından üretilir, el yazısı değildir.</p>
+    <div class="map">
+      <div>
+        <div class="mapcard only-wide">
+          <svg id="mapsvg" viewBox="0 0 1000 700" role="group" aria-label="Düğüm haritası: kişiler, birimler, zorlama katmanı ve kayıtlar; bağlantılar sağdaki panelde de listelenir"></svg>
+          <div class="mapkey" aria-hidden="false">
+            <span><svg width="28" height="14" aria-hidden="true"><rect x="1" y="1" width="26" height="12" rx="6" fill="var(--gate-soft)" stroke="var(--gate)" stroke-width="2"/></svg>kişi</span>
+            <span><svg width="28" height="14" aria-hidden="true"><rect x="1" y="1" width="26" height="12" rx="6" fill="var(--auto-soft)" stroke="var(--auto)" stroke-width="2"/></svg>birim</span>
+            <span><svg width="28" height="14" aria-hidden="true"><rect x="1" y="1" width="26" height="12" rx="2" fill="var(--surface)" stroke="var(--ink)" stroke-width="1.8"/></svg>zorlama aracı</span>
+            <span><svg width="28" height="14" aria-hidden="true"><rect x="1" y="1" width="26" height="12" rx="2" fill="var(--bg)" stroke="var(--plan)" stroke-width="1.6" stroke-dasharray="4 3"/></svg>kayıt / çıktı</span>
+            <span><svg width="34" height="10" aria-hidden="true"><path d="M1 5h32" stroke="var(--ink)" stroke-width="2"/></svg>iş / veri akışı</span>
+            <span><svg width="34" height="10" aria-hidden="true"><path d="M1 5h32" stroke="var(--ink)" stroke-width="2" stroke-dasharray="6 4"/></svg>denetim / engel / onay</span>
+          </div>
+          <p class="note" id="mapsum"></p>
+        </div>
+        <div class="nodelist" id="nodelist" role="group" aria-label="Düğüm listesi"></div>
+      </div>
+      <aside class="detail" id="detail" aria-live="polite" aria-label="Seçili düğümün ayrıntısı"></aside>
+    </div>
+  </section>
+
   <section aria-labelledby="h-st">
     <p class="label">Şu anki durum</p>
     <h2 id="h-st">Kadro tamam: 16 birim hazır</h2>
     <div class="dotsrow" style="margin-top:16px">
       <div class="card"><div class="big">16<small> / 16 birim</small></div><div class="dots" data-total="16" data-on="16" role="img" aria-label="16 birimin 16'sı hazır"></div><p>Her biri aynı 9 başlıklı kılavuzla ve kendini sınayan 3 vakalık değerlendirme setiyle.</p></div>
-      <div class="card"><div class="big">192<small> / 192 kontrol</small></div><div class="dots" data-total="192" data-on="192" role="img" aria-label="192 kontrolün 192'si yeşil"></div><p>51 biçim ve kılavuz, 20 imza-kapı, 84 zarf, 11 kanıt-kancası, 26 araç testi. Ayrıca elle çalışan: 18 uçtan uca (sahte ajanla), 14 imaj testi.</p></div>
+      <div class="card"><div class="big">212<small> / 212 kontrol</small></div><div class="dots" data-total="212" data-on="212" role="img" aria-label="212 kontrolün 212'si yeşil"></div><p>54 biçim ve kılavuz, 20 imza-kapı, 85 zarf, 11 kanıt-kancası, 26 araç, 16 döngü-engelleyici testi. Ayrıca elle çalışan: 18 uçtan uca (sahte ajanla), 14 imaj testi.</p></div>
       <div class="card"><div class="big">1<small> açık bulundu</small></div><div class="dots" data-total="1" data-on="1" role="img" aria-label="1 açık bulundu ve kapatıldı"></div><p>Bash ile yazma yolu. Gerçek ajanla bulundu, kapatıldı.</p></div>
     </div>
     <p class="label" style="margin-top:22px">Sıradaki</p>
@@ -485,3 +673,80 @@ footer { padding-block: 36px 52px; color: var(--muted); font-size: 0.82rem; }
   }
 })();
 </script>
+<script type="application/json" id="map-data">{"nodes":[{"id":"appsec","col":"u3","row":1,"label":"AppSec","kind":"birim","role":"İmzadan önce tehdit modelini, teslimden önce kodu ve bağımlılıkları OWASP'a göre denetler. Yazma yok.","tech":"Model: opus · araçlar: Read, Grep, Glob, Bash · yazma aracı yok · kılavuz: application-security (evals/application-security.md)","file":".claude/agents/appsec.md"},{"id":"architecture-board","col":"u3","row":2,"label":"Architecture board","kind":"birim","role":"Mimariyi ve yeni teknoloji gerekçesini imzadan önce denetler; standart yığın kaydını tutar.","tech":"Model: opus · araçlar: Read, Grep, Glob, Write, Edit · yazabilir · Bash yok · kılavuz: architecture-review (evals/architecture-review.md)","file":".claude/agents/architecture-board.md"},{"id":"business-analyst","col":"u1","row":1,"label":"Business analyst","kind":"birim","role":"CEO'nun anlatımını imzalanabilir, kelimesi kelimesine teknik spec'e çevirir.","tech":"Model: opus · araçlar: Read, Grep, Glob, Write, Edit · yazabilir · Bash yok · kılavuz: business-analysis (evals/business-analysis.md)","file":".claude/agents/business-analyst.md"},{"id":"delivery-manager","col":"u1","row":4,"label":"Delivery","kind":"birim","role":"İmzalı spec'ten plan, issue, branch ve PR üretir, CI'ı izler. main'e gideni CEO'ya bırakır.","tech":"Model: sonnet · araçlar: Read, Grep, Glob, Write, Edit, Bash · yazabilir · kılavuz: delivery-management (evals/delivery-management.md)","file":".claude/agents/delivery-manager.md"},{"id":"devops-sre","col":"u2","row":3,"label":"DevOps / SRE","kind":"birim","role":"Deploy paketi (adım, geri alma, sağlık kontrolü), CI, yedek ve izleme hazırlar. Deploy etmez.","tech":"Model: sonnet · araçlar: Read, Grep, Glob, Write, Edit, MultiEdit, Bash · yazabilir · kılavuz: devops-sre (evals/devops-sre.md)","file":".claude/agents/devops-sre.md"},{"id":"dotnet-engineer","col":"u2","row":0,"label":".NET engineer","kind":"birim","role":"İmzalı spec'i C# / ASP.NET Core / EF Core ile test önce yaklaşımıyla koda çevirir.","tech":"Model: sonnet · araçlar: Read, Grep, Glob, Write, Edit, MultiEdit, Bash · yazabilir · kılavuz: dotnet-engineering (evals/dotnet-engineering.md)","file":".claude/agents/dotnet-engineer.md"},{"id":"internal-auditor","col":"u3","row":0,"label":"Internal audit","kind":"birim","role":"İşi yapandan bağımsız denetler, bulguları gerekçeyle triyaj eder, scorecard doldurur. Yazma aracı yok.","tech":"Model: opus · araçlar: Read, Grep, Glob, Bash · yazma aracı yok · kılavuz: internal-audit (evals/internal-audit.md)","file":".claude/agents/internal-auditor.md"},{"id":"marketing","col":"u2","row":4,"label":"Marketing","kind":"birim","role":"Mağaza ve ürün metni, marka kılavuzu, varlık brifi yazar. İddiaları kaynağa bağlar; yayınlamaz.","tech":"Model: sonnet · araçlar: Read, Grep, Glob, Write, Edit · yazabilir · Bash yok · kılavuz: marketing-brand (evals/marketing-brand.md)","file":".claude/agents/marketing.md"},{"id":"product-manager","col":"u1","row":0,"label":"Product","kind":"birim","role":"Kaynaklı piyasa araştırması yapar, yap / yapma / farklı yap kararı ve yol haritası çıkarır.","tech":"Model: sonnet · araçlar: Read, Grep, Glob, WebSearch, WebFetch, Write, Edit · yazabilir · Bash yok · kılavuz: product-management (evals/product-management.md)","file":".claude/agents/product-manager.md"},{"id":"qa-engineer","col":"u2","row":2,"label":"QA engineer","kind":"birim","role":"Her kabul kriterini bir kanıta eşler, testleri kodu bozarak yoklar. Üretim kodu yazmaz.","tech":"Model: sonnet · araçlar: Read, Grep, Glob, Bash, Write, Edit · yazabilir · kılavuz: qa-verification (evals/qa-verification.md)","file":".claude/agents/qa-engineer.md"},{"id":"quality-office","col":"u3","row":4,"label":"Quality office","kind":"birim","role":"Gereksinim → test → kanıt izlenebilirliğini ve uyum listesini (KVKK, lisans) tutar. Hukuki görüş vermez.","tech":"Model: sonnet · araçlar: Read, Grep, Glob, Bash, Write, Edit · yazabilir · kılavuz: quality-compliance (evals/quality-compliance.md)","file":".claude/agents/quality-office.md"},{"id":"react-engineer","col":"u2","row":1,"label":"React engineer","kind":"birim","role":"İmzalı spec'i React, TypeScript, Vite ile tüm ekran durumlarıyla (yükleniyor, boş, hata, başarı) koda çevirir.","tech":"Model: sonnet · araçlar: Read, Grep, Glob, Write, Edit, MultiEdit, Bash · yazabilir · kılavuz: react-engineering (evals/react-engineering.md)","file":".claude/agents/react-engineer.md"},{"id":"scout","col":"u1","row":3,"label":"Scout","kind":"birim","role":"Hazır çözüm arar (API, depo, MCP, plugin), kaynaklı karşılaştırır. Kurmaz: Bash'i yok.","tech":"Model: sonnet · araçlar: Read, Grep, Glob, WebSearch, WebFetch, Write, Edit · yazabilir · Bash yok · kılavuz: scouting (evals/scouting.md)","file":".claude/agents/scout.md"},{"id":"spec-critic","col":"u1","row":2,"label":"Spec critic","kind":"birim","role":"Spec'i yazarın bağlamını bilmeden düşmanca okur, cevapsız soruları sıralar. Yazma aracı yok.","tech":"Model: opus · araçlar: Read, Grep, Glob · yazma aracı yok · Bash yok · kılavuz: spec-criticism (evals/spec-criticism.md)","file":".claude/agents/spec-critic.md"},{"id":"talent-capacity","col":"u3","row":3,"label":"Talent & capacity","kind":"birim","role":"Scorecard verisinden darboğaz ve eksik uzmanlığı raporlar; kapasite tahminini yoklar. Rol eklemez.","tech":"Model: sonnet · araçlar: Read, Grep, Glob, Write, Edit · yazabilir · Bash yok · kılavuz: talent-capacity (evals/talent-capacity.md)","file":".claude/agents/talent-capacity.md"},{"id":"tech-comms","col":"u2","row":5,"label":"Tech comms","kind":"birim","role":"Kullanım kılavuzu, sürüm notu, yönetici özeti gibi dış doküman kaynağını hazırlar.","tech":"Model: sonnet · araçlar: Read, Grep, Glob, Write, Edit · yazabilir · Bash yok · kılavuz: technical-communication (evals/technical-communication.md)","file":".claude/agents/tech-comms.md"},{"id":"ceo","col":"top","row":0,"label":"CEO (sen)","kind":"kişi","role":"Karar verir: spec'i imzalar, main'e birleştirmeyi, deploy'u ve yayını tek tek onaylar.","tech":"Anahtar ~/.company/keys altında, repoda yalnızca genel anahtar. İmza = onay penceresindeki tıklama."},{"id":"cos","col":"top","row":1,"label":"Chief of Staff","kind":"kişi","role":"Bu oturum. Birimleri görevlendirir, sonuçları toplar, kanıtı gösterir; CEO ile konuşan tek arayüz.","tech":"CLAUDE.md anayasasını okur. Ana makinede guard, loop, stop ve notify kancaları onun oturumunda çalışır."},{"id":"approval","col":"h","row":0,"label":"approval.js","kind":"zorlama","role":"Spec'in SHA-256 özetini ed25519 ile imzalar ve doğrular; imza kaydını approvals/ altına yazar.","tech":"keygen | sign | verify. Bağımlılıksız Node. Özel anahtar hiçbir konteynere bağlanmaz.","file":"harness/approval.js"},{"id":"gate","col":"h","row":1,"label":"gate.js","kind":"zorlama","role":"Konteynerde kod yazımını imza yoksa engeller; approvals/, .claude/, .git/ ve çalışma alanı dışı hep kapalı.","tech":"PreToolUse (Write, Edit, MultiEdit, NotebookEdit). Engel: çıkış kodu 2. Hata veya bozuk girdide kapalı kalır (fail closed). 20 test.","file":"harness/gate.js"},{"id":"guard","col":"h","row":2,"label":"guard.js","kind":"zorlama","role":"Ana makinede zarf eylemlerini CEO kararına çevirir: main push/merge, deploy ve yayın araçları, silme, imza, zorlama dosyalarına yazma. CI yeşil değilse merge'ü reddeder.","tech":"PreToolUse (Bash ve Write/Edit). Çıktı: JSON 'ask' (onay penceresi) veya çıkış kodu 2. Fail closed. 85 test.","file":"harness/guard.js"},{"id":"stop","col":"h","row":3,"label":"stop.js","kind":"zorlama","role":"Tur kod değiştirdi ve sonrasında derleme/test/check çalışmadıysa turu bir kez geri çevirir: 'bitti = taze kanıt'.","tech":"Stop kancası; transkripti okur. decision: block, stop_hook_active ile döngüsüz. Fail open. 11 test.","file":"harness/stop.js"},{"id":"loop","col":"h","row":4,"label":"loop.js","kind":"zorlama","role":"Aynı çağrıyı 5 kez üst üste veya kısa bir döngüyü 3 kez tekrarlayan ajanı durdurur; 'farklı yol dene ya da dur ve bildir' der.","tech":"PreToolUse (tüm araçlar). Çağrı özeti (araç + girdi, anahtar sırasından bağımsız) oturum başına geçici dosyada. Plan/görev araçları muaf. Fail open. 16 test.","file":"harness/loop.js"},{"id":"notify","col":"h","row":5,"label":"notify.js","kind":"zorlama","role":"CEO'nun dikkati gerekince (onay bekleniyor, koşu bitti veya durdu) masaüstü bildirimi gönderir.","tech":"Notification kancası ve company-run.sh. Metin kabuğa değil argüman olarak gider. Fail open.","file":"harness/notify.js"},{"id":"runner","col":"h","row":6,"label":"Runner + konteyner","kind":"zorlama","role":"İmzaya bakıp bağlama kipini seçer (build: çalışma alanı yazılabilir; plan: salt-okunur) ve sertleştirilmiş konteynerde claude -p çalıştırır.","tech":"--read-only, --cap-drop ALL, no-new-privileges, uid 1000, 4 GB bellek, 512 pid. Ağ: yalnızca izinli listeli vekil. approvals/ her kipte salt-okunur.","file":"harness/bin/company-run.sh"},{"id":"check","col":"h","row":7,"label":"check + CI","kind":"zorlama","role":"Tek doğrulama komutu: kılavuz biçimi, imza-kapı, guard, stop, loop, araç testleri ve sır taraması. Aynısı her PR'da GitHub Actions'ta koşar.","tech":"harness/bin/check (212 kontrol), .github/workflows/check.yml (SHA'ya sabit action, salt-okuma yetki, sır yok).","file":"harness/bin/check"},{"id":"spec","col":"a","row":0,"label":"Spec + imza","kind":"kayıt","role":"Dondurulan sözleşme: 14 bölüm, EARS gereksinimler, kabul kriterleri, tehdit modeli, görev listesi. İmza içeriğine bağlıdır; değişirse düşer.","tech":"specs/active/NNNN-ad.md + approvals/*.sig.json (sürüm, yol, sha256, imza).","file":"specs/active/"},{"id":"plan","col":"a","row":1,"label":"Plan + STATE","kind":"kayıt","role":"İmzalı spec'ten çıkan sıralı adımlar, kriter ↔ test haritası ve ilerleme defteri; oturum çökse iş buradan sürer.","tech":"plans/NNNN-plan.md, STATE.md, issue ve PR'lar (templates/).","file":"plans/"},{"id":"evidence","col":"a","row":2,"label":"Kanıt tablosu","kind":"kayıt","role":"Her kabul kriteri için test + komut + sonuç; bozarak doğrulandı mı. 'Bitti' ancak bununla söylenir.","tech":"QA raporu; derleme/test çıktısı taze olmalı (stop.js bunu arar).","file":"QA raporu"},{"id":"scorecard","col":"a","row":3,"label":"Scorecard","kind":"kayıt","role":"İş sonu ölçümü: düzeltme turu, bulgular, regresyon, kaçan hata, tahmin/gerçek sapma.","tech":"templates/scorecard.md (makine okur) → harness/bin/scorecard.js özet çıkarır.","file":"docs/scorecards/"},{"id":"evals","col":"a","row":4,"label":"Değerlendirme setleri","kind":"kayıt","role":"Her birim kılavuzu için 3 vaka: mekanik ölçütler ve geçer/kalır örnekleri. Kılavuz bozulursa yakalanır.","tech":"evals/*.md (16 set); harness/bin/eval.js self|grade; lint CI'da kendini sınatır.","file":"evals/"},{"id":"stack","col":"a","row":5,"label":"Yığın kaydı + ADR","kind":"kayıt","role":"Standart teknoloji listesi (benimse / dene / değerlendir / çıkar) ve geri dönüşü pahalı kararların gerekçesi.","tech":"docs/architecture/STACK.md, templates/ADR.md.","file":"docs/architecture/"},{"id":"deploy","col":"a","row":6,"label":"Deploy paketi","kind":"kayıt","role":"Adımlar, sağlık kontrolü, geri alma, migration sırası; CEO onayı kutusu boş gelir. Canlıya çıkışı yalnızca CEO yapar.","tech":"docs/ops/deploy-\u003csürüm>.md (devops-sre kılavuzu).","file":"docs/ops/"},{"id":"compliance","col":"a","row":7,"label":"Uyum ve izlenebilirlik","kind":"kayıt","role":"Gereksinim → test → kanıt zinciri ve uyum listesi (kişisel veri, lisans, mağaza kuralları); avukat gerektirenleri işaretler.","tech":"docs/kalite/, docs/uyum/, templates/uyum-kontrol.md.","file":"docs/uyum/"}],"edges":[{"from":"ceo","to":"cos","kind":"akis","label":"konuşur, karar verir"},{"from":"cos","to":"product-manager","kind":"akis","label":"fikri araştırtır"},{"from":"product-manager","to":"business-analyst","kind":"akis","label":"karar notu spec girdisi olur"},{"from":"cos","to":"business-analyst","kind":"akis","label":"işi spec'e çevirtir"},{"from":"business-analyst","to":"spec","kind":"akis","label":"spec'i yazar"},{"from":"scout","to":"business-analyst","kind":"akis","label":"hazır çözüm raporu verir"},{"from":"scout","to":"architecture-board","kind":"akis","label":"teknoloji adayını gerekçelendirir"},{"from":"spec-critic","to":"spec","kind":"denetim","label":"okur, cevapsız soruları çıkarır"},{"from":"spec-critic","to":"business-analyst","kind":"denetim","label":"boşlukları geri bildirir"},{"from":"architecture-board","to":"spec","kind":"denetim","label":"mimari görüşü verir (kapı)"},{"from":"talent-capacity","to":"spec","kind":"denetim","label":"kapasite tahminini yoklar (kapı)"},{"from":"appsec","to":"spec","kind":"denetim","label":"tehdit modelini denetler (durak A)"},{"from":"architecture-board","to":"stack","kind":"akis","label":"yığın kaydını günceller"},{"from":"ceo","to":"approval","kind":"denetim","label":"imza penceresinde onaylar"},{"from":"approval","to":"spec","kind":"denetim","label":"özet üzerinden imza kaydı yazar"},{"from":"gate","to":"spec","kind":"denetim","label":"imzayı her yazımda doğrular"},{"from":"runner","to":"approval","kind":"denetim","label":"imzayı doğrulayıp kipi seçer"},{"from":"cos","to":"runner","kind":"akis","label":"birimi konteynerde çalıştırır"},{"from":"gate","to":"dotnet-engineer","kind":"denetim","label":"imzasız kod yazımını engeller"},{"from":"gate","to":"react-engineer","kind":"denetim","label":"imzasız kod yazımını engeller"},{"from":"spec","to":"dotnet-engineer","kind":"akis","label":"uygulanacak sözleşme"},{"from":"spec","to":"react-engineer","kind":"akis","label":"uygulanacak sözleşme"},{"from":"cos","to":"delivery-manager","kind":"akis","label":"planı ve PR'ları yönettirir"},{"from":"delivery-manager","to":"plan","kind":"akis","label":"plan, issue, durum raporu yazar"},{"from":"plan","to":"dotnet-engineer","kind":"akis","label":"adımları verir"},{"from":"dotnet-engineer","to":"qa-engineer","kind":"akis","label":"kod ve testleri teslim eder"},{"from":"react-engineer","to":"qa-engineer","kind":"akis","label":"kod ve testleri teslim eder"},{"from":"qa-engineer","to":"evidence","kind":"akis","label":"kriter ↔ kanıt tablosunu yazar"},{"from":"evidence","to":"internal-auditor","kind":"denetim","label":"denetimin ana girdisi"},{"from":"appsec","to":"internal-auditor","kind":"denetim","label":"durak B raporu (kod, bağımlılık)"},{"from":"internal-auditor","to":"scorecard","kind":"akis","label":"scorecard'ı doldurur"},{"from":"internal-auditor","to":"cos","kind":"denetim","label":"TEMİZ veya düzeltme gerekli bildirir"},{"from":"scorecard","to":"talent-capacity","kind":"akis","label":"darboğaz analizinin verisi"},{"from":"talent-capacity","to":"ceo","kind":"akis","label":"kapasite ve kılavuz önerileri"},{"from":"quality-office","to":"evidence","kind":"denetim","label":"izlenebilirlik için okur"},{"from":"quality-office","to":"compliance","kind":"akis","label":"uyum ve izlenebilirlik kaydı yazar"},{"from":"quality-office","to":"ceo","kind":"denetim","label":"avukat gerektirenleri işaretler"},{"from":"devops-sre","to":"deploy","kind":"akis","label":"deploy paketini hazırlar"},{"from":"deploy","to":"ceo","kind":"denetim","label":"tek tek onay bekler"},{"from":"qa-engineer","to":"devops-sre","kind":"denetim","label":"önkoşul: kanıt tam"},{"from":"marketing","to":"ceo","kind":"denetim","label":"yayın paketi onay bekler"},{"from":"tech-comms","to":"cos","kind":"akis","label":"doküman kaynağı verir, dönüşüm ana oturumda"},{"from":"guard","to":"ceo","kind":"denetim","label":"onay penceresi açar (main, deploy, yayın)"},{"from":"guard","to":"cos","kind":"denetim","label":"tehlikeli komutu reddeder veya sorar"},{"from":"stop","to":"cos","kind":"denetim","label":"kanıtsız bitirmeyi geri çevirir"},{"from":"loop","to":"cos","kind":"denetim","label":"tekrar eden döngüyü keser"},{"from":"notify","to":"ceo","kind":"akis","label":"masaüstü bildirimi"},{"from":"check","to":"evals","kind":"denetim","label":"kılavuz setlerini kendini sınatır"},{"from":"check","to":"guard","kind":"denetim","label":"85 testle sınar"},{"from":"check","to":"gate","kind":"denetim","label":"20 testle sınar"},{"from":"check","to":"delivery-manager","kind":"denetim","label":"CI yeşil olmadan merge reddedilir"},{"from":"evals","to":"internal-auditor","kind":"denetim","label":"kılavuz uyumunu ölçmeye yarar"},{"from":"runner","to":"notify","kind":"akis","label":"koşu bitince bildirim tetikler"},{"from":"devops-sre","to":"check","kind":"akis","label":"CI hattını hazırlar"}]}</script><!--/map-data-->
+<script>
+(function () {
+  var el = document.getElementById('map-data'); if (!el) return;
+  var data = JSON.parse(el.textContent), byId = {}, i;
+  for (i = 0; i < data.nodes.length; i++) byId[data.nodes[i].id] = data.nodes[i];
+  var KIND = { 'birim': 'unit', 'kişi': 'person', 'zorlama': 'enf', 'kayıt': 'rec' };
+  var KLABEL = { 'birim': 'Birim', 'kişi': 'Kişi', 'zorlama': 'Zorlama aracı', 'kayıt': 'Kayıt / çıktı' };
+  var COLX = { u1: 95, u2: 290, u3: 485, h: 680, a: 875, top: 485 }, W = 172, H = 40, Y0 = 200, DY = 62;
+  function pos(n) { return n.col === 'top' ? { x: COLX.top, y: 40 + n.row * 64 } : { x: COLX[n.col], y: Y0 + n.row * DY }; }
+  var NS = 'http://www.w3.org/2000/svg';
+  function mk(tag, attrs, parent) { var e = document.createElementNS(NS, tag); for (var k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; }
+  function path(e) {
+    var a = pos(byId[e.from]), b = pos(byId[e.to]), sx, tx, c1, c2;
+    if (Math.abs(a.x - b.x) < 5) { sx = a.x + W / 2; tx = b.x + W / 2; return 'M' + sx + ' ' + a.y + 'C' + (sx + 18) + ' ' + a.y + ' ' + (tx + 18) + ' ' + b.y + ' ' + tx + ' ' + b.y; }
+    if (b.x > a.x) { sx = a.x + W / 2; tx = b.x - W / 2; } else { sx = a.x - W / 2; tx = b.x + W / 2; }
+    var m = (sx + tx) / 2; return 'M' + sx + ' ' + a.y + 'C' + m + ' ' + a.y + ' ' + m + ' ' + b.y + ' ' + tx + ' ' + b.y;
+  }
+  var svg = document.getElementById('mapsvg'), detail = document.getElementById('detail'), list = document.getElementById('nodelist');
+  var sel = 'cos', nodeEls = {}, base, top;
+  document.getElementById('mapsum').textContent = data.nodes.length + ' düğüm, ' + data.edges.length + ' bağlantı.';
+
+  var heads = [['u1', 'ÜRÜN HATTI'], ['u2', 'ÜRETİM'], ['u3', 'KAPILAR VE YÖNETİŞİM'], ['h', 'ZORLAMA KATMANI'], ['a', 'KAYITLAR']];
+  heads.forEach(function (h) { var t = mk('text', { x: COLX[h[0]], y: 176, 'text-anchor': 'middle', 'class': 'colh' }, svg); t.textContent = h[1]; });
+  base = mk('g', { 'class': 'base' }, svg);
+  data.edges.forEach(function (e) { mk('path', { d: path(e), 'class': 'edge ' + e.kind }, base); });
+  data.nodes.forEach(function (n) {
+    var p = pos(n), g = mk('g', { 'class': 'node k-' + KIND[n.kind], tabindex: '0', role: 'button', 'aria-label': n.label + ' (' + KLABEL[n.kind] + '): ' + n.role }, svg);
+    mk('rect', { x: p.x - W / 2, y: p.y - H / 2, width: W, height: H, rx: n.kind === 'birim' || n.kind === 'kişi' ? 20 : 3 }, g);
+    var t = mk('text', { x: p.x, y: p.y + 4.5, 'text-anchor': 'middle' }, g); t.textContent = n.label;
+    g.addEventListener('click', function () { select(n.id); });
+    g.addEventListener('keydown', function (ev) { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); select(n.id); } });
+    nodeEls[n.id] = g;
+  });
+  top = mk('g', { 'class': 'top', 'pointer-events': 'none' }, svg);
+
+  data.nodes.forEach(function (n) {
+    var b = document.createElement('button'); b.type = 'button'; b.textContent = n.label; b.setAttribute('aria-pressed', 'false');
+    b.addEventListener('click', function () { select(n.id); }); list.appendChild(b); n._btn = b;
+  });
+
+  function rel(n, e, dir) {
+    var o = byId[dir === 'out' ? e.to : e.from], li = document.createElement('li'), b = document.createElement('button');
+    b.type = 'button'; b.textContent = o.label; b.addEventListener('click', function () { select(o.id); });
+    var how = document.createElement('span'); how.className = 'how'; how.textContent = (e.kind === 'denetim' ? 'denetim' : 'akış');
+    var lab = document.createElement('span'); lab.textContent = ' ' + e.label;
+    var p = document.createElement('p'); p.textContent = o.role;
+    li.appendChild(b); li.appendChild(how); li.appendChild(lab); li.appendChild(p); return li;
+  }
+  function section(title, items) {
+    var h = document.createElement('h4'); h.textContent = title; detail.appendChild(h);
+    if (!items.length) { var p = document.createElement('p'); p.className = 'note'; p.textContent = 'Yok.'; detail.appendChild(p); return; }
+    var ul = document.createElement('ul'); ul.className = 'rels'; items.forEach(function (x) { ul.appendChild(x); }); detail.appendChild(ul);
+  }
+  function select(id) {
+    sel = id; var n = byId[id], outs = [], ins = [], near = {}; near[id] = 1;
+    data.edges.forEach(function (e) { if (e.from === id) { outs.push(e); near[e.to] = 1; } if (e.to === id) { ins.push(e); near[e.from] = 1; } });
+    data.nodes.forEach(function (m) {
+      var g = nodeEls[m.id]; g.setAttribute('class', 'node k-' + KIND[m.kind] + (m.id === id ? ' sel' : '') + (near[m.id] ? '' : ' dim'));
+      m._btn.setAttribute('aria-pressed', m.id === id ? 'true' : 'false');
+    });
+    while (top.firstChild) top.removeChild(top.firstChild);
+    outs.concat(ins).forEach(function (e) { mk('path', { d: path(e), 'class': 'edge ' + e.kind + (e.from === id ? ' out' : ' in'), 'marker-end': 'url(#ah)' }, top); });
+    nodeEls[id].parentNode.appendChild(top);
+    while (detail.firstChild) detail.removeChild(detail.firstChild);
+    var tag = document.createElement('span'); tag.className = 'tag ' + KIND[n.kind]; tag.textContent = KLABEL[n.kind]; detail.appendChild(tag);
+    var h = document.createElement('h3'); h.textContent = n.label; detail.appendChild(h);
+    var p = document.createElement('p'); p.textContent = n.role; detail.appendChild(p);
+    var t = document.createElement('p'); t.className = 'tech'; t.textContent = n.tech; detail.appendChild(t);
+    if (n.file) { var f = document.createElement('p'); f.className = 'tech'; var c = document.createElement('code'); c.textContent = n.file; f.appendChild(c); detail.appendChild(f); }
+    section('Giden: bu düğümün beslediği veya denetlediği (' + outs.length + ')', outs.map(function (e) { return rel(n, e, 'out'); }));
+    section('Gelen: bunu besleyen veya denetleyen (' + ins.length + ')', ins.map(function (e) { return rel(n, e, 'in'); }));
+  }
+  select(sel);
+})();
+</script>
+

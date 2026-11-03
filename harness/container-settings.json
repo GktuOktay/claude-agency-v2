@@ -19,6 +19,11 @@
   "hooks": {
     "PreToolUse": [
       {
+        "hooks": [
+          { "type": "command", "command": "node /harness/loop.js" }
+        ]
+      },
+      {
         "matcher": "Write|Edit|MultiEdit|NotebookEdit",
         "hooks": [
           { "type": "command", "command": "COMPANY_PUBKEY=/harness/keys/ceo.pub.pem node /harness/gate.js" }
