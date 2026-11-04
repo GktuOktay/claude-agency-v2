@@ -186,3 +186,7 @@ Eski kurulum: ~/.claude-backup-2026-11-01 (silme işlemi henüz yapılmadı).
 - Bulgu: konteynerde `/tmp` ve `/home/node` `noexec`; venv betikleri (`v/bin/pip`) çalışmaz, `python -m pip` çalışır. Kılavuza yazıldı.
 - **Ruling:** PyPI varsayılan açık, NuGet ve npm ile aynı model — indirilen paket sertleştirilmiş konteynerde çalışır (agent tokenından başka sır yok, başka çıkış yok), üretime denetimsiz gitmez; yanlışsa maliyet: kötü niyetli bir paket konteyner içinde kod çalıştırabilir, kapatmak `COMPANY_REGISTRIES=nuget,npm`.
 - Yapılmadı: imaj yeniden kurulmadı (Docker Hub'a bu ortamdan erişilemedi); gerek de olmadı, imaj değişmedi. PHP, Java, Go hâlâ imajda yok.
+
+## Revizyon 22: Main koruması (2026-11-04)
+- CEO: depo özel kalsın, ödeme yok. GitHub Pro alınmıyor, depo herkese açılmıyor; GitHub'ın kendi dal koruması kullanılmayacak.
+- **Ruling:** main'i `guard.js` (CI yeşil değilse `gh pr merge` reddedilir, main'e push/merge CEO onayı ister) ve CI koruyor; yeni araç gerekmez. Yanlışsa maliyet: GitHub arayüzünden elle yapılan merge veya doğrudan push guard'ı atlar. Bu açık bilinen sınır olarak kalır; kapatmak için Pro veya herkese açık depo gerekir.
