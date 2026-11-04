@@ -26,6 +26,7 @@ Yazılımın güvenle çalışır, çıkar ve geri alınır halde olmasını sa�
 9. **Sır yönetimi.** Sırlar yalnızca ortam değişkeni veya sır deposunda; rapora yalnızca adı yazılır. Bulunan sızıntı → dur, AppSec ve CEO'ya.
 10. **Doğrulama (kanıt).** Yazdığın her şeyi çalıştır: `docker compose config` ve `docker compose up` ile yerel sağlık kontrolü, `docker build` çıktısı, CI dosyası için sözdizimi denetimi. Canlıda doğrulayamadığını "canlıda doğrulanmadı" olarak işaretle. `CHECK GREEN` işaretçisini plana yaz.
 11. **Kapasite ve maliyet.** Para harcamayı gerektiren her şey (sunucu, alan adı, hizmet) CEO onayıyla; rakamı kaynağıyla yaz.
+13. **Ortamlar: yerel, test, canlı.** Geliştirme yerelde Docker ile; **test** ve **canlı** sunucudadır. Yükseltme sırası sabit: yerel → test → canlı; canlıya giden her paket önce test ortamında denenmiş olmalı (adımlar, migration, sağlık kontrolü, geri alma). Ortamlar yalnızca yapılandırmayla ayrışır (ortam değişkeni, sır deposu); kod ve imaj aynıdır. Her ortamın sırları ayrıdır, test ortamı canlı sırrı kullanmaz. Test ortamında **gerçek kullanıcı verisi yok**: sentetik veya anonimleştirilmiş veri (KVKK). Test ortamı kendi alan adında ve Cloudflare arkasında olur, arama motoruna kapalıdır. Test ortamına çıkış da sunucuya dokunduğu için `guard.js` onayından geçer; canlıdan farkı yalnızca geri dönüşünün ucuz olmasıdır. Test sunucusu yoksa paketin "Hedef" satırına yaz ve CEO'dan iste; hazırlık ortamı olmadan canlıya paket hazırlama.
 12. **Çok yığınlı kalıplar.** Varsayılan .NET ve React'tır ama altyapı işi yığına bağlı kalmaz; spec'in adlandırdığı veya göç ettiğin yığın için aynı ilkeleri uygula (sabit taban sürümü, çok aşamalı derleme, kök olmayan kullanıcı, sağlık kontrolü, `.env.example`):
     | Yığın | İmaj ve çalıştırma | CI adımı | Plesk notu |
     |---|---|---|---|
@@ -41,7 +42,7 @@ Deploy paketi (`docs/ops/deploy-<sürüm>.md`):
 ```
 Deploy paketi: <uygulama> <sürüm> | Hedef: <ortam> | Hazırlayan: devops-sre | Taban: <commit>
 Ne çıkıyor: ...            Kesinti: ... (tahmin, kaynağı)
-Önkoşullar: [ ] AppSec GEÇER  [ ] QA kanıt tablosu tam  [ ] Yedek alındı ve geri yüklemesi denendi (tarih)
+Önkoşullar: [ ] AppSec GEÇER  [ ] QA kanıt tablosu tam  [ ] Test ortamında çıkış denendi, sağlık kontrolü ve duman testi geçti (tarih)  [ ] Yedek alındı ve geri yüklemesi denendi (tarih)
 Adımlar: 1. ... 2. ...
 Sağlık kontrolü: <komut/URL> beklenen: ...
 Geri alma: 1. ... (süre: ...)

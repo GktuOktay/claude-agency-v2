@@ -16,12 +16,12 @@ description: Çalışma kılavuzu: spec'ten önce çözüm mimarisini tasarlamak
 
 ## Yöntem
 1. **Sorunu ve kısıtları yaz.** Hedef kullanıcı, ölçek varsayımı, süre ve para tavanı, mevcut sistemler, uyum gereksinimi. Bilmediğin rakamı uydurma; "bilinmiyor, varsayım: X" yaz.
-2. **Kalite niteliklerini ölçülebilir yaz.** Gecikme, kullanılabilirlik, veri tutarlılığı, güvenlik, bakım kolaylığı: her biri bir sayı veya sınanabilir cümle olsun ("p95 < 300 ms, 50 eşzamanlı kullanıcıda").
+2. **Kalite niteliklerini ölçülebilir yaz ve ölçüm planı ekle.** Gecikme, kullanılabilirlik, veri tutarlılığı, güvenlik, bakım kolaylığı: her biri bir sayı veya sınanabilir cümle olsun ("p95 < 300 ms, 50 eşzamanlı kullanıcıda"). Her nitelik için nasıl ve hangi ortamda ölçüleceğini yaz (yerel Docker göreli, test sunucusu mutlak); performans testini QA, güvenlik taramasını AppSec yapar, sen hedefi ve yöntemi koyarsın. Ölçüm yöntemi olmayan nitelik eksiktir.
 3. **Bağlam ve bileşen görünümü** (C4 düzey 1 ve 2) mermaid metniyle (`visual-standards`). Sistem sınırı, dış aktörler, dış sistemler, her bileşenin sorumluluğu tek cümleyle.
 4. **Modül sınırları ve bağımlılık yönü.** Bağımlılık içeri doğru; döngü yok. Her modülün sahibi ve test edilebilir arayüzü belli.
 5. **Veri modeli taslağı.** Ana varlıklar, ilişkiler, sahiplik (hangi bileşen yazar), saklama ve silme kuralı, kişisel veri alanları işaretli. Migration stratejisi (ileri/geri) yazılı.
 6. **API stili ve sözleşme yaklaşımı.** REST/gRPC/olay; sürümleme; hata biçimi; kimlik doğrulama ve yetkilendirme noktası. Ayrıntılı sözleşmeyi BA spec'te yazar, sen biçimi ve sınırı seçersin.
-7. **Kesişen konular.** Günlük, izleme, yapılandırma ve sır yönetimi, hata ve yeniden deneme, önbellek (gerekçe yoksa ekleme).
+7. **Kesişen konular ve güvenlik mimarisi.** Günlük, izleme, yapılandırma ve sır yönetimi, hata ve yeniden deneme, önbellek (gerekçe yoksa ekleme). Güvenlik mimarisi: kimlik doğrulama ve yetki noktası, veri koruma (aktarımda, saklamada), güven sınırları, kişisel veri akışı. AppSec'in tehdit modeli bunu temel alır; sen tehdit modelini yazmazsın, ona girdi verirsin.
 8. **Dağıtım görünümü.** Yerel Docker, canlı hedef (iç sunucu/Plesk, Cloudflare önde), ortam ayrımı, geri alma. Ayrıntıyı DevOps/SRE hazırlar; sen sınırı ve gereksinimi yazarsın.
 9. **Seçenekler ve ödünleşim.** Her büyük karar için en az iki seçenek ("en basit olan" dahil), artı/eksi, öneri ve **vazgeçme maliyeti**. Kriterin istemediği katmanı (kuyruk, ikinci veritabanı, mikroservis) ekleme.
 10. **Geri dönüşü pahalı kararlar** için ADR taslağı (`templates/ADR.md`): veri modeli, ortak sözleşme, kimlik, depolama motoru, yığın seçimi.

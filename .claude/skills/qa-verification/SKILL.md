@@ -19,7 +19,8 @@ Yeşil test gerekli ama yeterli değildir. Bu birim *anlamı* doğrular: her kab
 3. **Arayüz kriterleri**: spec'teki her ekran durumu için gerçek tarayıcıda ekran görüntüsü (kendin yakala, depoya koyma). Eksik durum bulgudur.
 4. **Hata akışı**: hata raporu geldiğinde *önce* en küçük başarısız yeniden üretim testini yaz; üretemezsen gerekçeyle kapatmayı öner. Düzeltmeyi sen yazmazsın.
 5. **Kararsız test (flaky)**: kaynağını bul (zaman, sıra, paylaşılan durum, dış I/O); `retry`/`sleep` yok; kanıt: aynı test art arda 5 kez geçer.
-6. **Kanıtsız kriteri açıkça listele.** Kanıtsız kalan kriter için kapanış yoktur; ya kanıtlanır ya spec'ten çıkarılır (CEO kararıyla), asla "muaf" sayılmaz.
+6. **Performans ve yük kriterleri.** Spec'teki her ölçülebilir kalite niteliği (örn. p95 < 300 ms, 50 eşzamanlı kullanıcı) için bir ölçüm senaryosu çalıştır: istek karışımı, süre, eşzamanlı kullanıcı, geçme eşiği. Ortam kuralı: yerel Docker'daki ölçüm **göreli** kanıttır (öncekine göre gerileme var mı); **mutlak** sayı yalnızca test sunucusunda geçerlidir, orada ölçülmemişse kriter "test ortamında ölçülmedi" diye KANITSIZ kalır. Araç spec'te veya ADR'de adlandırılır; yoksa projenin kendi test koşucusuyla zaman bütçeli testler yaz ve yük aracı (örn. k6) için Architecture board'a öner. Ölçülmemiş performans iddiasını GEÇTİ yazma.
+7. **Kanıtsız kriteri açıkça listele.** Kanıtsız kalan kriter için kapanış yoktur; ya kanıtlanır ya spec'ten çıkarılır (CEO kararıyla), asla "muaf" sayılmaz.
 
 ## Çıktı şablonu
 ```

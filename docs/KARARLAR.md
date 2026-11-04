@@ -190,3 +190,11 @@ Eski kurulum: ~/.claude-backup-2026-11-01 (silme işlemi henüz yapılmadı).
 ## Revizyon 22: Main koruması (2026-11-04)
 - CEO: depo özel kalsın, ödeme yok. GitHub Pro alınmıyor, depo herkese açılmıyor; GitHub'ın kendi dal koruması kullanılmayacak.
 - **Ruling:** main'i `guard.js` (CI yeşil değilse `gh pr merge` reddedilir, main'e push/merge CEO onayı ister) ve CI koruyor; yeni araç gerekmez. Yanlışsa maliyet: GitHub arayüzünden elle yapılan merge veya doğrudan push guard'ı atlar. Bu açık bilinen sınır olarak kalır; kapatmak için Pro veya herkese açık depo gerekir.
+
+## Revizyon 23: Ortamlar, performans, güvenlik kapsamı (2026-11-04)
+- CEO: geliştirme yerel, test ve canlı sunucuda; yük/performans testi ve siber güvenlik eksik görünüyor; mimar bunlara bakıyor mu; anahtar yedeği gibi aşırı güvenliğe gerek yok; yığın başına özelleştirme gerekiyorsa eklensin.
+- Tespit: AppSec statik okuma ve komutla çalışıyordu (tehdit modeli, sır, bağımlılık, yapılandırma), dinamik tarama ve CI taraması yoktu. Performans testini kimse sahiplenmiyordu: mimar hedef yazıyor, kurul "gecikme kriteri yok" bulgusu veriyordu ama ölçen yoktu. Test ortamı kavramı DevOps kılavuzunda yoktu.
+- Karar: kılavuzlar güncellendi (B21). Mimar hedef ve ölçüm yöntemini koyar, QA performansı ölçer, AppSec taramaları değerlendirir, DevOps ortamları ve komutları hazırlar.
+- Anahtar yedeği ve benzeri ek güvenlik katmanları kapsam dışı: proje yazan tek kişilik şirket için orantısız. **Ruling:** CEO anahtarı kaybolursa imzalama durur, yeni anahtar üretilir ve spec'ler yeniden imzalanır; yanlışsa maliyet: açık işlerin yeniden imzası.
+- **Ruling:** yığın başına ayrı birim yok; yığın kartı (`docs/yigin/`) ile deneyim birikir, sapma tekrarlanırsa Talent & capacity işaretler. Yanlışsa maliyet: bir yığın için ayrı birim açmak.
+- Dürüst sınır: k6, ZAP, Trivy kurulu değil ve denenmedi; test sunucusu yok; bunlar olmadan performans ve dinamik güvenlik kanıtı "çalıştırılmadı" kalır.

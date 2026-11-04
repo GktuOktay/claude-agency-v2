@@ -63,7 +63,7 @@ Ajan belirteci (`~/.company/agent.env`, mod 600) için `harness/README.md`'ye ba
 | `product-manager` | sonnet | yalnız `docs/product/` | `product-management` |
 | `delivery-manager` | sonnet | `plans/`, `STATE.md`, `docs/` | `delivery-management` |
 | `software-architect` | opus | yalnız `docs/architecture/tasarim/` (Bash yok) | `software-architecture` |
-| `polyglot-engineer` | sonnet | `docs/port/`; imzalıysa çalışma alanı | `polyglot-engineering` |
+| `polyglot-engineer` | sonnet | `docs/port/`, `docs/yigin/`; imzalıysa çalışma alanı | `polyglot-engineering` |
 | `architecture-board` | opus | yalnız `docs/architecture/` (Bash yok) | `architecture-review` |
 | `talent-capacity` | sonnet | yalnız `docs/talent/` (Bash yok) | `talent-capacity` |
 | `quality-office` | sonnet | `docs/kalite/`, `docs/uyum/` (Bash salt-okuma) | `quality-compliance` |

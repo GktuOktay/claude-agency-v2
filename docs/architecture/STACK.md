@@ -16,4 +16,7 @@ Yeni teknoloji veya bağımlılık bu kayda ancak gerekçeyle ve CEO bilgisiyle 
 | Python / Django | benimse (ikincil) | Mevcut sistemlerin kaynağı ve uygun işlerde hedefi; okuma, port ve yeni kod (polyglot-engineer). Ajan imajında Python 3.12 ve PyPI erişimi hazır | 2026-11-04 | - |
 | Vue | benimse (ikincil) | Mevcut arayüzlerde ve spec adlandırırsa yeni işte kullanılır; yeni arayüzde tercih React | 2026-11-04 | - |
 | PHP (Laravel), Java (Spring), Go | benimse (ikincil) | Okuma, port ve spec adlandırırsa geliştirme; çalıştırmak için ajan imajında ilgili çalışma zamanı gerekir | 2026-11-04 | - |
+| k6 (yük testi) | değerlendir | Performans kriterlerini ölçmek için aday; henüz kurulu veya denenmiş değil, Scout raporu ve CEO bilgisi gerekir | 2026-11-04 | - |
+| OWASP ZAP baseline (DAST) | değerlendir | Test ortamına karşı pasif güvenlik taraması için aday; henüz kurulu veya denenmiş değil | 2026-11-04 | - |
+| Trivy (imaj ve bağımlılık tarama) | değerlendir | CI'da imaj taraması için aday; henüz kurulu veya denenmiş değil | 2026-11-04 | - |
 | Mesaj kuyruğu, ikinci veritabanı, mikroservis ayrımı | değerlendir | Kabul kriteri gerektirmedikçe eklenmez | 2026-11-02 | - |

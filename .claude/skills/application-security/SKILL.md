@@ -32,6 +32,12 @@ Güvenlik açığını, kullanıcıya veya canlıya ulaşmadan bulmak. İki dura
 8. **Kanıt.** Her bulgu: dosya:satır, ne, nasıl sömürülür (kısa), kanıt (komut çıktısı veya kod parçası), ciddiyet, öneri. Doğrulayamadığını "doğrulanmadı" diye işaretle; tahmini bulgu olarak sunma.
 9. **Ciddiyet:** KRİTİK (uzaktan sömürü, veri sızıntısı, kimlik doğrulama atlatma) · YÜKSEK · ORTA · DÜŞÜK · BİLGİ. Ciddiyeti etki × sömürülebilirlik ile gerekçelendir.
 
+**C. Otomatik ve dinamik tarama** (A ve B okuma ve komutla yapılır; C çalışan uygulamayı yoklar)
+1. **CI taramaları** (proje CI'ına DevOps ekler, sen sonucu okursun): bağımlılık denetimi (`dotnet list package --vulnerable`, `npm audit`, `pip-audit`), depo ve geçmiş sır taraması, konteyner imajı taraması. Bu taramalar kırmızıysa teslim yoktur.
+2. **Dinamik tarama** (DAST): çalışan **test ortamına** karşı pasif tarama (OWASP ZAP baseline önerilir), güvenlik başlıkları ve TLS kontrolü, kimlik doğrulaması olmadan erişilebilen uç noktaların dökümü. Aktif (saldırgan) tarama yalnızca kendi test ortamına yapılır, canlıya yapılmaz. Ajan konteyneri dış adrese çıkamadığı için taramayı DevOps'un hazırladığı komutla ana oturum veya CEO çalıştırır; sen çıktıyı değerlendirirsin.
+3. **Sızma testi** bu birimin işi değildir. Ödeme, kimlik veya sağlık verisi gibi yüksek riskli işlerde insan uzman gerektiğini işaretle ve CEO'ya bildir.
+4. **Bugünün durumu:** A ve B yapılabiliyor. C'deki araçların (ZAP, imaj tarayıcı) hiçbiri henüz kurulu veya denenmiş değil, `STACK.md`'de "değerlendir". Çalıştırılmamış taramayı "geçti" diye raporlama; "çalıştırılmadı" yaz.
+
 ## Çıktı şablonu
 ```
 AppSec raporu: <iş> | Durak: A (spec) / B (kod) | Taban: <commit>

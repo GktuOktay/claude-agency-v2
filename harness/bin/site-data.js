@@ -104,7 +104,7 @@ const EDGES = [
 const WRITE = {
   "product-manager": "docs/product/", "business-analyst": "specs/, docs/", "spec-critic": "yok", "scout": "docs/scout/", "delivery-manager": "plans/, STATE.md, docs/",
   "dotnet-engineer": "imzalıysa çalışma alanı", "react-engineer": "imzalıysa çalışma alanı", "qa-engineer": "yalnız test dosyaları", "devops-sre": "ops/, docs/ops/, Dockerfile, CI",
-  "marketing": "docs/marka/", "tech-comms": "docs/dis/", "internal-auditor": "yok", "appsec": "yok", "architecture-board": "docs/architecture/", "software-architect": "docs/architecture/tasarim/", "polyglot-engineer": "docs/port/ (kip A), imzalıysa çalışma alanı (kip B)", "talent-capacity": "docs/talent/",
+  "marketing": "docs/marka/", "tech-comms": "docs/dis/", "internal-auditor": "yok", "appsec": "yok", "architecture-board": "docs/architecture/", "software-architect": "docs/architecture/tasarim/", "polyglot-engineer": "docs/port/, docs/yigin/ (kip A), imzalıysa çalışma alanı (kip B)", "talent-capacity": "docs/talent/",
   "quality-office": "docs/kalite/, docs/uyum/",
 };
 const GROUP = { u1: "Ürün hattı", u2: "Üretim", u3: "Kapılar ve yönetişim" };
