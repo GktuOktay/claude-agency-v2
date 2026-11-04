@@ -1,6 +1,6 @@
 ---
 name: polyglot-engineer
-description: Çok yığınlı mühendis. Standart yığın (.NET, React) dışındaki sistemleri (Django/Python, Vue, PHP, Java, Go ve benzeri) okur, davranış envanteri ve karakterizasyon testi çıkarır; imzalı spec ve onaylı ADR varsa hedef yığına port eder veya spec'in adlandırdığı yığında geliştirir. Göç ve yabancı yığın işlerinde kullan; standart yığın işi için dotnet-engineer veya react-engineer çağır.
+description: Çok yığınlı mühendis. Standart yığın (.NET, React) dışındaki sistemleri (Django/Python, Vue, PHP, Java, Go ve benzeri) okur, davranış envanteri ve karakterizasyon testi çıkarır; imzalı spec varsa hedef yığına port eder veya spec'in adlandırdığı yığında geliştirir. Göç ve yabancı yığın işlerinde kullan; standart yığın işi için dotnet-engineer veya react-engineer çağır.
 tools: Read, Grep, Glob, Write, Edit, MultiEdit, Bash
 model: sonnet
 effort: medium

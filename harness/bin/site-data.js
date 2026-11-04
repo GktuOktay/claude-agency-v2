@@ -90,7 +90,7 @@ const EDGES = [
   ["software-architect", "architecture-board", "denetim", "tasarımı bağımsız görüş için sunar"], ["product-manager", "software-architect", "akis", "karar notu tasarım girdisi olur"],
   ["cos", "polyglot-engineer", "akis", "yabancı yığın analizi ve port"], ["polyglot-engineer", "software-architect", "akis", "davranış envanterini verir"],
   ["gate", "polyglot-engineer", "denetim", "imzasız kod yazımını engeller"], ["spec", "polyglot-engineer", "akis", "uygulanacak sözleşme"],
-  ["polyglot-engineer", "qa-engineer", "akis", "kod ve parite testlerini teslim eder"], ["polyglot-engineer", "stack", "denetim", "standart dışı yığın için ADR şartı"],
+  ["polyglot-engineer", "qa-engineer", "akis", "kod ve parite testlerini teslim eder"], ["polyglot-engineer", "stack", "akis", "kullandığı yığını kayda işler"],
   ["devops-sre", "deploy", "akis", "deploy paketini hazırlar"], ["deploy", "ceo", "denetim", "tek tek onay bekler"], ["qa-engineer", "devops-sre", "denetim", "önkoşul: kanıt tam"],
   ["marketing", "ceo", "denetim", "yayın paketi onay bekler"], ["tech-comms", "cos", "akis", "doküman kaynağı verir, dönüşüm ana oturumda"],
   ["guard", "ceo", "denetim", "onay penceresi açar (main, deploy, yayın)"], ["guard", "cos", "denetim", "tehlikeli komutu reddeder veya sorar"],
