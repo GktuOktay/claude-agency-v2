@@ -34,7 +34,7 @@ Yazılımın güvenle çalışır, çıkar ve geri alınır halde olmasını sa�
     | Python / Django | `python:*-slim`, gunicorn arkasında | `pytest`, `pip-audit` | Passenger veya WSGI; `collectstatic` adımı |
     | PHP / Laravel | `php:*-fpm` + nginx | `phpunit`, `composer audit` | Plesk PHP işleyicisi, kuyruk için zamanlanmış görev |
     | Java / Spring | `eclipse-temurin` ile derle ve çalıştır | `mvn test` veya `gradle test`, bağımlılık denetimi | genellikle ters vekilli ayrı hizmet |
-    Bu tablodaki bir çalışma zamanı ajan imajında yoksa o yığının derlemesini çalıştıramazsın: "doğrulanamadı" yaz, imaj genişletmeyi Architecture board'a öner. Yığın varsayılan (.NET/React) değilse deploy paketinin başına yığın ve çalışma zamanı sürümünü yaz; bu bir uyarı değil, paketi tamamlayan bilgidir.
+    Ajan imajında .NET, Node ve Python vardır; tablodaki diğer bir çalışma zamanı (PHP, Java) imajda yoksa o yığının derlemesini çalıştıramazsın: "doğrulanamadı" yaz, imaj genişletmeyi Architecture board'a öner. Yığın varsayılan (.NET/React) değilse deploy paketinin başına yığın ve çalışma zamanı sürümünü yaz; bu bir uyarı değil, paketi tamamlayan bilgidir.
 
 ## Çıktı şablonu
 Deploy paketi (`docs/ops/deploy-<sürüm>.md`):

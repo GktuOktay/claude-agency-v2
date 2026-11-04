@@ -179,3 +179,10 @@ Eski kurulum: ~/.claude-backup-2026-11-01 (silme işlemi henüz yapılmadı).
 - Düzeltme: `STACK.md` "tercih kısıt değildir" der; Python/Django, Vue, PHP, Java, Go "benimse (ikincil)". Spec bir yığını adlandırıyorsa orada tam geliştirme yapılır; imzalı spec CEO kararıdır, ADR ön koşul değildir (yalnızca geri dönüşü pahalı seçimlerde önerilir). Architecture board görüş verir, engellemez. Spec yığın adlandırmıyorsa varsayılan .NET/React önerilir ve CEO'ya sorulur.
 - **Ruling:** yığın seçimi spec'te CEO imzasıyla yapılır, ayrıca ADR kapısı yok — gereksiz bürokrasiyi önler; yanlışsa maliyet: kötü bir yığın seçimi imzadan sonra fark edilir, o zaman delta plan ve yeniden imza gerekir.
 - Kalan gerçek sınır teknik, politika değil: ajan imajında yalnızca .NET ve Node var, ağ izin listesi yalnızca NuGet ve npm.
+
+## Revizyon 21: Python çalıştırma ve PyPI izni (2026-11-04)
+- CEO onayladı: Python eklensin. Tespit: ajan imajında Python 3.12 ve venv zaten vardı (graphify için); eksik olan PyPI erişimiydi, "imajda Python yok" demek yanlıştı.
+- Değişiklik: `proxy-up.sh` varsayılanı `nuget,npm,pypi`; izin listesine `pypi.org` ve `files.pythonhosted.org` eklendi (yalnızca 443). `COMPANY_REGISTRIES=none` hepsini kapatır. `harness/test/python.sh` gerçek konteynerde dener: venv ve `pip` ile paket iner, listede olmayan adres ve vekilsiz doğrudan çıkış engelli kalır (4 test, Docker gerektirir, CI'da yok).
+- Bulgu: konteynerde `/tmp` ve `/home/node` `noexec`; venv betikleri (`v/bin/pip`) çalışmaz, `python -m pip` çalışır. Kılavuza yazıldı.
+- **Ruling:** PyPI varsayılan açık, NuGet ve npm ile aynı model — indirilen paket sertleştirilmiş konteynerde çalışır (agent tokenından başka sır yok, başka çıkış yok), üretime denetimsiz gitmez; yanlışsa maliyet: kötü niyetli bir paket konteyner içinde kod çalıştırabilir, kapatmak `COMPANY_REGISTRIES=nuget,npm`.
+- Yapılmadı: imaj yeniden kurulmadı (Docker Hub'a bu ortamdan erişilemedi); gerek de olmadı, imaj değişmedi. PHP, Java, Go hâlâ imajda yok.
