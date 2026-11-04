@@ -6,9 +6,9 @@ Son güncelleme: 2026-11-02. Tek takip yeri bu dosya. İş bitince `[x]` yapıl�
 
 - [x] **A1. Dalı gönder, PR aç, birleştir.** Bitti: PR #1, main 0cce459. CEO talimatı: asistan yapar. Birleştirme `main`'e gittiği için onay penceresi çıkar; "Evet" demen yeterli.
 - [x] **A2. CEO anahtarını üret.** Bitti (2026-11-02); genel anahtar PR #2'de. Parola yok. Kendi terminalinde tek komut: `./harness/bin/ceo-keygen.sh`. (Asistanın üretmesi otomatik mod sınıflandırıcısı tarafından engellendi.) Sonra üretilen `harness/keys/ceo.pub.pem` dosyası depoya eklenir; bunu asistan yapar.
-- [ ] **A3. Ajan belirteci** (yalnızca otonom koşu denemesi için): `~/.company/agent.env`, mod 600. Şu an yok. Gerektiğinde yeniden üretilir; iş bitince silinir.
-- [ ] **A4. Eski `claude-agency` reposu:** arşivlensin mi, README'sine "yerini `claude-agency-v2` aldı" notu düşülsün mü?
-- [ ] **A5. Eski global kurulum:** `~/.claude` içindeki eski orchestrator ve skill'ler (32 adet, yedek `~/.claude-backup-2026-11-01`) devre dışı bırakılsın mı; yeni birimler her projede kullanılsın mı?
+- [ ] **A3. Ajan belirteci** (yalnızca otonom koşu denemesi için): `~/.company/agent.env`, mod 600. Şu an yok. `claude setup-token` çıktısını `harness/bin/token-setup.sh` ile (gizli girdi, mod 600) kaydet; iş bitince sil.
+- [x] **A4. Eski `claude-agency` reposu:** arşivlensin mi, README'sine "yerini `claude-agency-v2` aldı" notu düşüldü ve depo arşivlendi (2026-11-04).
+- [x] **A5. Eski global kurulum:** `~/.claude` içindeki eski orchestrator ve skill'ler (32 adet, yedek `~/.claude-backup-2026-11-01`) 11 `*-orchestrator` skill'i `~/.claude/skills-disabled-2026-11-04/` altına taşındı (geri almak için geri taşı; yedek `~/.claude-backup-2026-11-01`). caveman, graphify gibi araç skill'leri yerinde kaldı.
 - [x] **A6. Paket kayıtlarına çıkış:** CEO "bu sorunu çöz" dedi; karar: NuGet ve npm varsayılan açık, `COMPANY_REGISTRIES=none` ile kapanır (B1 PR'ında).
 - [ ] **A7. Docker Desktop güncellemesi:** sunucu sürümü 20.10.22 (2022).
 - [x] **A8. GitHub koruması:** GitHub dal koruması bu planda yok (özel depo: GitHub Pro veya herkese açık depo gerekir; ikisi de CEO kararı). Yerine `guard.js` kırmızı/sürmekte olan CI ile `gh pr merge`'i reddeder (PR #12). Kalan boşluk: GitHub arayüzünden elle birleştirme. İstersen sonra: GitHub Pro (para harcama, CEO).
