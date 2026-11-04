@@ -77,3 +77,7 @@ Ortak standartlar (tüm ilgili birimlere yüklenir): `graph-usage` (graphify), `
 - Birimlerin gerçek bir işte denenmesi (kılavuzlar ve değerlendirme setleri kâğıt üstünde sınandı, canlı çıktıyla notlanmadı).
 - `company-run.sh` uçtan uca bu depodaki haliyle henüz çalıştırılmadı (belirteç silindi); önceki denemedeki sürümü çalıştı, bu sürümün sözdizimi ve bağımlı bileşenleri `check` ile doğrulandı.
 - Canlı testler: `company-run.sh` uçtan uca (B5), onay penceresinin gerçek oturumda denemesi (B12), kota bekle-devam (B8).
+
+## Lisans
+
+MIT, bkz. [LICENSE](LICENSE). Üçüncü taraf araçlar (Playwright Apache-2.0, axe-core MPL-2.0 vb.) kendi lisanslarıyla gelir ve bu depoya kopyalanmaz; yalnızca konteyner imajında kurulur.

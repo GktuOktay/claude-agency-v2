@@ -1,7 +1,7 @@
 # Standart yığın kaydı
 
 Tutan: Architecture board (GOV-02). Durumlar: **benimse** (varsayılan seçim), **dene** (küçük denemede), **değerlendir** (karar bekliyor), **çıkar** (yenisinde kullanma).
-**Öncelik kısıt değildir:** varsayılan seçim .NET ve React'tır (uzmanlık derinliği buradan gelir); diğer yığınlar "dene/değerlendir" durumuyla okunur ve göç edilir, çalışan yeni kod için spec yığını adlandırır ve ADR olur.
+**Tercih kısıt değildir:** gerekçe aksini göstermedikçe seçim .NET ve React'tır (derin uzmanlık buradan gelir). Başka yığın yasak veya "ikinci sınıf" değildir: spec yığını adlandırıyorsa (imzalı spec CEO kararıdır) o yığında tam geliştirme yapılır; Architecture board görüş verir, engellemez.
 Yeni teknoloji veya bağımlılık bu kayda ancak gerekçeyle ve CEO bilgisiyle girer (anayasa).
 
 | Teknoloji | Durum | Gerekçe | Tarih | ADR |
@@ -13,7 +13,7 @@ Yeni teknoloji veya bağımlılık bu kayda ancak gerekçeyle ve CEO bilgisiyle 
 | GitHub Actions (`harness/bin/check`) | benimse | Tek doğrulama komutu CI'da (PR #11) | 2026-11-02 | - |
 | Playwright + axe (yalnız izole konteynerde) | benimse | Görsel ve erişilebilirlik doğrulaması (B15, CEO onayladı) | 2026-11-02 | - |
 | graphify | benimse | Kod tabanı grafiği (anayasa kural 8) | 2026-11-02 | - |
-| Python / Django | dene | Mevcut sistemlerin göç kaynağı; spec adlandırır ve ADR varsa yeni kod da yazılabilir. Yeni proje varsayılanı değil (polyglot-engineer) | 2026-11-04 | - |
-| Vue | dene | Mevcut arayüzlerin göç kaynağı; spec adlandırır ve ADR varsa yeni kod da yazılabilir. Yeni proje varsayılanı React | 2026-11-04 | - |
-| PHP (Laravel), Java (Spring), Go | değerlendir | Yalnızca okuma ve göç kaynağı; üretim kodu için ADR ve imaj genişletmesi gerekir | 2026-11-04 | - |
+| Python / Django | benimse (ikincil) | Mevcut sistemlerin kaynağı ve uygun işlerde hedefi; okuma, port ve yeni kod (polyglot-engineer). Ajan imajında Python 3.12 ve PyPI erişimi hazır | 2026-11-04 | - |
+| Vue | benimse (ikincil) | Mevcut arayüzlerde ve spec adlandırırsa yeni işte kullanılır; yeni arayüzde tercih React | 2026-11-04 | - |
+| PHP (Laravel), Java (Spring), Go | benimse (ikincil) | Okuma, port ve spec adlandırırsa geliştirme; çalıştırmak için ajan imajında ilgili çalışma zamanı gerekir | 2026-11-04 | - |
 | Mesaj kuyruğu, ikinci veritabanı, mikroservis ayrımı | değerlendir | Kabul kriteri gerektirmedikçe eklenmez | 2026-11-02 | - |

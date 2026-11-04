@@ -173,3 +173,20 @@ Eski kurulum: ~/.claude-backup-2026-11-01 (silme işlemi henüz yapılmadı).
 - Karar: iki birim eklendi. `software-architect` tasarlar (opus, Bash yok, yazma yalnızca `docs/architecture/tasarim/`); denetimi Architecture board verir, yani yapan doğrulamaz kuralı korunur. `polyglot-engineer` standart dışı yığınları okur ve port eder (kip A imzadan önce salt-okuma, kip B imzalı spec ve ADR ile). DevOps kılavuzuna yığın tablosu eklendi. `STACK.md`: varsayılan .NET/React kalır, diğer yığınlar "dene/değerlendir" ile desteklenir.
 - **Ruling:** her dil için ayrı birim açılmadı, tek çok yığınlı birim ve yığın tablosu kullanıldı — birim sayısı ve bakım yükü artmasın; yanlışsa maliyet: tek birim bir yığında yetersiz kalırsa o yığın için ayrı birim açılır.
 - Bilinen sınır: ajan imajında yalnızca .NET ve Node var, ağ izin listesi yalnızca NuGet ve npm; Python/PHP/Java kodu çalıştırmak imaj genişletmesi ve izin listesi değişikliği gerektirir (CEO kararı). O zamana kadar kip A (okuma, envanter) çalışır, kip B bu yığınlarda "doğrulanamadı" üretir.
+
+## Revizyon 20: Tercih kısıt değildir (2026-11-04)
+- CEO: .NET yazıyor diye diğer diller sınırlı olmamalı; tercih .NET olmalı. Revizyon 19'daki sınırlayıcı kısımlar yanlıştı: diğer yığınlara "dene/değerlendir" demek ve standart dışı yığında kod için ADR şartı koşmak tercihi kısıta çevirmişti.
+- Düzeltme: `STACK.md` "tercih kısıt değildir" der; Python/Django, Vue, PHP, Java, Go "benimse (ikincil)". Spec bir yığını adlandırıyorsa orada tam geliştirme yapılır; imzalı spec CEO kararıdır, ADR ön koşul değildir (yalnızca geri dönüşü pahalı seçimlerde önerilir). Architecture board görüş verir, engellemez. Spec yığın adlandırmıyorsa varsayılan .NET/React önerilir ve CEO'ya sorulur.
+- **Ruling:** yığın seçimi spec'te CEO imzasıyla yapılır, ayrıca ADR kapısı yok — gereksiz bürokrasiyi önler; yanlışsa maliyet: kötü bir yığın seçimi imzadan sonra fark edilir, o zaman delta plan ve yeniden imza gerekir.
+- Kalan gerçek sınır teknik, politika değil: ajan imajında yalnızca .NET ve Node var, ağ izin listesi yalnızca NuGet ve npm.
+
+## Revizyon 21: Python çalıştırma ve PyPI izni (2026-11-04)
+- CEO onayladı: Python eklensin. Tespit: ajan imajında Python 3.12 ve venv zaten vardı (graphify için); eksik olan PyPI erişimiydi, "imajda Python yok" demek yanlıştı.
+- Değişiklik: `proxy-up.sh` varsayılanı `nuget,npm,pypi`; izin listesine `pypi.org` ve `files.pythonhosted.org` eklendi (yalnızca 443). `COMPANY_REGISTRIES=none` hepsini kapatır. `harness/test/python.sh` gerçek konteynerde dener: venv ve `pip` ile paket iner, listede olmayan adres ve vekilsiz doğrudan çıkış engelli kalır (4 test, Docker gerektirir, CI'da yok).
+- Bulgu: konteynerde `/tmp` ve `/home/node` `noexec`; venv betikleri (`v/bin/pip`) çalışmaz, `python -m pip` çalışır. Kılavuza yazıldı.
+- **Ruling:** PyPI varsayılan açık, NuGet ve npm ile aynı model — indirilen paket sertleştirilmiş konteynerde çalışır (agent tokenından başka sır yok, başka çıkış yok), üretime denetimsiz gitmez; yanlışsa maliyet: kötü niyetli bir paket konteyner içinde kod çalıştırabilir, kapatmak `COMPANY_REGISTRIES=nuget,npm`.
+- Yapılmadı: imaj yeniden kurulmadı (Docker Hub'a bu ortamdan erişilemedi); gerek de olmadı, imaj değişmedi. PHP, Java, Go hâlâ imajda yok.
+
+## Revizyon 22: Main koruması (2026-11-04)
+- CEO: depo özel kalsın, ödeme yok. GitHub Pro alınmıyor, depo herkese açılmıyor; GitHub'ın kendi dal koruması kullanılmayacak.
+- **Ruling:** main'i `guard.js` (CI yeşil değilse `gh pr merge` reddedilir, main'e push/merge CEO onayı ister) ve CI koruyor; yeni araç gerekmez. Yanlışsa maliyet: GitHub arayüzünden elle yapılan merge veya doğrudan push guard'ı atlar. Bu açık bilinen sınır olarak kalır; kapatmak için Pro veya herkese açık depo gerekir.

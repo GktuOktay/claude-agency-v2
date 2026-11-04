@@ -90,7 +90,7 @@ const EDGES = [
   ["software-architect", "architecture-board", "denetim", "tasarımı bağımsız görüş için sunar"], ["product-manager", "software-architect", "akis", "karar notu tasarım girdisi olur"],
   ["cos", "polyglot-engineer", "akis", "yabancı yığın analizi ve port"], ["polyglot-engineer", "software-architect", "akis", "davranış envanterini verir"],
   ["gate", "polyglot-engineer", "denetim", "imzasız kod yazımını engeller"], ["spec", "polyglot-engineer", "akis", "uygulanacak sözleşme"],
-  ["polyglot-engineer", "qa-engineer", "akis", "kod ve parite testlerini teslim eder"], ["polyglot-engineer", "stack", "denetim", "standart dışı yığın için ADR şartı"],
+  ["polyglot-engineer", "qa-engineer", "akis", "kod ve parite testlerini teslim eder"], ["polyglot-engineer", "stack", "akis", "kullandığı yığını kayda işler"],
   ["devops-sre", "deploy", "akis", "deploy paketini hazırlar"], ["deploy", "ceo", "denetim", "tek tek onay bekler"], ["qa-engineer", "devops-sre", "denetim", "önkoşul: kanıt tam"],
   ["marketing", "ceo", "denetim", "yayın paketi onay bekler"], ["tech-comms", "cos", "akis", "doküman kaynağı verir, dönüşüm ana oturumda"],
   ["guard", "ceo", "denetim", "onay penceresi açar (main, deploy, yayın)"], ["guard", "cos", "denetim", "tehlikeli komutu reddeder veya sorar"],
@@ -153,7 +153,7 @@ const GATES = [
 const INFRA = [
   ["Claude Code 2.1.316", "Ajan çalışma zamanı; konteyner imajında sabit sürüm (lint doğrular).", "harness/docker/Dockerfile"],
   ["Ajan imajı", "node:22-bookworm-slim + .NET SDK 10 + graphify 0.9.54 + Playwright 1.64.1 / axe 4.14.0; kullanıcı uid 1000.", "harness/docker/Dockerfile"],
-  ["company-int ağı + vekil", "Internal Docker ağı; yalnızca api.anthropic.com, api.nuget.org, registry.npmjs.org için CONNECT vekili.", "harness/docker/proxy.js"],
+  ["company-int ağı + vekil", "Internal Docker ağı; yalnızca api.anthropic.com, api.nuget.org, registry.npmjs.org, pypi.org ve files.pythonhosted.org için CONNECT vekili.", "harness/docker/proxy.js"],
   ["Görsel doğrulama konteyneri", "Ayrı, ağsız, token'sız; sayfa salt-okunur; sandbox'sız Chromium yalnız burada.", "harness/bin/visual-check.sh"],
   ["GitHub + Actions", "Depo, PR'lar, check.yml (SHA'ya sabit action, salt-okuma yetki, sır yok).", ".github/workflows/check.yml"],
   ["graphify", "Kod tabanı bilgi grafiği; yalnızca kod, anlamsal çıkarım bütçeyle.", ".claude/skills/graph-usage/SKILL.md"],
