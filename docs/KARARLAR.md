@@ -198,3 +198,9 @@ Eski kurulum: ~/.claude-backup-2026-11-01 (silme işlemi henüz yapılmadı).
 - Anahtar yedeği ve benzeri ek güvenlik katmanları kapsam dışı: proje yazan tek kişilik şirket için orantısız. **Ruling:** CEO anahtarı kaybolursa imzalama durur, yeni anahtar üretilir ve spec'ler yeniden imzalanır; yanlışsa maliyet: açık işlerin yeniden imzası.
 - **Ruling:** yığın başına ayrı birim yok; yığın kartı (`docs/yigin/`) ile deneyim birikir, sapma tekrarlanırsa Talent & capacity işaretler. Yanlışsa maliyet: bir yığın için ayrı birim açmak.
 - Dürüst sınır: k6, ZAP, Trivy kurulu değil ve denenmedi; test sunucusu yok; bunlar olmadan performans ve dinamik güvenlik kanıtı "çalıştırılmadı" kalır.
+
+## Revizyon 24: Depo herkese açık, dal koruması açık (2026-11-04)
+- CEO önce "özel kalsın, ödeme yok" dedi (revizyon 22), ardından depoyu herkese açık yapmayı istedi. Yayın öncesi tarama: 46 commit, tüm geçmiş ve GitHub içeriği; belirteç, özel anahtar, e-posta, IP yok; commit yazar adresleri GitHub `noreply`. MIT lisansı eklendi.
+- Depo public yapıldı; `main` korumasına alındı: PR zorunlu (0 onay), `check` durum kontrolü zorunlu, yöneticiler dahil, force push ve silme kapalı. Revizyon 22'deki "elle birleştirme açığı" kapandı.
+- **Ruling:** onay sayısı 0, çünkü tek kişilik şirket; yanlışsa maliyet: ikinci göz yok, kontrol CI ve denetçi birimlerde. Kabul edilen etki: tasarım ve bilinen sınırlar (`docs/ACIK-ISLER.md`) herkese görünür.
+- Doğrudan `git push origin main` artık GitHub tarafından da reddedilir; tüm değişiklik PR ile gelir.

@@ -11,7 +11,7 @@ Son güncelleme: 2026-11-02. Tek takip yeri bu dosya. İş bitince `[x]` yapıl�
 - [x] **A5. Eski global kurulum:** `~/.claude` içindeki eski orchestrator ve skill'ler (32 adet, yedek `~/.claude-backup-2026-11-01`) 11 `*-orchestrator` skill'i `~/.claude/skills-disabled-2026-11-04/` altına taşındı (geri almak için geri taşı; yedek `~/.claude-backup-2026-11-01`). caveman, graphify gibi araç skill'leri yerinde kaldı.
 - [x] **A6. Paket kayıtlarına çıkış:** CEO "bu sorunu çöz" dedi; karar: NuGet ve npm varsayılan açık, `COMPANY_REGISTRIES=none` ile kapanır (B1 PR'ında).
 - [ ] **A7. Docker Desktop güncellemesi:** sunucu sürümü 20.10.22 (2022).
-- [x] **A8. GitHub koruması:** GitHub dal koruması bu planda yok (özel depo: GitHub Pro veya herkese açık depo gerekir; ikisi de CEO kararı; 2026-11-04: depo özel kalır, ödeme yok). Yerine `guard.js` kırmızı/sürmekte olan CI ile `gh pr merge`'i reddeder (PR #12). Kalan boşluk: GitHub arayüzünden elle birleştirme. İstersen sonra: GitHub Pro (para harcama, CEO).
+- [x] **A8. GitHub koruması:** GitHub dal koruması özel depoda ücretli plan ister. 2026-11-04: CEO ödeme yok dedi, ardından depoyu MIT ile herkese açık yapmayı seçti; dal koruması bu yolla ücretsiz açıldı (`main`: PR zorunlu, `check` zorunlu, yöneticiler dahil, force push ve silme yok). Yerine `guard.js` kırmızı/sürmekte olan CI ile `gh pr merge`'i reddeder (PR #12). GitHub tarafında da aynı kural açık; elle birleştirme boşluğu kapandı.
 - [ ] **A9. Denenecek adaylar:** Cloudflare güvenlik denetimi, Impeccable, taste-skill, Emil, REA (savunmacı), context7, Playwright/Chrome DevTools MCP. Hiçbiri denenmedi. Proje üzerinde çalışırken sırası gelince.
 - [x] **A10. Pilot iş:** ertelendi. CEO projeler üzerinde zamanla deneyecek.
 
@@ -20,7 +20,7 @@ Son güncelleme: 2026-11-02. Tek takip yeri bu dosya. İş bitince `[x]` yapıl�
 - [x] **B1. Ajan imajı:** .NET 10 SDK + Node + Claude Code 2.1.316 + graphify 0.9.54, etiket `:dev`; 9 imaj testi yeşil (PR #2). NuGet için yalnızca `api.nuget.org` yetti.
 - [x] **B2. `Stop` hook'u:** `harness/stop.js` + 11 test (PR #3). Sınırı: Bash ile yapılan düzenlemeleri ve testin geçip geçmediğini görmez.
 - [x] **B3. Kalan birimler:** Architecture board, Talent & capacity, Quality office, Marketing, Tech comms yazıldı (16 birim). Kılavuzlar gerçek işte denenmedi.
-- [x] **B4. CI:** `.github/workflows/check.yml` (PR #11), ilk koşu yeşil. Kırmızı CI birleştirmeyi henüz **engellemiyor**: dal koruması A8.
+- [x] **B4. CI:** `.github/workflows/check.yml` (PR #11), ilk koşu yeşil. Kırmızı CI birleştirmeyi `guard.js` ve (depo public olunca) GitHub dal koruması engeller: A8.
 - [ ] **B5. `company-run.sh` uçtan uca koşu.** Kısmen yapıldı: `harness/test/e2e.sh` bütün ana makine→konteyner yolunu sahte `claude` ile 18 testte doğruluyor (imza→bağlama kipi, imza sonrası spec değişirse plan kipine dönüş, approvals salt-okunur, token geçişi, vekil, doğrudan internet kapalı, çıkış kodu, gevşek token izni reddi). **Model davranışı doğrulanmadı:** gerçek token ve gerçek ajan koşusu hâlâ yok; token'ı yalnızca senin terminalin üretebilir (A3).
 - [x] **B6. Kılavuz değerlendirme setleri:** `evals/` altında 16 set, her biri 3 vaka; set kendini sınar (`eval.js self`, `lint.js` CI'da çalıştırır). Gerçek birim çıktısını notlama (`eval.js grade`) canlı koşu gerektirir (B5 sonrası).
 - [x] **B7. Durma bildirimi:** `harness/notify.js` (`Notification` kancası + `company-run.sh` koşu sonu); macOS bildirimi, metin argüman olarak geçer, başarısızlıkta sessiz. Gerçek masaüstünde görsel bildirim denenmedi (testte sahte `osascript`).
