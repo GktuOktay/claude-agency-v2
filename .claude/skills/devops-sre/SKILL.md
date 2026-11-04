@@ -26,6 +26,15 @@ Yazılımın güvenle çalışır, çıkar ve geri alınır halde olmasını sa�
 9. **Sır yönetimi.** Sırlar yalnızca ortam değişkeni veya sır deposunda; rapora yalnızca adı yazılır. Bulunan sızıntı → dur, AppSec ve CEO'ya.
 10. **Doğrulama (kanıt).** Yazdığın her şeyi çalıştır: `docker compose config` ve `docker compose up` ile yerel sağlık kontrolü, `docker build` çıktısı, CI dosyası için sözdizimi denetimi. Canlıda doğrulayamadığını "canlıda doğrulanmadı" olarak işaretle. `CHECK GREEN` işaretçisini plana yaz.
 11. **Kapasite ve maliyet.** Para harcamayı gerektiren her şey (sunucu, alan adı, hizmet) CEO onayıyla; rakamı kaynağıyla yaz.
+12. **Çok yığınlı kalıplar.** Varsayılan .NET ve React'tır ama altyapı işi yığına bağlı kalmaz; spec'in adlandırdığı veya göç ettiğin yığın için aynı ilkeleri uygula (sabit taban sürümü, çok aşamalı derleme, kök olmayan kullanıcı, sağlık kontrolü, `.env.example`):
+    | Yığın | İmaj ve çalıştırma | CI adımı | Plesk notu |
+    |---|---|---|---|
+    | .NET | `dotnet/sdk` ile derle, `dotnet/aspnet` ile çalıştır | `dotnet test`, `dotnet list package --vulnerable` | .NET Core barındırma uzantısı veya ters vekil |
+    | React / Vite | Node ile derle, statik dosyalar nginx ile sun | `npm ci`, test, `npm audit` | statik site veya Node uygulaması |
+    | Python / Django | `python:*-slim`, gunicorn arkasında | `pytest`, `pip-audit` | Passenger veya WSGI; `collectstatic` adımı |
+    | PHP / Laravel | `php:*-fpm` + nginx | `phpunit`, `composer audit` | Plesk PHP işleyicisi, kuyruk için zamanlanmış görev |
+    | Java / Spring | `eclipse-temurin` ile derle ve çalıştır | `mvn test` veya `gradle test`, bağımlılık denetimi | genellikle ters vekilli ayrı hizmet |
+    Bu tablodaki bir çalışma zamanı ajan imajında yoksa o yığının derlemesini çalıştıramazsın: "doğrulanamadı" yaz, imaj genişletmeyi Architecture board'a öner. Yığın STACK.md'de "benimse" değilse deploy paketine "standart dışı yığın, ADR: <no>" satırı ekle.
 
 ## Çıktı şablonu
 Deploy paketi (`docs/ops/deploy-<sürüm>.md`):
