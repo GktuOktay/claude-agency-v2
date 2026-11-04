@@ -10,6 +10,7 @@ description: Çalışma kılavuzu: spec'in mimarisini imzadan önce denetlemek, 
 
 ## Girdiler
 - Denetlenecek spec (`specs/active/` veya taslak) ve varsa Scout raporu (`docs/scout/`).
+- Mimar tasarımı varsa `docs/architecture/tasarim/` (software-architect yazar; sen onu bağımsız denetlersin).
 - `docs/architecture/STACK.md` (standart yığın kaydı) ve önceki ADR'ler.
 - Öncelik yığını: .NET (backend), React/TypeScript, yerel Docker, canlı iç sunucu/Plesk önde Cloudflare.
 - Yazma alanı yalnızca `docs/architecture/`.
