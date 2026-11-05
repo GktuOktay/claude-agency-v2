@@ -38,7 +38,7 @@ Yazılımın güvenle çalışır, çıkar ve geri alınır halde olmasını sa�
     Ajan imajında .NET, Node ve Python vardır; tablodaki diğer bir çalışma zamanı (PHP, Java) imajda yoksa o yığının derlemesini çalıştıramazsın: "doğrulanamadı" yaz, imaj genişletmeyi Architecture board'a öner. Yığın varsayılan (.NET/React) değilse deploy paketinin başına yığın ve çalışma zamanı sürümünü yaz; bu bir uyarı değil, paketi tamamlayan bilgidir.
 
 ## Çıktı şablonu
-Deploy paketi (`docs/ops/deploy-<sürüm>.md`):
+Deploy paketi (`docs/ops/deploy-<sürüm>.md`). Alan adlarını şablondaki gibi, satır başında "Ad:" biçiminde yaz (başlık yapma; CEO ve değerlendirme seti bu adlarla arar); ek ayrıntı için altına başlık açabilirsin:
 ```
 Deploy paketi: <uygulama> <sürüm> | Hedef: <ortam> | Hazırlayan: devops-sre | Taban: <commit>
 Ne çıkıyor: ...            Kesinti: ... (tahmin, kaynağı)
