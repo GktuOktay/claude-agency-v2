@@ -22,5 +22,5 @@ link() {
 }
 for f in "$REPO"/.claude/agents/*.md; do link "$f" "$H/agents/$(basename "$f")"; done
 for d in "$REPO"/.claude/skills/*/; do d=${d%/}; link "$d" "$H/skills/$(basename "$d")"; done
-link "$REPO/.claude/rules/yonlendirme.md" "$H/rules/yonlendirme.md"
+for f in "$REPO"/.claude/rules/*.md; do link "$f" "$H/rules/$(basename "$f")"; done
 echo "$mode: $n link(s) changed, $skipped skipped, target $H"

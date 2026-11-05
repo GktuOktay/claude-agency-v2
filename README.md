@@ -85,6 +85,7 @@ MIT, bkz. [LICENSE](LICENSE). Üçüncü taraf araçlar (Playwright Apache-2.0, 
 ## Her projede ve her sohbette kullanım
 
 - **Birimleri her yerde açmak:** `sh harness/bin/install-global.sh` agent, skill ve yönlendirme kuralını `~/.claude` altına sembolik bağlarla bağlar. Tek kaynak bu depo kalır, `git pull` her projeyi günceller. Geri almak: `--uninstall`.
+- **Kısa konuşma (caveman) modu:** `.claude/rules/kisa-konusma.md` sohbette ve durum mesajlarında kısa konuşmayı varsayılan yapar; spec, güvenlik, hukuk ve müşteri metninde kapalıdır. Kullanıcının kendi `caveman` skill'leri ayrıdır ve `~/.claude/skills/` altında kalır (kaynak ve lisansı belirsiz olduğu için bu depoya kopyalanmadı).
 - **Yönlendirme:** `.claude/rules/yonlendirme.md` hangi sözün hangi birimi devreye soktuğunu ve hattı (spec önce, imza sonra, kod en son) yazar; sohbet sırasında ana oturum bunu sormadan uygular.
 - **Koruma katmanını bir projeye eklemek:** `sh harness/bin/install-project.sh <proje-klasörü>` guard, loop, stop ve notify kancalarını o projenin `.claude/settings.json` dosyasına ekler (mevcut ayar varsa dokunmaz).
 
