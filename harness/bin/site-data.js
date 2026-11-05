@@ -102,12 +102,12 @@ const EDGES = [
 
 
 const WRITE = {
-  "product-manager": "docs/product/", "business-analyst": "specs/, docs/", "spec-critic": "none", "scout": "docs/scout/", "delivery-manager": "plans/, STATE.md, docs/",
-  "dotnet-engineer": "workspace (if signed)", "react-engineer": "workspace (if signed)", "qa-engineer": "test files only", "devops-sre": "ops/, docs/ops/, Dockerfile, CI",
-  "marketing": "docs/marka/", "tech-comms": "docs/dis/", "internal-auditor": "none", "appsec": "none", "architecture-board": "docs/architecture/", "software-architect": "docs/architecture/tasarim/", "polyglot-engineer": "docs/port/, docs/yigin/ (mode A); workspace if signed (mode B)", "talent-capacity": "docs/talent/",
+  "product-manager": "docs/product/", "business-analyst": "specs/, docs/", "spec-critic": "yok", "scout": "docs/scout/", "delivery-manager": "plans/, STATE.md, docs/",
+  "dotnet-engineer": "imzalıysa workspace", "react-engineer": "imzalıysa workspace", "qa-engineer": "yalnız test dosyaları", "devops-sre": "ops/, docs/ops/, Dockerfile, CI",
+  "marketing": "docs/marka/", "tech-comms": "docs/dis/", "internal-auditor": "yok", "appsec": "yok", "architecture-board": "docs/architecture/", "software-architect": "docs/architecture/tasarim/", "polyglot-engineer": "docs/port/, docs/yigin/ (kip A); imzalıysa workspace (kip B)", "talent-capacity": "docs/talent/",
   "quality-office": "docs/kalite/, docs/uyum/",
 };
-const GROUP = { u1: "Product", u2: "Build & ship", u3: "Gates & governance" };
+const GROUP = { u1: "Ürün hattı", u2: "Üretim ve teslim", u3: "Gate'ler ve yönetişim" };
 
 // script -> what it is; tests are counted from the test files (a `t "..."` line is one test)
 const HOOK_META = {
@@ -120,51 +120,51 @@ const HOOK_META = {
 
 // level: Enforced (a tool blocks) | Validated (a script/CI detects) | Documented (instruction only). evidence: files that must exist.
 const GATES = [
-  ["G01", "Spec critique", "Plan", "spec-critic", "agent", "Documented", "Cevapsız soru sıfırlanmadan imzaya gidilmez.", [".claude/skills/spec-criticism/SKILL.md", "evals/spec-criticism.md"]],
-  ["G02", "Architecture opinion", "Plan", "architecture-board", "agent", "Documented", "Gerekçesiz yeni teknoloji ve bağımlılık; kriteri olmayan katman.", [".claude/skills/architecture-review/SKILL.md", "docs/architecture/STACK.md"]],
-  ["G03", "Capacity opinion", "Plan", "talent-capacity", "agent", "Documented", "Tahminsiz veya gerçekçi olmayan token/süre/para tavanı.", [".claude/skills/talent-capacity/SKILL.md"]],
-  ["G04", "Threat model (AppSec stop A)", "Plan", "appsec", "agent", "Documented", "Tehdit modeli olmayan veya kritik/yüksek açığı olan spec.", [".claude/skills/application-security/SKILL.md"]],
-  ["G05", "Approver signature", "Signature", "approval.js + company-run.sh", "tool", "Enforced", "İmzasız spec'ten kod üretimi (çalışma alanı salt-okunur kalır).", ["harness/approval.js", "harness/bin/company-run.sh", "harness/test/run.sh", "harness/test/e2e.sh"]],
-  ["G06", "Signature bound to spec hash", "Signature", "approval.js", "tool", "Enforced", "İmzadan sonra değişen spec: imza düşer, kapı kapanır.", ["harness/approval.js", "harness/test/run.sh"]],
-  ["G07", "Unsigned-write lock", "Execution", "gate.js + bağlama kipi", "hook", "Enforced", "Plan kipinde src/ ve kod alanına her yazma.", ["harness/gate.js", "harness/test/run.sh"]],
-  ["G08", "Protected paths", "Execution", "gate.js", "hook", "Enforced", "approvals/, .claude/, .git/ ve çalışma alanı dışına yazma; imza kaydı sahteciliği.", ["harness/gate.js", "harness/test/run.sh"]],
-  ["G09", "Read-only skills", "Execution", "company-run.sh", "tool", "Enforced", "Ajanın kendi kılavuzunu veya proje talimatlarını (CLAUDE.md) değiştirmesi (SOP-03).", ["harness/bin/company-run.sh", "harness/test/e2e.sh"]],
-  ["G10", "Network egress allowlist", "Execution", "proxy.js + internal ağ", "tool", "Enforced", "İzinli listedeki beş ad (model hizmeti, NuGet, npm, PyPI iki ad) dışındaki her dış bağlantı.", ["harness/docker/proxy.js", "harness/bin/proxy-up.sh", "harness/test/image.sh"]],
-  ["G11", "Loop breaker", "Execution", "loop.js", "hook", "Enforced", "Aynı çağrıyı 5 kez veya kısa döngüyü 3 tur tekrarlama.", ["harness/loop.js", "harness/test/loop.sh"]],
-  ["G12", "No done without evidence", "Delivery", "stop.js", "hook", "Enforced", "Kod değişip derleme/test çalışmadan biten tur (bir kez geri çevirir; Bash düzenlemelerini görmez).", ["harness/stop.js", "harness/test/stop.sh"]],
-  ["G13", "Criterion ↔ evidence table", "Delivery", "qa-engineer", "agent", "Documented", "Kanıtsız kabul kriteri; kanıt olmayan test.", [".claude/skills/qa-verification/SKILL.md", "evals/qa-verification.md"]],
-  ["G14", "Code & dependency security (AppSec stop B)", "Delivery", "appsec", "agent", "Documented", "Kritik veya yüksek bulgu: GEÇMEZ.", [".claude/skills/application-security/SKILL.md", "evals/application-security.md"]],
-  ["G15", "Independent audit", "Delivery", "internal-auditor", "agent", "Enforced", "Denetçi ve eleştirmenin yazma aracı yok (bağımsızlık araçla zorlanır, bulgu kalitesi talimata bağlı).", [".claude/skills/internal-audit/SKILL.md", "harness/bin/lint.js"]],
-  ["G16", "Compliance check (privacy law, licenses, store rules)", "Delivery", "quality-office", "agent", "Documented", "Hukuki görüş vermeden avukat gerektiren maddeyi işaretler; açık madde varsa 'uyum hazır' denmez.", [".claude/skills/quality-compliance/SKILL.md", "templates/uyum-kontrol.md"]],
-  ["G17", "No merge on red CI", "Delivery", "guard.js + check.yml", "hook", "Enforced", "Kırmızı, sürüyor ya da henüz hiç sonuç vermemiş CI ile gh pr merge (GitHub arayüzü hariç).", ["harness/guard.js", ".github/workflows/check.yml"]],
-  ["G18", "Merge to main: Approver", "Release", "guard.js", "hook", "Enforced", "main'e push/merge, force, tag, release, silme: her seferinde onay penceresi.", ["harness/guard.js", "harness/test/guard.sh"]],
-  ["G19", "Deploy, publish, remote access: Approver", "Release", "guard.js", "hook", "Enforced", "ssh/scp/rsync, docker push, npm publish, bulut CLI'ları, kubectl/terraform, fastlane/altool, dış POST.", ["harness/guard.js", "harness/test/guard.sh"]],
-  ["G20", "Enforcement-file protection", "Release", "guard.js", "hook", "Enforced", "guard/gate/stop/approval/loop, anahtarlar, ayarlar, CLAUDE.md, CI dosyalarına onaysız yazma (satır içi yorumlayıcı yazması hariç).", ["harness/guard.js", "harness/test/guard.sh"]],
-  ["G21", "Hook-bypass flag denied", "Release", "guard.js", "hook", "Enforced", "Kancaları ve CI'ı atlatan git bayrağı (commit/push için).", ["harness/guard.js"]],
-  ["G22", "Skill format & eval sets", "Continuity", "lint.js + eval.js", "CI", "Validated", "9 başlıklı standart bozulursa, bir kılavuzun seti yoksa veya ölçütler ayırt etmiyorsa.", ["harness/bin/lint.js", "harness/bin/eval.js", "evals/README.md"]],
-  ["G23", "Single check on every PR", "Continuity", "check + check.yml", "CI", "Validated", "Biçim, tüm testler, sır taraması; PR'da kırmızıysa merge kapısı kapanır.", ["harness/bin/check", ".github/workflows/check.yml"]],
-  ["G24", "Secret scan", "Continuity", "check", "CI", "Validated", "Repoda token veya özel anahtar deseni.", ["harness/bin/check"]],
-  ["G25", "Container hardening rules", "Continuity", "lint.js", "CI", "Validated", "seccomp=unconfined, --privileged, --cap-add, docker.sock; --no-sandbox yalnız izole görsel konteynerde.", ["harness/bin/lint.js", "harness/bin/visual-check.sh"]],
-  ["G26", "No web + Bash together", "Continuity", "lint.js", "CI", "Validated", "Web içeriğinin komuta dönüşebileceği birim tanımı; web araçları yalnız Product ve Scout'ta.", ["harness/bin/lint.js"]],
-  ["G27", "Visual & accessibility", "Continuity", "lint.js + visual-check.sh", "CI", "Validated", "Viewport, koyu tema, etiketsiz svg, izinsiz dış kaynak; axe 375 px iki temada (elle çalışır).", ["harness/bin/lint.js", "harness/bin/visual-check.sh"]],
-  ["G28", "Writing check (customer copy)", "Continuity", "humanize-check.js", "tool", "Validated", "Mutlak/kanıtlanamaz iddia (HATA) ve boş kalıplar (UYARI); araç elle çalıştırılır.", ["harness/bin/humanize-check.js", ".claude/skills/writing-standards/SKILL.md"]],
-  ["G29", "Test environment rehearsal", "Release", "devops-sre", "agent", "Documented", "Canlıya giden paket test ortamında denenmeden hazır sayılmaz; test ortamında gerçek kullanıcı verisi olmaz.", [".claude/skills/devops-sre/SKILL.md"]],
-  ["G30", "Performance evidence", "Delivery", "qa-engineer", "agent", "Documented", "Ölçülmemiş performans iddiası GEÇTİ yazılmaz; yerel ölçüm göreli, mutlak sayı test sunucusunda.", [".claude/skills/qa-verification/SKILL.md"]],
-  ["G31", "Dynamic security scan (AppSec stop C)", "Delivery", "appsec", "agent", "Documented", "CI taraması ve dinamik tarama çalıştırılmadan geçti denmesi; ZAP ve Trivy henüz kurulu değil, çalıştırılmayan tarama 'çalıştırılmadı' diye raporlanır.", [".claude/skills/application-security/SKILL.md", "docs/architecture/STACK.md"]],
-  ["G32", "Branch protection on main", "Release", "GitHub branch protection", "platform", "Enforced", "main'e PR'sız push, force push, silme ve `check` yeşil olmadan birleştirme (yöneticiler dahil). GitHub arayüzünden elle birleştirme de buna takılır.", ["docs/KARARLAR.md", ".github/workflows/check.yml"]],
+  ["G01", "Spec eleştirisi", "Plan", "spec-critic", "agent", "Documented", "Cevapsız soru sıfırlanmadan imzaya gidilmez.", [".claude/skills/spec-criticism/SKILL.md", "evals/spec-criticism.md"]],
+  ["G02", "Mimari görüş", "Plan", "architecture-board", "agent", "Documented", "Gerekçesiz yeni teknoloji ve bağımlılık; kriteri olmayan katman.", [".claude/skills/architecture-review/SKILL.md", "docs/architecture/STACK.md"]],
+  ["G03", "Kapasite görüşü", "Plan", "talent-capacity", "agent", "Documented", "Tahminsiz veya gerçekçi olmayan token/süre/para tavanı.", [".claude/skills/talent-capacity/SKILL.md"]],
+  ["G04", "Tehdit modeli (AppSec durak A)", "Plan", "appsec", "agent", "Documented", "Tehdit modeli olmayan veya kritik/yüksek açığı olan spec.", [".claude/skills/application-security/SKILL.md"]],
+  ["G05", "Approver imzası", "İmza", "approval.js + company-run.sh", "araç", "Enforced", "İmzasız spec'ten kod üretimi (çalışma alanı salt-okunur kalır).", ["harness/approval.js", "harness/bin/company-run.sh", "harness/test/run.sh", "harness/test/e2e.sh"]],
+  ["G06", "İmza spec özetine bağlı", "İmza", "approval.js", "araç", "Enforced", "İmzadan sonra değişen spec: imza düşer, kapı kapanır.", ["harness/approval.js", "harness/test/run.sh"]],
+  ["G07", "İmzasız kod yazımı kilidi", "Yürütme", "gate.js + bağlama kipi", "hook", "Enforced", "Plan kipinde src/ ve kod alanına her yazma.", ["harness/gate.js", "harness/test/run.sh"]],
+  ["G08", "Korumalı yollar", "Yürütme", "gate.js", "hook", "Enforced", "approvals/, .claude/, .git/ ve çalışma alanı dışına yazma; imza kaydı sahteciliği.", ["harness/gate.js", "harness/test/run.sh"]],
+  ["G09", "Skill'ler salt-okunur", "Yürütme", "company-run.sh", "araç", "Enforced", "Ajanın kendi kılavuzunu veya proje talimatlarını (CLAUDE.md) değiştirmesi (SOP-03).", ["harness/bin/company-run.sh", "harness/test/e2e.sh"]],
+  ["G10", "Ağ çıkışı allowlist", "Yürütme", "proxy.js + internal ağ", "araç", "Enforced", "İzinli listedeki beş ad (model hizmeti, NuGet, npm, PyPI iki ad) dışındaki her dış bağlantı.", ["harness/docker/proxy.js", "harness/bin/proxy-up.sh", "harness/test/image.sh"]],
+  ["G11", "Döngü engeli", "Yürütme", "loop.js", "hook", "Enforced", "Aynı çağrıyı 5 kez veya kısa döngüyü 3 tur tekrarlama.", ["harness/loop.js", "harness/test/loop.sh"]],
+  ["G12", "Kanıtsız bitti denmez", "Teslim", "stop.js", "hook", "Enforced", "Kod değişip derleme/test çalışmadan biten tur (bir kez geri çevirir; Bash düzenlemelerini görmez).", ["harness/stop.js", "harness/test/stop.sh"]],
+  ["G13", "Kriter ↔ kanıt tablosu", "Teslim", "qa-engineer", "agent", "Documented", "Kanıtsız kabul kriteri; kanıt olmayan test.", [".claude/skills/qa-verification/SKILL.md", "evals/qa-verification.md"]],
+  ["G14", "Kod ve bağımlılık güvenliği (AppSec durak B)", "Teslim", "appsec", "agent", "Documented", "Kritik veya yüksek bulgu: GEÇMEZ.", [".claude/skills/application-security/SKILL.md", "evals/application-security.md"]],
+  ["G15", "Bağımsız iç denetim", "Teslim", "internal-auditor", "agent", "Enforced", "Denetçi ve eleştirmenin yazma aracı yok (bağımsızlık araçla zorlanır, bulgu kalitesi talimata bağlı).", [".claude/skills/internal-audit/SKILL.md", "harness/bin/lint.js"]],
+  ["G16", "Uyum kontrolü (KVKK, lisans, mağaza)", "Teslim", "quality-office", "agent", "Documented", "Hukuki görüş vermeden avukat gerektiren maddeyi işaretler; açık madde varsa 'uyum hazır' denmez.", [".claude/skills/quality-compliance/SKILL.md", "templates/uyum-kontrol.md"]],
+  ["G17", "Kırmızı CI ile birleştirme yok", "Teslim", "guard.js + check.yml", "hook", "Enforced", "Kırmızı, sürüyor ya da henüz hiç sonuç vermemiş CI ile gh pr merge (GitHub arayüzü hariç).", ["harness/guard.js", ".github/workflows/check.yml"]],
+  ["G18", "main'e birleştirme: Approver", "Çıkış", "guard.js", "hook", "Enforced", "main'e push/merge, force, tag, release, silme: her seferinde onay penceresi.", ["harness/guard.js", "harness/test/guard.sh"]],
+  ["G19", "Deploy, yayın, uzak erişim: Approver", "Çıkış", "guard.js", "hook", "Enforced", "ssh/scp/rsync, docker push, npm publish, bulut CLI'ları, kubectl/terraform, fastlane/altool, dış POST.", ["harness/guard.js", "harness/test/guard.sh"]],
+  ["G20", "Zorlama dosyası koruması", "Çıkış", "guard.js", "hook", "Enforced", "guard/gate/stop/approval/loop, anahtarlar, ayarlar, CLAUDE.md, CI dosyalarına onaysız yazma (satır içi yorumlayıcı yazması hariç).", ["harness/guard.js", "harness/test/guard.sh"]],
+  ["G21", "Hook atlatma bayrağı yasak", "Çıkış", "guard.js", "hook", "Enforced", "Kancaları ve CI'ı atlatan git bayrağı (commit/push için).", ["harness/guard.js"]],
+  ["G22", "Skill biçimi ve eval set'ler", "Süreklilik", "lint.js + eval.js", "CI", "Validated", "9 başlıklı standart bozulursa, bir kılavuzun seti yoksa veya ölçütler ayırt etmiyorsa.", ["harness/bin/lint.js", "harness/bin/eval.js", "evals/README.md"]],
+  ["G23", "Tek doğrulama komutu her PR'da", "Süreklilik", "check + check.yml", "CI", "Validated", "Biçim, tüm testler, sır taraması; PR'da kırmızıysa merge kapısı kapanır.", ["harness/bin/check", ".github/workflows/check.yml"]],
+  ["G24", "Sır taraması", "Süreklilik", "check", "CI", "Validated", "Repoda token veya özel anahtar deseni.", ["harness/bin/check"]],
+  ["G25", "Konteyner sertleştirme kuralları", "Süreklilik", "lint.js", "CI", "Validated", "seccomp=unconfined, --privileged, --cap-add, docker.sock; --no-sandbox yalnız izole görsel konteynerde.", ["harness/bin/lint.js", "harness/bin/visual-check.sh"]],
+  ["G26", "Web ve Bash birlikte olamaz", "Süreklilik", "lint.js", "CI", "Validated", "Web içeriğinin komuta dönüşebileceği birim tanımı; web araçları yalnız Product ve Scout'ta.", ["harness/bin/lint.js"]],
+  ["G27", "Görsel ve erişilebilirlik", "Süreklilik", "lint.js + visual-check.sh", "CI", "Validated", "Viewport, koyu tema, etiketsiz svg, izinsiz dış kaynak; axe 375 px iki temada (elle çalışır).", ["harness/bin/lint.js", "harness/bin/visual-check.sh"]],
+  ["G28", "Yazım denetimi (müşteri metni)", "Süreklilik", "humanize-check.js", "araç", "Validated", "Mutlak/kanıtlanamaz iddia (HATA) ve boş kalıplar (UYARI); araç elle çalıştırılır.", ["harness/bin/humanize-check.js", ".claude/skills/writing-standards/SKILL.md"]],
+  ["G29", "Test ortamında deneme", "Çıkış", "devops-sre", "agent", "Documented", "Canlıya giden paket test ortamında denenmeden hazır sayılmaz; test ortamında gerçek kullanıcı verisi olmaz.", [".claude/skills/devops-sre/SKILL.md"]],
+  ["G30", "Performans kanıtı", "Teslim", "qa-engineer", "agent", "Documented", "Ölçülmemiş performans iddiası GEÇTİ yazılmaz; yerel ölçüm göreli, mutlak sayı test sunucusunda.", [".claude/skills/qa-verification/SKILL.md"]],
+  ["G31", "Dinamik güvenlik taraması (AppSec durak C)", "Teslim", "appsec", "agent", "Documented", "CI taraması ve dinamik tarama çalıştırılmadan geçti denmesi; ZAP ve Trivy henüz kurulu değil, çalıştırılmayan tarama 'çalıştırılmadı' diye raporlanır.", [".claude/skills/application-security/SKILL.md", "docs/architecture/STACK.md"]],
+  ["G32", "main dal koruması", "Çıkış", "GitHub branch protection", "platform", "Enforced", "main'e PR'sız push, force push, silme ve `check` yeşil olmadan birleştirme (yöneticiler dahil). GitHub arayüzünden elle birleştirme de buna takılır.", ["docs/KARARLAR.md", ".github/workflows/check.yml"]],
 ];
 
 const INFRA = [
   ["Claude Code 2.1.316", "Ajan çalışma zamanı; konteyner imajında sabit sürüm (lint doğrular).", "harness/docker/Dockerfile"],
-  ["Agent image", "node:22-bookworm-slim + .NET SDK 10 + graphify 0.9.54 + Playwright 1.64.1 / axe 4.14.0; kullanıcı uid 1000.", "harness/docker/Dockerfile"],
-  ["company-int network + proxy", "Internal Docker ağı; yalnızca api.anthropic.com, api.nuget.org, registry.npmjs.org, pypi.org ve files.pythonhosted.org için CONNECT vekili.", "harness/docker/proxy.js"],
-  ["Visual-check container", "Ayrı, ağsız, token'sız; sayfa salt-okunur; sandbox'sız Chromium yalnız burada.", "harness/bin/visual-check.sh"],
+  ["Agent imajı", "node:22-bookworm-slim + .NET SDK 10 + graphify 0.9.54 + Playwright 1.64.1 / axe 4.14.0; kullanıcı uid 1000.", "harness/docker/Dockerfile"],
+  ["company-int ağı + proxy", "Internal Docker ağı; yalnızca api.anthropic.com, api.nuget.org, registry.npmjs.org, pypi.org ve files.pythonhosted.org için CONNECT vekili.", "harness/docker/proxy.js"],
+  ["Görsel doğrulama konteyneri", "Ayrı, ağsız, token'sız; sayfa salt-okunur; sandbox'sız Chromium yalnız burada.", "harness/bin/visual-check.sh"],
   ["GitHub + Actions", "Depo, PR'lar, check.yml (SHA'ya sabit action, salt-okuma yetki, sır yok).", ".github/workflows/check.yml"],
   ["graphify", "Kod tabanı bilgi grafiği; yalnızca kod, anlamsal çıkarım bütçeyle.", ".claude/skills/graph-usage/SKILL.md"],
-  ["Approver key", "ed25519; özel anahtar ~/.company/keys altında, repoda yalnızca genel anahtar.", "harness/keys/ceo.pub.pem"],
-  ["Agent token", "~/.company/agent.env (mod 600), --env-file ile verilir; iş bitince silinir.", "harness/README.md"],
-  ["Global install", "install-global.sh agent, skill ve yönlendirme kuralını ~/.claude altına sembolik bağlarla koyar; tek kaynak depo, git pull her projeyi günceller. install-project.sh bir projeye guard, loop, stop ve notify hook'larını ekler.", "harness/bin/install-global.sh"],
-  ["Routing rule", "Hangi sözün hangi agent'ı çağıracağını ve hattı (spec önce, imza sonra, kod en son) yazar; sohbette Orchestrator bunu sormadan uygular.", ".claude/rules/yonlendirme.md"],
+  ["Approver anahtarı", "ed25519; özel anahtar ~/.company/keys altında, repoda yalnızca genel anahtar.", "harness/keys/ceo.pub.pem"],
+  ["Agent token'ı", "~/.company/agent.env (mod 600), --env-file ile verilir; iş bitince silinir.", "harness/README.md"],
+  ["Global kurulum", "install-global.sh agent, skill ve yönlendirme kuralını ~/.claude altına sembolik bağlarla koyar; tek kaynak depo, git pull her projeyi günceller. install-project.sh bir projeye guard, loop, stop ve notify hook'larını ekler.", "harness/bin/install-global.sh"],
+  ["Yönlendirme kuralı", "Hangi sözün hangi agent'ı çağıracağını ve hattı (spec önce, imza sonra, kod en son) yazar; sohbette Orchestrator bunu sormadan uygular.", ".claude/rules/yonlendirme.md"],
 ];
 
 function countTests(file, re) { const t = fs.readFileSync(path.join(ROOT, "harness", file), "utf8"); return (t.match(new RegExp(re.source, "gm")) || []).length; }
@@ -176,7 +176,7 @@ function hooks() {
     for (const [event, groups] of Object.entries(cfg.hooks || {})) for (const g of groups) for (const h of g.hooks || []) {
       const script = (String(h.command).match(/([\w-]+\.js)/) || [])[1]; const m = HOOK_META[script];
       if (!m) throw new Error(`hook script '${script}' (${scope}, ${event}) has no entry in HOOK_META`);
-      out.push({ scope, event, matcher: g.matcher || "all tools", script, role: m.role, decision: m.decision, fail: m.fail, tests: countTests(m.tests[0], m.tests[1]), file: "harness/" + script });
+      out.push({ scope, event, matcher: g.matcher || "tüm araçlar", script, role: m.role, decision: m.decision, fail: m.fail, tests: countTests(m.tests[0], m.tests[1]), file: "harness/" + script });
     }
   };
   add("host", read(".claude/settings.json")); add("container", read("harness/container-settings.json"));
@@ -189,7 +189,7 @@ function skills(agents) {
     const f = path.join(dir, d, "SKILL.md"); if (!fs.existsSync(f)) continue;
     const t = fs.readFileSync(f, "utf8"); const meta = fm(f); const owners = agents.filter((a) => (a.skills || []).includes(d)).map((a) => a.id);
     const ev = path.join(ROOT, "evals", d + ".md");
-    out.push({ id: d, desc: String(meta.description || "").replace(/^(Çalışma kılavuzu|Ortak standart):\s*/, ""), kind: (meta.description || "").startsWith("Ortak standart") ? "shared standard" : "agent playbook",
+    out.push({ id: d, desc: String(meta.description || "").replace(/^(Çalışma kılavuzu|Ortak standart):\s*/, ""), kind: (meta.description || "").startsWith("Ortak standart") ? "ortak standart" : "agent playbook",
       sections: [...t.matchAll(/^## (.+)$/gm)].map((x) => x[1]), lines: t.split("\n").length, owners, cases: fs.existsSync(ev) ? parseSet(fs.readFileSync(ev, "utf8")).cases.length : 0, file: `.claude/skills/${d}/SKILL.md` });
   }
   return out;
