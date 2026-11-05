@@ -25,7 +25,7 @@ Tartışma ve araştırma → Spec paketi + eleştiri + ön görüş → CEO İM
 | Yapan doğrulamaz | **Enforced** | `internal-auditor` ve `spec-critic` birimlerinin yazma aracı yok (`lint.js` denetler) |
 | Kılavuz biçimi standart | **Validated** | `harness/bin/lint.js` |
 | "Bitti = taze kanıt" | **Enforced** (kısmen) | `harness/stop.js` `Stop` kancası: tur kod dosyası değiştirdiyse ve sonrasında derleme/test/check çalışmadıysa turu bir kez geri çevirir; ya doğrula ya "doğrulanmadı" de. Sınır: `sed -i` gibi Bash ile yapılan düzenlemeleri görmez; kanıtın *geçtiğini* değil çalıştığını arar. Denetçi kılavuzu ikinci katman |
-| Kırmızı CI birleştirilmez | **Enforced** (ana makinede) | `guard.js`: `gh pr merge` için PR'ın kontrolleri başarılı değilse (kırmızı, sürüyor ya da CI tanımlı olduğu halde henüz hiç sonuç yok) reddeder. GitHub dal koruması bu planda (özel depo) yok; GitHub arayüzünden elle birleştirmeyi engellemez |
+| Kırmızı CI birleştirilmez | **Enforced** (ana makinede) | `guard.js`: `gh pr merge` için PR'ın kontrolleri başarılı değilse (kırmızı, sürüyor ya da CI tanımlı olduğu halde henüz hiç sonuç yok) reddeder. Ek olarak depo herkese açık olduğundan GitHub dal koruması açık: `main` için PR ve `check` zorunlu, yöneticiler dahil, force push yok |
 | Zarf (main'e push/merge, release, silme, geri alınamaz git) | **Enforced** (kısmen) | Ana makinede `harness/guard.js` kancası bunları CEO onayına çevirir; başsız çalışmada reddedilir. Gerçek Claude'da `allow` kuralı varken bile engelledi (T-O, `docs/GEREKSINIM-ANALIZI.md` §12.2). Deploy ve mağaza gönderimi için henüz komut/araç yok |
 | Tarayıcı yalıtımı | **Enforced** | Sandbox'sız Chromium yalnızca `visual-check.sh`'in başlattığı ayrı konteynerde (`--network none`, token yok, sayfa salt-okunur); `lint.js` `seccomp=unconfined`, `--privileged`, `--cap-add`, `docker.sock` ve başka yerde `--no-sandbox` kullanımını yasaklar |
 | Grafik ve görsel kullanımı | **Validated** (kısmen) | `lint.js`: spec şablonunda 4 diyagram yuvası, `site/*.html` için viewport, koyu tema, etiketli svg, izinli kaynaklar; `graphify-out/` git dışı. Gözle kontrol ve "kaynaksız sayı yok" talimat seviyesinde |
@@ -63,7 +63,7 @@ Ajan belirteci (`~/.company/agent.env`, mod 600) için `harness/README.md`'ye ba
 | `product-manager` | sonnet | yalnız `docs/product/` | `product-management` |
 | `delivery-manager` | sonnet | `plans/`, `STATE.md`, `docs/` | `delivery-management` |
 | `software-architect` | opus | yalnız `docs/architecture/tasarim/` (Bash yok) | `software-architecture` |
-| `polyglot-engineer` | sonnet | `docs/port/`; imzalıysa çalışma alanı | `polyglot-engineering` |
+| `polyglot-engineer` | sonnet | `docs/port/`, `docs/yigin/`; imzalıysa çalışma alanı | `polyglot-engineering` |
 | `architecture-board` | opus | yalnız `docs/architecture/` (Bash yok) | `architecture-review` |
 | `talent-capacity` | sonnet | yalnız `docs/talent/` (Bash yok) | `talent-capacity` |
 | `quality-office` | sonnet | `docs/kalite/`, `docs/uyum/` (Bash salt-okuma) | `quality-compliance` |
