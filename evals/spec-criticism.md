@@ -4,7 +4,7 @@
 Görev: Boş durum içermeyen bir spec'i eleştir.
 - içerir: /Spec eleştirisi:/
 - içerir: /Özet:/
-- içerir: /boş durum/i
+- içerir: /boş (durum|sonuç|liste|ekran)/i
 - içermez: /harika spec/i
 ```geçer
 Spec eleştirisi: specs/active/0007.md  Tur: 1

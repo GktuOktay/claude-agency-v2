@@ -2,7 +2,7 @@
 
 ## Vaka 1: Deploy paketi geri alma içerir
 Görev: Sürüm 1.2 için deploy paketi hazırla.
-- içerir: /Geri alma:/
+- içerir: /Geri alma[^\n:]*:/
 - içerir: /Sağlık kontrolü:/
 - içerir: /CEO onayı: \[ \]/
 - içermez: /CEO onayı: \[x\]/i
