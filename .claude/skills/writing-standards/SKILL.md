@@ -1,65 +1,65 @@
 ---
 name: writing-standards
-description: Ortak standart: müşteriye ve kamuya dönük Türkçe metinde "yapay zeka sesi" kalıplarını önlemek, kısa konuşma (caveman) modunun sınırlarını belirlemek ve metni harness/bin/humanize-check.js ile denetletmek. Metin üreten tüm birimler için.
+description: Shared standard: avoid "AI voice" patterns in customer- and public-facing Turkish text, set the limits of short (caveman) chat mode, and have the text checked with harness/bin/humanize-check.js. For every unit that produces text.
 ---
 
-# Yazım standardı: çalışma kılavuzu v0.1
+# Writing standard: playbook v0.1
 
-## Amaç
-Müşteriye, kamuya ve karar vericiye giden metnin **insan sesiyle, açık ve doğrulanabilir** olması (WR-02). İngilizce kalıplara dayalı hazır araçlar Türkçede yetmez; burada Türkçe kural seti ve mekanik denetim vardır.
+## Purpose
+Make text that goes to a customer, the public or a decision maker sound **human, clear and verifiable** (WR-02). Ready-made tools built on English patterns are not enough for Turkish; here there is a Turkish rule set and a mechanical check. The patterns to avoid below are Turkish phrases because the text being checked is Turkish.
 
-## Girdiler
-- Yazılacak/denetlenecek metin ve okuyucusu (müşteri, kamu, CEO).
-- Marka kılavuzu (`docs/marka/marka-kilavuzu.md`) varsa ses örnekleri.
-- Mekanik denetim: `node harness/bin/humanize-check.js <dosya>` (ana oturum çalıştırır).
+## Inputs
+- The text to write/check and its reader (customer, public, CEO).
+- The brand guide (`docs/marka/marka-kilavuzu.md`) if present, for voice examples.
+- The mechanical check: `node harness/bin/humanize-check.js <file>` (the main session runs it).
 
-## Yöntem
-1. **Kısa konuşma modunun sınırı:** yalnızca CEO ile sohbette ve durum mesajlarında. Spec, güvenlik raporu, hukuk/uyum, müşteri/pazarlama/mağaza metni, hata mesajı, dış doküman ve commit/PR açıklamasında **kapalı** (tam cümle, tam anlam). Anayasa bunu zaten böyle söyler; bu kılavuz uygulama notudur.
-2. **Türkçe yapay-ses kalıpları (kaçın):**
-   - Boş giriş/kapanış: "Günümüzün hızla değişen dünyasında", "dijital çağda", "Sonuç olarak", "Özetle", "Bu bağlamda" yığılması.
-   - Abartı ve şişirme: "devrim niteliğinde", "çığır açan", "benzersiz", "eşsiz", "kusursuz", "hayatınızı kolaylaştıran", "en iyi çözüm".
-   - Boş kalıp: "önemli bir rol oynar", "büyük önem taşır", "dikkat çekmektedir", "söz konusudur", "göz önünde bulundurulmalıdır".
-   - Edilgen yığılma: "yapılmaktadır", "sağlanmaktadır", "gerçekleştirilmektedir" üst üste; özneyi ve eylemi söyle.
-   - Üçlü liste ve "sadece X değil, aynı zamanda Y" kalıbı ile eş yapılı cümleler dizisi.
-   - Gereksiz uzun tire (—) ve emoji ile süsleme; her paragrafta aynı yapıda başlık-madde.
-   - Soru-cevap taklidi ("Peki bu ne anlama geliyor?").
-3. **Yerine ne yaz:** somut özne + eylem + sayı/örnek. "Giriş ekranı artık parolayı hatırlıyor." > "Kullanıcı deneyimi iyileştirilmiştir."
-4. **Yazıdan önce okuyucuyu ve tek mesajı belirle**; metnin ilk cümlesi o mesajdır.
-5. **Mekanik denetim:** metni dosyaya yazdıktan sonra `humanize-check.js` çıktısını al; "UYARI" satırlarını düzelt; "HATA" (mutlak/kanıtlanamaz iddia) kalmamalı. Araç sınırlı bir kalıp listesidir: temiz çıkması metnin iyi olduğunu kanıtlamaz, yalnızca bilinen kalıpların yokluğunu gösterir.
-6. **Okuma testi:** metni bir yabancıya yüksek sesle okur gibi oku; takıldığın cümleyi böl veya sil.
-7. **Kısa konuşma dışı özel durumlar:** komut satırı çıktısı ve kod blokları çevrilmez; teknik terim İngilizce kalabilir ama ilk geçişte Türkçe açıklanır.
+## Method
+1. **Limit of short (caveman) mode:** only in chat with the CEO and in status messages. It is **off** in specs, security reports, legal/compliance, customer/marketing/store copy, error messages, external documents and commit/PR descriptions (full sentences, full meaning). The constitution already says so; this playbook is an implementation note.
+2. **Turkish AI-voice patterns (avoid):**
+   - Empty openings/closings: a pile-up of "Günümüzün hızla değişen dünyasında", "dijital çağda", "Sonuç olarak", "Özetle", "Bu bağlamda".
+   - Exaggeration and inflation: "devrim niteliğinde", "çığır açan", "benzersiz", "eşsiz", "kusursuz", "hayatınızı kolaylaştıran", "en iyi çözüm".
+   - Empty phrases: "önemli bir rol oynar", "büyük önem taşır", "dikkat çekmektedir", "söz konusudur", "göz önünde bulundurulmalıdır".
+   - Passive pile-up: "yapılmaktadır", "sağlanmaktadır", "gerçekleştirilmektedir" one after another; name the subject and the action.
+   - Triple lists and the "not only X but also Y" pattern, and a run of equally structured sentences.
+   - Needless long dashes (—) and decoration with emoji; the same heading-bullet structure in every paragraph.
+   - Imitation Q&A ("Peki bu ne anlama geliyor?").
+3. **What to write instead:** a concrete subject + action + a number/example. "Giriş ekranı artık parolayı hatırlıyor." > "Kullanıcı deneyimi iyileştirilmiştir."
+4. **Before writing, decide the reader and the single message**; the text's first sentence is that message.
+5. **Mechanical check:** after writing the text to a file, take the `humanize-check.js` output; fix the WARN (`UYARI`) lines; no ERROR (`HATA`, an absolute/unprovable claim) may remain. The tool is a limited pattern list: a clean result does not prove the text is good, it only shows that the known patterns are absent.
+6. **Reading test:** read the text as if aloud to a stranger; split or delete the sentence you stumble on.
+7. **Special cases outside short mode:** command-line output and code blocks are not translated; a technical term may stay in English but is explained in Turkish at first mention.
 
-## Çıktı şablonu
-Denetlenen metnin altına veya raporuna:
+## Output template
+Under the checked text or in your report:
 ```
-Yazım denetimi: <dosya> | Araç: humanize-check.js | Sonuç: TEMİZ | UYARI n | HATA n
-Düzeltilenler: ...
-Bilinçli bırakılanlar (neden): ...
+Writing check: <file> | Tool: humanize-check.js | Result: CLEAN | WARN n | ERROR n
+Fixed: ...
+Left on purpose (why): ...
 ```
 
-## Kontrol listesi
-- [ ] Okuyucu ve tek mesaj belli; ilk cümle o mesaj.
-- [ ] Kısa konuşma modu bu metinde kapalı.
-- [ ] `humanize-check.js` çalıştırıldı; HATA yok, UYARI'lar düzeltildi ya da gerekçeli bırakıldı.
-- [ ] Mutlak ve kanıtlanamaz iddia yok ("en iyi", "%100", "garantili").
-- [ ] Edilgen yığılma ve boş kalıp temizlendi; cümleler somut.
-- [ ] Teknik terimler ilk geçişte açıklandı.
+## Checklist
+- [ ] The reader and the single message are clear; the first sentence is that message.
+- [ ] Short (caveman) mode is off for this text.
+- [ ] `humanize-check.js` was run; no ERROR, WARNs fixed or left with a reason.
+- [ ] No absolute or unprovable claim ("best", "100%", "guaranteed").
+- [ ] Passive pile-up and empty phrases were cleaned; sentences are concrete.
+- [ ] Technical terms were explained at first mention.
 
-## Yasaklar
-- Müşteri, kamu veya hukuk metninde kısa konuşma modu.
-- Araç temiz çıktı diye metni "iyi" ilan etmek; aracı atlatmak için kelime değiştirip anlamı bozmak.
-- Kanıtlanamayan üstünlük/mutlak iddia; başka yazarın metnini çoğaltmak.
-- Metni insan yazmış gibi göstermek için sahte imza veya sahte yorum eklemek.
+## Prohibitions
+- Short (caveman) mode in customer, public or legal text.
+- Declaring the text "good" because the tool came out clean; changing words to get around the tool and breaking the meaning.
+- An unprovable superlative/absolute claim; copying another author's text.
+- Adding a fake signature or a fake review to make the text look human-written.
 
-## Araçlar ve izinler
-Okuma ve yazma araçları (metni üreten birimin kendi alanı). Mekanik denetim `harness/bin/humanize-check.js`: ağ yok, yalnızca dosyayı okur, kalıp listesiyle eşleştirir; ana oturum çalıştırır.
+## Tools and permissions
+Read and write tools (in the producing unit's own area). The mechanical check `harness/bin/humanize-check.js`: no network, it only reads the file and matches it against the pattern list; the main session runs it.
 
-## Durma ve yükseltme
-- Okuyucu veya mesaj belirsiz (Tip 1) → dur, öneriyle sor.
-- Metin hukuki/sözleşme niteliğinde → "AVUKAT GEREKİR", Kalite ofisine yönlendir.
-- Denetimde HATA kalıyor ve düzeltme anlamı değiştiriyor → CEO'ya sor, aracı değil metni düzelt.
+## Stop and escalate
+- The reader or the message is unclear (Type 1) → stop, ask with a recommendation.
+- The text has a legal/contractual nature → "LAWYER REQUIRED", route to the Quality office.
+- An ERROR remains in the check and fixing it would change the meaning → ask the CEO; fix the text, not the tool.
 
-## Örnekler
-- Kötü: "Günümüzün hızla değişen dünyasında uygulamamız devrim niteliğinde bir deneyim sunmaktadır."
-- İyi: "Uygulama, bağlantı koptuğunda yazdıklarını saklar ve bağlantı gelince gönderir."
-- Kötü hata metni: "İşlem gerçekleştirilememiştir." İyi: "Kaydedilemedi. Bağlantını kontrol edip tekrar dene."
+## Examples
+- Bad: "Günümüzün hızla değişen dünyasında uygulamamız devrim niteliğinde bir deneyim sunmaktadır."
+- Good: "Uygulama, bağlantı koptuğunda yazdıklarını saklar ve bağlantı gelince gönderir."
+- Bad error text: "İşlem gerçekleştirilememiştir." Good: "Kaydedilemedi. Bağlantını kontrol edip tekrar dene."
