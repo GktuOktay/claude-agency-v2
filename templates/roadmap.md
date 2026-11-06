@@ -1,19 +1,19 @@
-# Yol haritası — <ürün>
+# Roadmap — <product>
 
-Son gözden geçirme: <!-- tarih -->   Sahibi: Product   Karar veren: CEO
+Last review: <!-- date -->   Owner: Product   Decider: CEO
 
-## Şimdi
-| Madde | Neden | Kanıt (karar notu / geri bildirim) | Bağımlılık | Çaba (S/M/L) | Spec |
+## Now
+| Item | Why | Evidence (decision note / feedback) | Dependency | Effort (S/M/L) | Spec |
 |---|---|---|---|---|---|
 
-## Sonra
-| Madde | Neden | Kanıt | Bağımlılık | Çaba | Spec |
+## Next
+| Item | Why | Evidence | Dependency | Effort | Spec |
 |---|---|---|---|---|---|
 
-## Belki
-| Madde | Neden | Ne olursa öne alınır |
+## Maybe
+| Item | Why | What would move it up |
 |---|---|---|
 
-## Bırakılanlar
-| Madde | Neden bırakıldı | Tarih |
+## Dropped
+| Item | Why it was dropped | Date |
 |---|---|---|

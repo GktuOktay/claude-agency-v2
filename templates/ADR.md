@@ -1,19 +1,19 @@
-# ADR NNNN — <karar başlığı>
+# ADR NNNN — <decision title>
 
 - Status: Proposed | Accepted | Superseded by ADR-NNNN
-- Tarih:
-- Karar veren: <!-- CEO / Architecture board -->
+- Date:
+- Decider: <!-- CEO / Architecture board -->
 
-## Bağlam
-<!-- Hangi sorun, hangi kısıt, neden şimdi. 6 ay sonra "neden böyle yaptılar" sorusuna bu dosya cevap vermeli. -->
+## Context
+<!-- Which problem, which constraint, why now. In 6 months this file should answer "why did they do it this way". -->
 
-## Karar
-<!-- Bir iki cümle, etken çatı. -->
+## Decision
+<!-- One or two sentences, active voice. -->
 
-## Sonuçlar
-<!-- Hem kazançlar hem maliyetler. -->
+## Consequences
+<!-- Both the gains and the costs. -->
 
-## Değerlendirilen alternatifler
-<!-- Ciddiye alınanlar ve neden elendikleri. -->
+## Alternatives considered
+<!-- The ones taken seriously and why they were dropped. -->
 
-## Yeniden açma tetikleyicileri
+## Reopening triggers

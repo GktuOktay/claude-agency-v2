@@ -1,30 +1,30 @@
-# Spec NNNN — <kısa ad> (hızlı)
+# Spec NNNN — <short name> (quick)
 
 - Status: Draft | Awaiting approval | Approved | In progress | Shipped
-- Kademe: hızlı
-- Kaynak: <!-- iş/talep/hata kaydı numarası; zorunlu -->
-- Bütçe tavanı:
+- Tier: quick
+- Source: <!-- job/request/bug record number; required -->
+- Budget ceiling:
 
-## Niyet
-<!-- 2-3 cümle: ne değişiyor, kimin için, neden şimdi. -->
+## Intent
+<!-- 2-3 sentences: what changes, for whom, why now. -->
 
-## Değişen davranış
+## Changed behavior
 - [ ] CB-1 —
 
-## Korunan davranış (en az 2)
-<!-- Değişikliğin çevresinde aynen çalışmaya devam etmesi gerekenler. -->
+## Preserved behavior (at least 2)
+<!-- What around the change must keep working exactly as before. -->
 - [ ] PB-1 —
 - [ ] PB-2 —
 
-## Test ve kanıt
-| Kriter | Test | Profil |
+## Test and evidence
+| Criterion | Test | Profile |
 |---|---|---|
 | CB-1 | | |
 
-## Kapsam dışı
+## Out of scope
 -
 
-## Açık sorular
-<!-- Cevaplanmamış soru kalırsa imzaya gidilmez. -->
+## Open questions
+<!-- If any question is unanswered, the spec does not go to signature. -->
 
-## Varsayımlar
+## Assumptions

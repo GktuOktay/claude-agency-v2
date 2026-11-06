@@ -1,23 +1,23 @@
-# Destek talebi triyajı — <no> — <tarih>
-<!-- OPS-02: kullanıcı talebi → triyaj → Product veya Engineering. Kişisel veriyi (ad, e-posta, telefon) buraya yazma; talep numarası yeter. -->
+# Support request triage — <no> — <date>
+<!-- OPS-02: user request → triage → Product or Engineering. Do not write personal data (name, email, phone) here; the request number is enough. -->
 
-**Kaynak:** <e-posta | mağaza yorumu | form | sosyal>   **Ürün / sürüm:** <...>
-**Talep özeti (kullanıcının sözleriyle, kişisel veri çıkarılmış):**
+**Source:** <email | store review | form | social>   **Product / version:** <...>
+**Request summary (in the user's words, personal data removed):**
 
-## Sınıf
-- [ ] Hata (beklenen davranış spec'te var, gerçek farklı) → Engineering, `templates/issue.md`, önce başarısız yeniden üretim testi
-- [ ] Özellik isteği / geri bildirim → Product (`templates/roadmap.md` backlog)
-- [ ] Kullanım sorusu (cevap dokümanda var) → Tech comms kılavuzuna bağlantı
-- [ ] Güvenlik / veri → AppSec + CEO'ya HEMEN (kamuya cevap yok)
-- [ ] Hukuki / KVKK talebi (silme, erişim, şikayet) → Kalite ofisi + CEO + AVUKAT GEREKİR
+## Class
+- [ ] Bug (the expected behavior is in the spec, the actual differs) → Engineering, `templates/issue.md`, a failing reproduction test first
+- [ ] Feature request / feedback → Product (`templates/roadmap.md` backlog)
+- [ ] Usage question (the answer is in the documentation) → a link to the Tech comms guide
+- [ ] Security / data → AppSec + the CEO IMMEDIATELY (no public reply)
+- [ ] Legal / privacy-law request (deletion, access, complaint) → Quality office + CEO + LAWYER REQUIRED
 
-## Ciddiyet ve öncelik
-| Etkilenen kullanıcı sayısı | Veri riski | Geçici çözüm var mı | Öncelik (P1-P3) |
+## Severity and priority
+| Number of affected users | Data risk | Is there a workaround | Priority (P1-P3) |
 |---|---|---|---|
 
-## Yönlendirme
-**Gidecek yer:** <Engineering | Product | Tech comms | AppSec | CEO>   **Issue:** <bağlantı>
-**Kullanıcıya cevap taslağı** (gönderilmez; CEO onayı, kural 4): <taslak, `writing-standards` ile>
+## Routing
+**Goes to:** <Engineering | Product | Tech comms | AppSec | CEO>   **Issue:** <link>
+**Draft reply to the user** (not sent; CEO approval, rule 4): <draft, per `writing-standards`>
 
-## Kayıt
-<!-- Aynı sorun 3 talepte tekrar ediyorsa Product'a "eğilim" olarak bildir. -->
+## Record
+<!-- If the same problem repeats in 3 requests, report it to Product as a "trend". -->

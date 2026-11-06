@@ -1,31 +1,31 @@
-# Uyum kontrolü — <iş> — <tarih>
-<!-- Kalite ofisi doldurur: docs/uyum/uyum-<iş>.md. Hukuki görüş DEĞİLDİR. Her satırda durum: KARŞILANDI (kanıt) | KARŞILANMADI | AVUKAT GEREKİR | UYGULANAMAZ (neden). -->
+# Compliance check — <job> — <date>
+<!-- Filled in by the Quality office: docs/uyum/uyum-<job>.md. It is NOT a legal opinion. Status on every row: MET (evidence) | NOT MET | LAWYER REQUIRED | NOT APPLICABLE (reason). -->
 
-**Sonuç:** UYUM HAZIR | AÇIK MADDE VAR (n)
-**Taban commit:** <hash>   **Hukuki not:** Bu liste hukuki görüş değildir; "AVUKAT GEREKİR" maddeleri avukata gider.
+**Result:** COMPLIANCE READY | OPEN ITEMS (n)
+**Base commit:** <hash>   **Legal note:** This list is not a legal opinion; "LAWYER REQUIRED" items go to a lawyer.
 
-## 1. Kişisel veri (KVKK / GDPR)
-| Veri | Toplama amacı | Saklama süresi | Silme yolu (kriter) | Üçüncü taraf aktarımı | Özel alan mı | Durum |
+## 1. Personal data (privacy law / GDPR)
+| Data | Purpose of collection | Retention period | Deletion path (criterion) | Third-party transfer | Special area? | Status |
 |---|---|---|---|---|---|---|
 
-- Aydınlatma / gizlilik metni gerekiyor mu: <evet/hayır, neden>   → Durum:
-- Özel alan işaretleri (kimlik, sağlık, ödeme, konum, çocuk verisi): <yok | var → AVUKAT GEREKİR>
+- Is a privacy notice needed: <yes/no, why>   → Status:
+- Special-area markers (identity, health, payment, location, children's data): <none | present → LAWYER REQUIRED>
 
-## 2. Bağımlılık lisansları
-| Paket | Sürüm | Lisans (kaynak: paket kaydı) | Risk (GPL/AGPL/SSPL, kaynak açma, belirsiz) | Durum |
+## 2. Dependency licenses
+| Package | Version | License (source: package registry) | Risk (GPL/AGPL/SSPL, open-the-source obligation, unclear) | Status |
 |---|---|---|---|---|
 
-## 3. Mağaza ve platform kuralları (mobil/masaüstü ise)
-| Kural | Kaynak bağlantısı + erişim tarihi | Karşılanıyor mu | Durum |
+## 3. Store and platform rules (if mobile/desktop)
+| Rule | Source link + access date | Is it met | Status |
 |---|---|---|---|
-<!-- Kaynak getirilemediyse: "doğrulanamadı" yaz. -->
+<!-- If no source could be brought: write "not verified". -->
 
-## 4. Erişilebilirlik ve güvenlik referansı
-| Kontrol | Kanıt bağlantısı | Durum |
+## 4. Accessibility and security reference
+| Check | Evidence link | Status |
 |---|---|---|
-| AppSec GEÇER | | |
-| axe: ihlal yok (iki tema, 375 px) | | |
+| AppSec PASS | | |
+| axe: no violations (two themes, 375 px) | | |
 
-## Açık maddeler (CEO'ya)
-| # | Madde | Neden açık | Önerim |
+## Open items (to the CEO)
+| # | Item | Why it is open | My recommendation |
 |---|---|---|---|

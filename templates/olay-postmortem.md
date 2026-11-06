@@ -1,29 +1,29 @@
-# Olay raporu — <kısa ad> — <tarih>
-<!-- OPS-01, ENG-11. Akış: stabilize et → kanıt topla → kök neden → düzelt → ders. Suçlayıcı değil, süreç odaklı. Sır ve kişisel veri yazma. -->
+# Incident report — <short name> — <date>
+<!-- OPS-01, ENG-11. Flow: stabilize → collect evidence → root cause → fix → lesson. Process-focused, not blaming. Write no secret and no personal data. -->
 
-**Ciddiyet:** SEV1 (hizmet kapalı / veri riski) | SEV2 (kısmi bozulma) | SEV3 (küçük)
-**Durum:** AÇIK | STABİL | KAPANDI
-**Başlangıç / tespit / çözüm:** <zamanlar>   **Etki süresi:** <dk>
-**Tespit nasıl:** <izleme eşiği | kullanıcı bildirimi | manuel>
+**Severity:** SEV1 (service down / data risk) | SEV2 (partial degradation) | SEV3 (minor)
+**Status:** OPEN | STABLE | CLOSED
+**Start / detection / resolution:** <times>   **Impact duration:** <min>
+**How it was detected:** <monitoring threshold | user report | manual>
 
-## Etki
-<!-- Kim, ne kadar, hangi veri. Veri kaybı veya sızıntı şüphesi varsa en başa yaz ve CEO'ya hemen bildir. -->
+## Impact
+<!-- Who, how much, which data. If data loss or a leak is suspected, write it first and tell the CEO at once. -->
 
-## Zaman çizelgesi
-| Zaman | Olay | Kanıt (log satırı, komut, grafik) |
+## Timeline
+| Time | Event | Evidence (log line, command, chart) |
 |---|---|---|
 
-## Stabilizasyon
-<!-- Geri alma / önlem: ne yapıldı, ne kadar sürdü. Canlıya dokunan her adım CEO onayıyla (kural 4). -->
+## Stabilization
+<!-- Rollback / mitigation: what was done, how long it took. Every step that touches production needs CEO approval (rule 4). -->
 
-## Kök neden
-<!-- "Beş neden" sonunda sistemsel neden. Tahmin ise "varsayım" yaz. -->
+## Root cause
+<!-- The systemic cause after "five whys". If it is a guess, write "assumption". -->
 
-## Düzeltme
-| Eylem | Sahip birim | Kanıt | Durum |
+## Fix
+| Action | Owning unit | Evidence | Status |
 |---|---|---|---|
 
-## Ders ve önlem
-<!-- Hangi kılavuz/kapı/test/izleme eşiği değişecek (Talent & capacity'ye iletilir). Her önlem bir issue. -->
+## Lesson and prevention
+<!-- Which playbook/gate/test/monitoring threshold will change (passed to Talent & capacity). Every prevention is an issue. -->
 
-## Doğrulanmayanlar
+## Not verified

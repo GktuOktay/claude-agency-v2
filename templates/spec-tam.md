@@ -1,95 +1,95 @@
-# Spec NNNN — <kısa ad>
-<!-- Başlık alanları ve Status değerleri İngilizce kalır (protokol); içerik Türkçe. -->
+# Spec NNNN — <short name>
+<!-- Header fields and Status values stay English (protocol); content is written in English. -->
 
 - Status: Draft | Awaiting approval | Approved | In progress | Shipped
-- Kademe: tam
-- Önceki spec: <!-- varsa NNNN/AC-x -->
+- Tier: full
+- Previous spec: <!-- if any: NNNN/AC-x -->
 - Self-critique: pending | done
-- Bütçe tavanı: <!-- süre ve abonelik kotası payı; aşılırsa dur -->
+- Budget ceiling: <!-- time and subscription quota share; stop if exceeded -->
 
-## 1. Niyet
-<!-- İş dili, 3-5 cümle: kim, neden, başarı nasıl görünür, bilinçli olarak YAPILMAYAN. CEO'nun kendi sözleriyle başla, sonra netleştir. -->
+## 1. Intent
+<!-- Business language, 3-5 sentences: who, why, what success looks like, what is deliberately NOT done. Start with the CEO's own words, then clarify. -->
 
-## 2. Piyasa özeti (Product)
-<!-- Rakipler/benzerler, kaynak URL ve tarih. Karar: yap / yapma / farklı yap + gerekçe + risk. -->
+## 2. Market summary (Product)
+<!-- Competitors/similar products, source URL and date. Decision: do / don't / do differently + rationale + risk. -->
 
-## 3. Gereksinimler (EARS)
-<!-- "Sistem şunu yapacak" biçiminde davranış. Teknik çözüm yok. Her satıra REQ-n. -->
+## 3. Requirements (EARS)
+<!-- Behavior in the form "the system shall ...". No technical solution. REQ-n on every line. -->
 - REQ-1 —
 
-## 4. Kullanıcı deneyimi
-<!-- Akış; her ekranın tüm durumları: boş, yükleniyor, hata, başarı, yetkisiz. Her durum için kabul kriteri. Tasarım bağlantısı (kopya değil). Erişilebilirlik. Arayüz yoksa: "yok". -->
+## 4. User experience
+<!-- The flow; every state of every screen: empty, loading, error, success, unauthorized. An acceptance criterion for each state. A link to the design (not a copy). Accessibility. If there is no UI: "none". -->
 ```mermaid
-%% Soru: kullanıcı bu akışta hangi ekranlardan geçer? (en çok 9 düğüm; ikili görsel dosya yok)
+%% Question: which screens does the user pass through in this flow? (at most 9 nodes; no binary image files)
 flowchart LR
-  A[Başlangıç] --> B[Ekran]
+  A[Start] --> B[Screen]
 ```
 
-## 5. Kabul kriterleri
-<!-- Her satır bağımsız test edilebilir. Mutlu yol, sınırlar, boş, geçersiz girdi, yetkilendirme. -->
+## 5. Acceptance criteria
+<!-- Each line is independently testable. Happy path, boundaries, empty, invalid input, authorization. -->
 - [ ] AC-1 —
 
-## 6. Mimari ve teknoloji kararı
-<!-- Seçenekler (en az 2), seçim, gerekçe, maliyet/risk. Yeni bağımlılık için: ihtiyaç, alternatif, bakım durumu, lisans. Architecture board görüşü: -->
+## 6. Architecture and technology decision
+<!-- Options (at least 2), the choice, rationale, cost/risk. For a new dependency: need, alternatives, maintenance status, license. Architecture board opinion: -->
 ```mermaid
-%% Soru: bileşenler birbirine nasıl bağlanır?
+%% Question: how do the components connect?
 flowchart LR
-  C[İstemci] --> S[Servis] --> D[(Veri)]
+  C[Client] --> S[Service] --> D[(Data)]
 ```
 
-## 7. Veri ve API sözleşmesi
-<!-- Varlıklar, alanlar, tipler, kısıtlar; uç noktalar, istek/yanıt, hata kodları. -->
+## 7. Data and API contract
+<!-- Entities, fields, types, constraints; endpoints, request/response, error codes. -->
 ```mermaid
-%% Soru: varlıklar arasındaki ilişki nedir?
+%% Question: how are the entities related?
 erDiagram
-  VARLIK_A ||--o{ VARLIK_B : içerir
+  ENTITY_A ||--o{ ENTITY_B : contains
 ```
 
-## 8. Tehdit modeli ve güvenlik
-<!-- Güven sınırları, kötüye kullanım senaryoları, kişisel/hassas veri, yetkilendirme. Özel alan işareti: Sensitive area: <ad> | none -->
+## 8. Threat model and security
+<!-- Trust boundaries, abuse cases, personal/sensitive data, authorization. Sensitive-area marker: Sensitive area: <name> | none -->
 
-## 9. Test ve kanıt planı
-<!-- Kriter ↔ test haritası: AC → hangi test, hangi katman (birim/entegrasyon/e2e), hızlı mı tam mı. -->
-| Kriter | Test | Katman | Profil |
+## 9. Test and evidence plan
+<!-- Criterion ↔ test map: AC → which test, which layer (unit/integration/e2e), quick or full profile. -->
+| Criterion | Test | Layer | Profile |
 |---|---|---|---|
 | AC-1 | | | |
 
-## 10. Dağıtım ve felaket kurtarma
-<!-- Hedef (iç sunucu / Plesk / Cloudflare), adımlar, geri alma planı, yedek, izleme. Deploy CEO onayıyla. -->
+## 10. Deployment and disaster recovery
+<!-- Target (internal server / Plesk / Cloudflare), steps, rollback plan, backup, monitoring. Deploy with CEO approval. -->
 ```mermaid
-%% Soru: kod canlıya hangi yoldan çıkar, nasıl geri alınır?
+%% Question: by which path does the code go live, and how is it rolled back?
 flowchart LR
-  K[Kod] --> B[Build] --> O{CEO onayı} --> C[Canlı]
+  K[Code] --> B[Build] --> O{CEO approval} --> C[Live]
 ```
 
-## 11. Hukuk ve uyum
-<!-- KVKK/GDPR, lisanslar, mağaza kuralları. Hukuki görüş değil, kontrol listesi. -->
+## 11. Legal and compliance
+<!-- Privacy law/GDPR, licenses, store rules. A checklist, not a legal opinion. -->
 
-## 12. Görev listesi (atomik)
-<!-- Her görev: kimlik, kabul kriteri referansı, dosya/alan sahipliği, bağımlılık, tahmini süre. -->
-| ID | Görev | AC | Sahip birim | Bağımlılık |
+## 12. Task list (atomic)
+<!-- Each task: id, acceptance-criterion reference, file/area ownership, dependency, estimated time. -->
+| ID | Task | AC | Owning unit | Dependency |
 |---|---|---|---|---|
 | T-1 | | | | |
 
-## 13. Kapsam dışı
+## 13. Out of scope
 -
 
-## 14. Açık sorular ve Spec Eleştirmeni bulguları
-<!-- Cevaplanmamış soru kalırsa imzaya gidilmez. -->
+## 14. Open questions and Spec critic findings
+<!-- If any question is unanswered, the spec does not go to signature. -->
 
 ---
-## İmza kaydı (yalnızca CEO)
-Approved by / on: <!-- harness/approval.js tarafından approvals/ altında kaydedilir; bu satır bilgi amaçlıdır, geçerlilik imza dosyasındadır -->
+## Signature record (CEO only)
+Approved by / on: <!-- recorded under approvals/ by harness/approval.js; this line is informational, validity lives in the signature file -->
 
-## Varsayımlar (iş sonu raporu için)
-<!-- Tip 3 kararları: <ne> — <neden> -->
+## Assumptions (for the end-of-job report)
+<!-- Type 3 decisions: <what> — <why> -->
 
-## Scorecard (iş sonunda)
-| Ölçüt | Değer |
+## Scorecard (end of job)
+| Measure | Value |
 |---|---|
-| Spec revizyonu | |
-| Düzeltme turu | |
-| Bulgu: gerçek / gürültü / ertelenen | |
-| Regresyon | |
-| Kaçan hata | |
-| Tahmini / gerçek süre ve kota | |
+| Spec revisions | |
+| Fix rounds | |
+| Findings: real / noise / deferred | |
+| Regressions | |
+| Escaped defects | |
+| Estimated / actual time and quota | |

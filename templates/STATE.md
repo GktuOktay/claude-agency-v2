@@ -1,20 +1,20 @@
-# STATE — <iş adı>
-<!-- İlerleme defteri. Bağlam sıkışsa ya da oturum çökse de iş buradan devam eder.
-     Gerçek kaynak git geçmişidir; bu dosya haritadır. Hatırlamaya değil deftere ve git log'a güven. -->
+# STATE — <job name>
+<!-- Progress ledger. Even if context is squeezed or the session crashes, the job continues from here.
+     The real source is git history; this file is the map. Trust the ledger and git log, not memory. -->
 
-Spec: `specs/active/NNNN-<ad>.md`   Plan: `plans/NNNN-plan.md`
-Son güncelleme: <!-- tarih saat -->   Kota payı kullanılan / tavan:
+Spec: `specs/active/NNNN-<name>.md`   Plan: `plans/NNNN-plan.md`
+Last updated: <!-- date time -->   Quota share used / ceiling:
 
-## Görevler
-| ID | Görev | Durum (bekliyor / sürüyor / bitti / PARK) | Commit | Not |
+## Tasks
+| ID | Task | Status (waiting / in progress / done / PARK) | Commit | Note |
 |---|---|---|---|---|
 
-## Park edilen sorular (CEO'ya)
-<!-- Tip 1 belirsizlikler. Görev, soru, önerim, neden bloklu. -->
+## Parked questions (for the CEO)
+<!-- Type 1 uncertainties. Task, question, my recommendation, why it is blocked. -->
 
-## Varsayımlar (Tip 3)
+## Assumptions (Type 3)
 
-## Dur nedenleri
-<!-- 3 başarısız deneme, kota, spec boşluğu, güvenlik, zarf dışı. Varsa buraya yaz ve dur. -->
+## Reasons to stop
+<!-- 3 failed attempts, quota, spec gap, security, outside the envelope. If any, write it here and stop. -->
 
-## Sonraki adım
+## Next step
