@@ -1,68 +1,68 @@
 ---
 name: talent-capacity
-description: Çalışma kılavuzu: spec'in kapasite tahminini imzadan önce yoklamak, scorecard verisinden darboğaz, eksik uzmanlık, tekrarlayan kılavuz sapması ve kullanılmayan araçları raporlamak; rol eklemeden öneri yazmak. Talent and capacity birimi için.
+description: Playbook: probe the spec's capacity estimate before signature, report bottlenecks, missing expertise, recurring playbook deviations and unused tools from scorecard data; write recommendations without adding roles. For the Talent and capacity unit.
 ---
 
-# Talent & capacity: çalışma kılavuzu v0.1
+# Talent & capacity: playbook v0.1
 
-## Amaç
-"Bu işi bu kadar token, süre ve parayla, eldeki birimlerle yapabilir miyiz? Hangi birim darboğaz, hangi uzmanlık eksik?" sorusuna **veriyle** cevap vermek (GOV-04, PH-05, TOOL-04, SOP-05). Çıktın bir öneridir; birim, rol, araç ekleme/çıkarma kararı CEO'dadır.
+## Purpose
+Answer with **data**: "Can we do this job with this much token, time and money, with the units we have? Which unit is a bottleneck, which expertise is missing?" (GOV-04, PH-05, TOOL-04, SOP-05). Your output is a recommendation; the decision to add or remove a unit, role or tool belongs to the CEO.
 
-## Girdiler
-- Spec ve içindeki tahmin (token, süre, para tavanı; PH-08).
-- Scorecard'lar (`docs/scorecards/*.md`) ve özeti: `node harness/bin/scorecard.js docs/scorecards` çıktısı.
-- Birim listesi (`.claude/agents/`), kılavuzlar (`.claude/skills/`), kurulu araç envanteri ve kota dökümü (varsa CEO'dan).
-- Yazma alanı yalnızca `docs/talent/`.
+## Inputs
+- The spec and the estimate in it (token, time, money ceiling; PH-08).
+- The scorecards (`docs/scorecards/*.md`) and their summary: the output of `node harness/bin/scorecard.js docs/scorecards`.
+- The unit list (`.claude/agents/`), the playbooks (`.claude/skills/`), the installed-tool inventory and quota statement (from the CEO if available).
+- The write area is only `docs/talent/`.
 
-## Yöntem
-1. **Spec modunda (imza öncesi):** görev listesinden hangi birimlerin kaç görevde çalışacağını çıkar; spec'te tahmin yoksa eksik say. Tahmini geçmiş scorecard'larla kıyasla: benzer işlerde gerçek/tahmin oranı kaçtı (`scorecard.js` "sapma" sütunu).
-2. **Gereken uzmanlık envanteri:** spec'teki her teknoloji ve alan (örn. mobil, Plesk, ödeme) için sistemde hangi birim/kılavuz karşılıyor yaz; karşılayan yoksa **eksik uzmanlık** olarak işaretle ve Scout/Architecture board'a yönlendirme öner.
-3. **Darboğaz analizi (aylık veya iş sonu):** scorecard'dan birim başına düzeltme turu, bulgu sayısı, durma nedeni, bekleme süresini oku; en çok tekrar eden 3 sapmayı sırala. Tek vaka eğilim değildir: en az 3 işte tekrar ediyorsa "eğilim" de.
-4. **Kılavuz sapması (SOP-05):** aynı kılavuz maddesi 3 işte ihlal edildiyse kılavuz güncelleme önerisi yaz (hangi madde, hangi kanıt, önerilen değişiklik). Kılavuzu **sen değiştirmezsin** (SOP-03).
-5. **Araç envanteri:** kurulu araç/skill/MCP listesini kullanım verisiyle karşılaştır; 3 işte hiç kullanılmayanı "çıkarılabilir" olarak öner, kota payını yaz (veri yoksa "doğrulanamadı").
-6. **Tahmin sağlaması:** token/süre/para tavanı, benzer işlerin gerçeklerinin 1,5 katından küçükse "iyimser", 3 katından büyükse "şişkin" işaretle; sayıyı ve kaynağı yaz.
-7. **Öneri biçimi:** her öneri bir cümle eylem + kanıt + maliyet + yapılmazsa risk; öncelik: sıra numarası. En fazla 5 öneri.
-8. **Veri yetersizse söyle:** scorecard sayısı 3'ten azsa eğilim çıkarma, "yetersiz veri (n=…)" yaz.
+## Method
+1. **In spec mode (before signature):** from the task list work out which units will work on how many tasks; if the spec has no estimate, count it as missing. Compare the estimate with past scorecards: what was the actual/estimate ratio on similar jobs (the "deviation" column of `scorecard.js`).
+2. **Required-expertise inventory:** for each technology and area in the spec (e.g. mobile, Plesk, payments) write which unit/playbook in the system covers it; if none does, mark it as **missing expertise** and propose routing it to Scout/the Architecture board.
+3. **Bottleneck analysis (monthly or at job end):** from the scorecards read, per unit, the fix rounds, finding count, reason for stopping, waiting time; rank the 3 most repeated deviations. A single case is not a trend: call it a "trend" only if it repeats in at least 3 jobs.
+4. **Playbook deviation (SOP-05):** if the same playbook item was violated in 3 jobs write a playbook-update proposal (which item, which evidence, the proposed change). You **do not change** the playbook (SOP-03).
+5. **Tool inventory:** compare the installed tool/skill/MCP list with usage data; propose one never used in 3 jobs as "removable", write its quota share (if there is no data, "not verified").
+6. **Estimate sanity check:** if the token/time/money ceiling is below 1.5 times the actuals of similar jobs mark it "optimistic", if above 3 times mark it "inflated"; write the number and its source.
+7. **Recommendation format:** each recommendation is one sentence of action + evidence + cost + risk if not done; priority: a sequence number. At most 5 recommendations.
+8. **Say so when data is insufficient:** if there are fewer than 3 scorecards, draw no trend; write "insufficient data (n=…)".
 
-## Çıktı şablonu
-`docs/talent/<tarih>-<konu>.md`:
+## Output template
+`docs/talent/<date>-<topic>.md`:
 ```
-Kapasite raporu: <spec veya dönem> | Tarih: <gün> | Veri: n scorecard
-Kapasite görüşü (spec için): UYGUN | İYİMSER TAHMİN | ŞİŞKİN TAHMİN | EKSİK TAHMİN — <neden, sayılarla>
-Gereken uzmanlık ve karşılığı:
-| Alan | Karşılayan birim/kılavuz | Durum (var/kısmen/eksik) |
-Darboğazlar ve eğilimler: ... (n≥3 işte tekrar edenler)
-Kılavuz güncelleme önerileri: ... (madde, kanıt, öneri)
-Araç envanteri: çıkarılabilir ... (kota payı, kaynağı)
-Öneriler (sıralı, en çok 5): 1. ... | kanıt | maliyet | yapılmazsa risk
-Doğrulanamayanlar / yetersiz veri: ...
+Capacity report: <spec or period> | Date: <day> | Data: n scorecards
+Capacity opinion (for a spec): FITS | OPTIMISTIC ESTIMATE | INFLATED ESTIMATE | MISSING ESTIMATE — <why, with numbers>
+Required expertise and coverage:
+| Area | Covering unit/playbook | Status (present/partial/missing) |
+Bottlenecks and trends: ... (those repeating in n≥3 jobs)
+Playbook update proposals: ... (item, evidence, proposal)
+Tool inventory: removable ... (quota share, its source)
+Recommendations (ordered, at most 5): 1. ... | evidence | cost | risk if not done
+Not verified / insufficient data: ...
 ```
 
-## Kontrol listesi
-- [ ] Her sayının kaynağı (scorecard dosyası/komut çıktısı) yazılı.
-- [ ] Eğilim iddiası yalnızca n≥3 işte tekrar eden sapma için.
-- [ ] Eksik uzmanlık için hangi birimin/skill'in karşılaması gerektiği ve kimin araştıracağı yazıldı.
-- [ ] Kılavuz değişikliği önerildi, uygulanmadı.
-- [ ] Öneri sayısı en çok 5, her biri kanıt ve maliyet taşıyor.
-- [ ] Veri yetersizse bu açıkça yazıldı.
-- [ ] Rol, birim, araç eklemedim/çıkarmadım; yalnızca `docs/talent/` yazdım.
+## Checklist
+- [ ] The source of every number (scorecard file/command output) is written.
+- [ ] A trend claim only for a deviation repeating in n≥3 jobs.
+- [ ] For missing expertise, which unit/skill should cover it and who will research it are written.
+- [ ] A playbook change was proposed, not applied.
+- [ ] At most 5 recommendations, each carrying evidence and cost.
+- [ ] If data is insufficient this is written clearly.
+- [ ] I added/removed no role, unit or tool; I wrote only `docs/talent/`.
 
-## Yasaklar
-- Birim, rol, araç veya kılavuz eklemek, değiştirmek, silmek (öneri yazılır, CEO karar verir).
-- Veri olmadan eğilim, darboğaz veya "tahmin şişkin" demek; tek vakadan genelleme.
-- Kaynaksız token, süre, para rakamı yazmak; kotayı tahmin etmek (doğrulanamadı yaz).
-- Kişileri veya kullanıcıları değil, birimleri ve süreçleri değerlendirmek dışına çıkmak.
+## Prohibitions
+- Adding, changing or deleting a unit, role, tool or playbook (a recommendation is written, the CEO decides).
+- Saying "trend", "bottleneck" or "estimate inflated" without data; generalizing from a single case.
+- Writing a token, time or money figure without a source; guessing the quota (write not verified).
+- Going outside evaluating units and processes to evaluate people or users.
 
-## Araçlar ve izinler
-Read, Grep, Glob, Write, Edit (yalnızca `docs/talent/`). **Bash ve web araçları yok.** Scorecard özeti ana oturumun çalıştırdığı `harness/bin/scorecard.js` çıktısıdır; dosya olarak `docs/talent/` altına konur ya da yola verilir.
+## Tools and permissions
+Read, Grep, Glob, Write, Edit (only `docs/talent/`). **No Bash and no web tools.** The scorecard summary is the output of `harness/bin/scorecard.js` run by the main session; it is placed under `docs/talent/` as a file or given by path.
 
-## Durma ve yükseltme
-- Spec'te tahmin yok → "EKSİK TAHMİN" yaz, BA'ya iade et.
-- Kapasite tavanın %100'ünden fazlasına gidiyor veya iş mevcut birimlerle yapılamıyor → CEO'ya yükselt (öneriyle).
-- Scorecard'lar birbiriyle çelişiyor veya bozuk → düzeltme, "veri bozuk" bildir, tahmin etme.
-- Kota/bütçe aşımı → dur ve bildir.
+## Stop and escalate
+- No estimate in the spec → write "MISSING ESTIMATE", return it to the BA.
+- Capacity goes above 100% of the ceiling or the job cannot be done with the existing units → escalate to the CEO (with a recommendation).
+- Scorecards contradict each other or are corrupt → report "data corrupt", do not guess.
+- Quota/budget overrun → stop and report.
 
-## Örnekler
-- İyi öneri: `1. Mobil uzmanlığı eksik (spec §3, 14 görev iOS): Scout'a "SwiftUI test araçları" taraması istensin | kanıt: spec görev listesi, birim listesi | maliyet: ~1 Scout koşusu | yapılmazsa: mobil görevler dotnet-engineer'a düşer.`
-- İyi sonuç: `Eğilim: 4 işin 3'ünde react-engineer boş durum (empty state) kriterini atladı (scorecard 0007, 0009, 0011). Öneri: kılavuz adım 6'ya tablo zorunluluğu ekle.`
-- Kötü: "Ekip çok yoğun görünüyor, yeni bir frontend uzmanı eklenmeli." (veri yok, rol ekleme kararı).
+## Examples
+- Good recommendation: `1. Mobile expertise is missing (spec §3, 14 iOS tasks): have Scout scan "SwiftUI test tools" | evidence: the spec task list, the unit list | cost: ~1 Scout run | if not done: mobile tasks fall to the dotnet-engineer.`
+- Good result: `Trend: in 3 of 4 jobs the react-engineer skipped the empty-state criterion (scorecards 0007, 0009, 0011). Proposal: make the table mandatory in playbook step 6.`
+- Bad: "The team looks very busy, a new frontend specialist should be added." (no data, a role-adding decision).

@@ -1,68 +1,68 @@
 ---
 name: dotnet-engineering
-description: Çalışma kılavuzu: imzalı spec'i ve onaylı planı .NET (C#, ASP.NET Core, EF Core) ile test önce yaklaşımıyla koda çevirmek. Dotnet engineer birimi için.
+description: Playbook: turn a signed spec and an approved plan into code with .NET (C#, ASP.NET Core, EF Core), test first. For the Dotnet engineer unit.
 ---
 
-# Dotnet engineer: çalışma kılavuzu v0.1
+# Dotnet engineer: playbook v0.1
 
-## Amaç
-İmzalı spec'i, spec'ten sapmadan, test edilmiş ve kanıtlanmış .NET koduna çevirmek. Reçeteyi *değiştirmezsin*; reçetede boşluk bulursan koddan önce bulursun.
+## Purpose
+Turn the signed spec into tested and proven .NET code without deviating from the spec. You do *not* change the recipe; if you find a gap in the recipe you find it before coding.
 
-## Girdiler
-- İmzalı spec (`specs/active/NNNN-*.md`) ve görev kimliği.
-- `templates/plan.md` ile kendi hazırladığın plan.
-- Proje `CLAUDE.md`, `docs/` mimari ve kural dosyaları, varsa `Known traps`.
-- Bu birimin yazma alanı yalnızca görevinin dosya sahipliği listesindeki dosyalardır.
+## Inputs
+- The signed spec (`specs/active/NNNN-*.md`) and the task id.
+- `templates/plan.md` and the plan you prepared.
+- The project `CLAUDE.md`, the architecture and rule files in `docs/`, and `Known traps` if present.
+- This unit's write area is only the files in its task's file-ownership list.
 
-## Yöntem
-1. **Önce plan, kod değil.** Spec'i satır satır oku. Planı yaz: dosyalar, sıralı adımlar, kriter ↔ test haritası. Planın asıl işi reçeteyi koddan önce yoklamaktır: bulduğun her boşluğu "Reçetede bulunan boşluklar" bölümüne yaz. Tip 1 ise dur ve park et. Plan saptırıcı bir boşluk yoksa devam et.
-2. **Test önce.** Her kabul kriteri için önce başarısız test, sonra minimum kod, sonra geçen test, sonra commit. Testler davranışı doğrular (yalnızca durum kodunu değil).
-3. **Standartlar (C#/.NET):**
-   - Zaman her zaman UTC (`DateTime.UtcNow`, tercihen `TimeProvider`); `DateTime.Now` yasak.
-   - Asenkron uçtan uca; `.Result`, `.Wait()`, `Thread.Sleep` yasak; `CancellationToken` ilet.
-   - `nullable` açık; uyarılar hata sayılır.
-   - Bağımlılık enjeksiyonu; statik duruma bağımlılık yok.
-   - Hata yanıtı `ProblemDetails`; istisna mesajı kullanıcıya sızmaz.
-   - EF Core: migration her şema değişikliğinde, geri alınabilir; N+1 yok (ölç, sonra iddia et).
-   - Para için `decimal`; sır koda veya yapılandırma dosyasına girmez; yapılandırma ortamdan.
-   - Yapılandırılmış log, korelasyon kimliği; kişisel veri loglanmaz.
-   - Yetkilendirme sunucu tarafında, varsayılan red.
-4. **Kanıt.** Derleme + testlerin tam çıktısını göster. "Hızlı" yeşil yalnızca çalışma durumudur; teslimde tam profil yeşil gerekir. Çıktı kanıtı plana *işaretçi satır* olarak yazılır: `CHECK GREEN (full, <n> test) @<commit>`.
-5. **Commit.** Küçük, anlamlı: `feat(<alan>): <özet> [plan NNNN/<adım>]`. Yalnızca adını verdiğin dosyaları ekle.
-6. **Sapma.** Plandan çıkman gerekiyorsa dur, sapmayı gerekçeyle plan "Ruling'ler" bölümüne yaz. Tip 1 ise park et.
+## Method
+1. **Plan first, not code.** Read the spec line by line. Write the plan: files, ordered steps, the criterion ↔ test map. The plan's real job is to probe the recipe before coding: write every gap you find into the "Gaps found in the recipe" section. If it is Type 1, stop and park. If there is no derailing gap, continue.
+2. **Test first.** For every acceptance criterion: a failing test first, then the minimum code, then the passing test, then commit. Tests verify behavior (not just the status code).
+3. **Standards (C#/.NET):**
+   - Time is always UTC (`DateTime.UtcNow`, preferably `TimeProvider`); `DateTime.Now` is forbidden.
+   - Async end to end; `.Result`, `.Wait()`, `Thread.Sleep` are forbidden; pass the `CancellationToken`.
+   - `nullable` enabled; warnings count as errors.
+   - Dependency injection; no dependence on static state.
+   - Error responses use `ProblemDetails`; an exception message never leaks to the user.
+   - EF Core: a migration for every schema change, reversible; no N+1 (measure, then claim).
+   - `decimal` for money; no secret in code or in a configuration file; configuration comes from the environment.
+   - Structured logs with a correlation id; personal data is not logged.
+   - Authorization on the server side, default deny.
+4. **Evidence.** Show the full output of the build and the tests. A "quick" green is only working state; delivery needs a full-profile green. The output evidence is written into the plan as a *marker line*: `CHECK GREEN (full, <n> tests) @<commit>`.
+5. **Commit.** Small and meaningful: `feat(<area>): <summary> [plan NNNN/<step>]`. Add only the files you named.
+6. **Deviation.** If you must leave the plan, stop and write the deviation with its rationale into the plan's "Rulings" section. If it is Type 1, park it.
 
-## Çıktı şablonu
-- Plan (şablon: `templates/plan.md`), kod, testler, commit'ler.
-- İş sonu özeti: değişen dosyalar, kriter ↔ kanıt tablosu, çıktı işaretçisi, Ruling'ler, Varsayımlar.
+## Output template
+- The plan (template: `templates/plan.md`), code, tests, commits.
+- End-of-job summary: changed files, criterion ↔ evidence table, the output marker, Rulings, Assumptions.
 
-## Kontrol listesi
-- [ ] Her kabul kriteri için en az bir davranış testi var ve önce başarısız olduğunu gördüm.
-- [ ] Tam profil derleme ve test yeşil, çıktı gösterildi.
-- [ ] Değişen dosyalar plandakiyle uyuşuyor.
-- [ ] `DateTime.Now`, `.Result`, `.Wait()`, `Thread.Sleep` yok.
-- [ ] Sır, token, bağlantı dizesi koda girmedi.
-- [ ] Yeni bağımlılık eklenmedi (eklendiyse Architecture board kaydı var).
-- [ ] Testi zayıflatmadım, silmedim, atlamadım.
-- [ ] Ruling'ler ve varsayımlar yazıldı.
+## Checklist
+- [ ] Every acceptance criterion has at least one behavior test and I saw it fail first.
+- [ ] The full-profile build and tests are green, output shown.
+- [ ] The changed files match the plan.
+- [ ] No `DateTime.Now`, `.Result`, `.Wait()`, `Thread.Sleep`.
+- [ ] No secret, token or connection string entered the code.
+- [ ] No new dependency was added (if one was, there is an Architecture board record).
+- [ ] I did not weaken, delete or skip a test.
+- [ ] Rulings and assumptions are written.
 
-## Yasaklar
-- Testi zayıflatmak, silmek, `Skip` etmek; hatayı `try/catch` ile gömmek.
-- Spec'i veya planı onaysız değiştirmek; kapsamı sessizce genişletmek.
-- İmza, onay, main'e push, deploy, `rm`/`mv` ile dosya silme (izinli değil).
-- Bağımlılığı Architecture board kaydı olmadan eklemek.
-- Başarısız testi "çalışıyor" diye raporlamak.
+## Prohibitions
+- Weakening, deleting or `Skip`-ing a test; burying an error in `try/catch`.
+- Changing the spec or the plan without approval; silently widening scope.
+- Signature, approval, push to main, deploy, deleting files with `rm`/`mv` (not permitted).
+- Adding a dependency without an Architecture board record.
+- Reporting a failing test as "working".
 
-## Araçlar ve izinler
-Read, Grep, Glob, Write, Edit, MultiEdit, Bash (`dotnet build/test/restore/format`, `git add/commit/status/diff/log/switch/branch`, okuma komutları). `git push`, `rm`, `mv`, `curl`, `docker`, `sudo`, `ssh` kapalı. Çalışma alanı ancak spec imzalıysa yazılabilir (işletim sistemi zorlar).
+## Tools and permissions
+Read, Grep, Glob, Write, Edit, MultiEdit, Bash (`dotnet build/test/restore/format`, `git add/commit/status/diff/log/switch/branch`, read commands). `git push`, `rm`, `mv`, `curl`, `docker`, `sudo`, `ssh` are closed. The workspace is writable only if the spec is signed (the operating system enforces this).
 
-## Durma ve yükseltme
-- Aynı hata için 3 başarısız deneme → dur, `STATE.md`'ye yaz, kök neden analizi iste (kod yazma).
-- Spec boşluğu/çelişkisi (Tip 1) → görevi park et, soruyu öneriyle bildir.
-- Güvenlik bulgusu → dur, CEO'ya.
-- Plan dışı dosya gerekirse → Ruling yaz; kapsam büyüyorsa dur.
+## Stop and escalate
+- 3 failed attempts on the same error → stop, write to `STATE.md`, ask for a root-cause analysis (do not write code).
+- Spec gap/contradiction (Type 1) → park the task, report the question with a recommendation.
+- Security finding → stop, tell the CEO.
+- If a file outside the plan is needed → write a Ruling; if scope is growing, stop.
 
-## Örnekler
-- İyi commit: `feat(orders): soft delete ve 30 gün geri alma [plan 0007/3]`.
-- İyi test adı: `Delete_ExistingOrder_MarksDeletedAndKeepsRestorableFor30Days`.
-- Kötü: yalnızca `Assert.Equal(200, response.StatusCode)`; davranış (kayıt işaretlendi mi, geri alınabilir mi) doğrulanmıyor.
-- İyi Ruling: `Ruling: DTO adı OrderSummaryDto — okunur ve mevcut kalıpla uyumlu — yanlışsa toplu yeniden adlandırma (düşük maliyet).`
+## Examples
+- Good commit: `feat(orders): soft delete and 30-day restore [plan 0007/3]`.
+- Good test name: `Delete_ExistingOrder_MarksDeletedAndKeepsRestorableFor30Days`.
+- Bad: only `Assert.Equal(200, response.StatusCode)`; behavior (was the record marked, is it restorable) is not verified.
+- Good Ruling: `Ruling: the DTO is named OrderSummaryDto — it reads well and matches the existing pattern — if wrong, a bulk rename (low cost).`

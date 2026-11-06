@@ -1,30 +1,30 @@
-## Spec ve plan
-- Spec: `specs/active/NNNN-<ad>.md` — kriterler: AC-n, AC-m
+## Spec and plan
+- Spec: `specs/active/NNNN-<name>.md` — criteria: AC-n, AC-m
 - Plan: `plans/NNNN-plan.md`
-- İlgili issue: closes #<n>
-- Taban dal: `integration/NNNN-<ad>` <!-- main'e giden PR'lar CEO onayı gerektirir -->
+- Related issue: closes #<n>
+- Base branch: `integration/NNNN-<name>` <!-- PRs bound for main need CEO approval -->
 
-## Ne ve neden
-<!-- 2-3 cümle, iş dili. -->
+## What and why
+<!-- 2-3 sentences, business language. -->
 
-## Kriter ↔ kanıt
-| Kriter | Kanıt (test + komut) | Durum |
+## Criterion ↔ evidence
+| Criterion | Evidence (test + command) | Status |
 |---|---|---|
 
-## Kanıt işaretçisi
-`CHECK GREEN (full, <n> test) @<sha>` <!-- veya CI koşusu bağlantısı + commit -->
+## Evidence marker
+`CHECK GREEN (full, <n> tests) @<sha>` <!-- or the CI run link + commit -->
 
-## Denetim
-Internal audit raporu: <!-- bağlantı veya özet. Karar: TEMİZ | DÜZELTME GEREKLİ | CEO'YA YÜKSELT -->
+## Audit
+Internal audit report: <!-- link or summary. Verdict: CLEAN | FIX REQUIRED | ESCALATE TO CEO -->
 
-## Ruling'ler ve varsayımlar
-<!-- Ruling: <karar> — <neden> — <yanlışsa maliyet>.  Varsayım: <ne> — <neden> -->
+## Rulings and assumptions
+<!-- Ruling: <decision> — <why> — <cost if wrong>.  Assumption: <what> — <why> -->
 
-## Risk ve geri alma
-<!-- Bu değişiklik neyi bozabilir, nasıl geri alınır. -->
+## Risk and rollback
+<!-- What this change could break, how it is rolled back. -->
 
-## Kontrol
-- [ ] Değişen dosyalar plan listesiyle uyuşuyor
-- [ ] Test zayıflatılmadı, silinmedi, atlanmadı
-- [ ] Sır yok
-- [ ] Yeni bağımlılık yok (varsa Architecture board kaydı)
+## Check
+- [ ] The changed files match the plan list
+- [ ] No test was weakened, deleted or skipped
+- [ ] No secret
+- [ ] No new dependency (if there is one, an Architecture board record)

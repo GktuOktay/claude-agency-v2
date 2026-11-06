@@ -1,65 +1,65 @@
 ---
 name: visual-standards
-description: Ortak standart: spec, rapor, karar notu ve CEO sayfalarında grafik/diyagram ne zaman zorunlu, nasıl çizilir (anlamsal renk, iki tema, erişilebilirlik, depoda dosya yok). Metin veya sayfa üreten tüm birimler için.
+description: Shared standard: when a chart/diagram is mandatory in specs, reports, decision notes and CEO pages, and how to draw it (semantic color, two themes, accessibility, no files in the repo). For every unit that produces text or pages.
 ---
 
-# Görsel dil: ortak standart v0.1
+# Visual language: shared standard v0.1
 
-## Amaç
-Karmaşık şeyi okunacak değil görülecek hale getirmek, ama her grafiğin bir işi olsun. CEO'nun uzman olmadığı alanlarda (ön yüz, mimari akış, deploy) görsel, anlatımın birincil biçimidir. Aynı görsel dil her çıktıda geçerlidir: mühür = CEO kapısı, yeşil = otonom, kesikli = planlı.
+## Purpose
+Make complex things seen rather than read, but give every chart a job. In areas where the CEO is not an expert (front end, architecture flow, deploy) the visual is the primary form of explanation. The same visual language holds in every output: stamp = CEO gate, green = autonomous, dashed = planned.
 
-## Girdiler
-- Anlatılacak içerik ve hedef okuyucu (CEO, müşteri, geliştirici).
-- Şirketin anlamsal paleti ve tanıtım sayfası (`site/index.html`) referans.
-- Hedef ortam: depo içi markdown (GitHub mermaid'i çizer), HTML sayfa/artifact, sunum.
+## Inputs
+- The content to explain and the target reader (CEO, customer, developer).
+- The company's semantic palette and the intro page (`site/index.html`) are the reference.
+- Target medium: in-repo markdown (GitHub renders mermaid), an HTML page/artifact, a presentation.
 
-## Yöntem
-1. **Ne zaman diyagram zorunlu.** Üç veya daha fazla adımlı akış; üç veya daha fazla bileşenin ilişkisi; durum geçişi; üç veya daha fazla varlıklı veri modeli; dağıtım topolojisi; bağımlılık/kritik yol. Spec'te: §4 ekran akışı, §6 bileşen şeması, §7 ER, §10 dağıtım; durum raporunda: bağımlılık/kritik yol; ürün kararında: rakip konumlandırma matrisi.
-2. **Bir diyagram bir soruya cevap verir.** Başlığı o soru olsun. Düğüm sayısı en fazla 9; fazlaysa böl. Etiket kısa, tam cümle değil.
-3. **Renk anlam taşır, süs değil.** Yeşil: otonom/hazır. Kırmızı: CEO kapısı veya risk. Gri/kesikli: planlı/nötr. Üçten fazla renk kullanma. **Renk tek başına bilgi taşımaz:** şekil, çizgi türü veya etiket de aynı bilgiyi versin.
-4. **Depoda metin olarak yaşar.** Diyagram kod olarak (mermaid veya SVG metni) yazılır; ikili görsel, ekran görüntüsü ve dışa aktarılmış PNG depoya girmez (kanıt politikası). İstisna: CEO'nun onayladığı marka varlıkları.
-5. **Erişilebilirlik.** Her diyagramın başlığı ve tek cümlelik açıklaması olsun; yanında metin eşdeğeri (tablo veya liste) bulunsun. HTML'de her anlamlı `<svg>` `role="img"` ve `aria-label` taşır; her `<img>` `alt` taşır; 11 pikselden küçük yazı yok.
-6. **HTML sayfalar (CEO sayfası, artifact).** Renkler token olarak tanımlı; açık ve koyu tema; telefon (375 px) genişliğinde yatay kaydırma yok; telefonda okunmayacak kadar küçülecek geniş SVG'nin dikey varyantı olsun; etkileşimli demo "simülasyon" diye etiketli; her sayı kaynağa bağlı (test sayısı `check` çıktısından, uydurma sayı yok); sayfa dosyası depoda `site/` altında, yayınlanan kopya ikincil.
-7. **Sayfayı gözle gör.** Yayınlamadan önce masaüstü ve telefon genişliğinde ekran görüntüsüyle bak; taşma ve çakışma ölç. Görmeden "çalışıyor" deme.
-8. **Telif.** Görsel ve medya yalnızca açık/lisanslı; kaynak ve lisans kayıtlı (Quality office onayı).
-9. **Mermaid sınırı.** Karmaşık çizim gerekiyorsa mermaid yerine SVG yaz; mermaid'de renk ve yerleşim kontrolü sınırlıdır.
+## Method
+1. **When a diagram is mandatory.** A flow of three or more steps; the relationship of three or more components; a state transition; a data model with three or more entities; a deployment topology; a dependency/critical path. In a spec: §4 screen flow, §6 component diagram, §7 ER, §10 deployment; in a status report: dependency/critical path; in a product decision: the competitor positioning matrix.
+2. **A diagram answers one question.** Let its title be that question. At most 9 nodes; if more, split. Labels are short, not full sentences.
+3. **Color carries meaning, not decoration.** Green: autonomous/ready. Red: a CEO gate or risk. Gray/dashed: planned/neutral. Do not use more than three colors. **Color alone never carries information:** shape, line type or a label gives the same information too.
+4. **It lives as text in the repo.** A diagram is written as code (mermaid or SVG text); binary images, screenshots and exported PNGs do not enter the repo (evidence policy). Exception: brand assets the CEO approved.
+5. **Accessibility.** Every diagram has a title and a one-sentence description; next to it a text equivalent (a table or list). In HTML every meaningful `<svg>` carries `role="img"` and `aria-label`; every `<img>` carries `alt`; no text smaller than 11 pixels.
+6. **HTML pages (CEO page, artifact).** Colors are defined as tokens; light and dark theme; no horizontal scroll at phone width (375 px); a wide SVG that would shrink too small to read on a phone has a vertical variant; an interactive demo is labelled "simulation"; every number is tied to a source (the test count from the `check` output, no invented numbers); the page file is in the repo under `site/`, the published copy is secondary.
+7. **See the page by eye.** Before publishing look at it with screenshots at desktop and phone width; measure overflow and overlap. Do not say "it works" without seeing it.
+8. **Copyright.** Images and media only if open/licensed; source and license recorded (Quality office approval).
+9. **Mermaid limit.** If a complex drawing is needed write SVG instead of mermaid; color and layout control in mermaid is limited.
 
-## Çıktı şablonu
+## Output template
 ````
-### <Diyagramın cevapladığı soru>
+### <The question the diagram answers>
 ```mermaid
 flowchart LR
-  A[Başlangıç] --> B[Adım]
+  A[Start] --> B[Step]
 ```
-Açıklama: <tek cümle>. Metin eşdeğeri: <tablo veya liste>.
+Description: <one sentence>. Text equivalent: <a table or list>.
 ````
 
-## Kontrol listesi
-- [ ] Zorunlu yerlerde diyagram var, her birinin başlığı bir soru.
-- [ ] Düğüm sayısı 9 veya altı, etiketler kısa.
-- [ ] Renk anlam taşıyor, tek başına bilgi taşımıyor, en çok üç renk.
-- [ ] Diyagram metin olarak depoda; ikili görsel yok.
-- [ ] Açıklama ve metin eşdeğeri var; HTML'de `role="img"`, `aria-label`, `alt` tamam.
-- [ ] HTML: iki tema, 375 px'te yatay kaydırma yok, gözle görüldü.
-- [ ] Her sayı bir kaynağa bağlı.
+## Checklist
+- [ ] A diagram exists where it is mandatory, and each one's title is a question.
+- [ ] The node count is 9 or fewer and labels are short.
+- [ ] Color carries meaning, never carries information alone, at most three colors.
+- [ ] The diagram is in the repo as text; there is no binary image.
+- [ ] A description and a text equivalent exist; in HTML `role="img"`, `aria-label`, `alt` are complete.
+- [ ] HTML: two themes, no horizontal scroll at 375 px, seen by eye.
+- [ ] Every number is tied to a source.
 
-## Yasaklar
-- Süs için diyagram; bilgi vermeyen ikon ve çizim.
-- Renge dayalı tek başına anlam (renk körü okuyucu kaçırır).
-- Depoya PNG, ekran görüntüsü veya dışa aktarılmış görsel koymak.
-- Uydurma sayı, sahte metrik, kaynaksız grafik; simülasyonu gerçek davranış gibi sunmak.
-- Telifli görsel kullanmak.
-- Görmeden görsel çıktıyı "tamam" ilan etmek.
+## Prohibitions
+- A diagram for decoration; icons and drawings that give no information.
+- Meaning that rests on color alone (a color-blind reader misses it).
+- Putting a PNG, screenshot or exported image into the repo.
+- An invented number, a fake metric, an unsourced chart; presenting a simulation as real behavior.
+- Using a copyrighted image.
+- Declaring a visual output "done" without seeing it.
 
-## Araçlar ve izinler
-Metin yazma araçları (`Write`, `Edit`) yalnızca `docs/`, `specs/`, `site/` altına. Yerel önizleme için geçici yerel web sunucusu ve tarayıcı paneli ana makinede; iş bitince sunucu kapatılır. Ekran görüntüleri depoya konmaz.
+## Tools and permissions
+Text-writing tools (`Write`, `Edit`) only under `docs/`, `specs/`, `site/`. For local preview a temporary local web server and the browser pane on the host machine; the server is shut down when the job ends. Screenshots are not put in the repo.
 
-## Durma ve yükseltme
-- İçerik görselle anlatılamıyorsa (belirsiz) önce BA'ya dön: görselleştirilemeyen şey çoğu zaman tanımsız şeydir.
-- Lisans belirsiz görselde dur ve Quality office'e sor.
-- Sayfada ölçülemeyen bir iddia (örneğin "çalışıyor") varsa ölç veya iddiayı kaldır.
+## Stop and escalate
+- If the content cannot be explained with a visual (it is unclear), go back to the BA first: what cannot be visualized is often what is undefined.
+- If an image's license is unclear, stop and ask the Quality office.
+- If a page has a claim that cannot be measured (for example "it works"), measure it or remove the claim.
 
-## Örnekler
-- İyi: "### Bir sipariş silinince ne olur? (mermaid akış, 6 düğüm, yeşil: otomatik, kırmızı: kullanıcı kararı) + altında tek cümle ve adım tablosu."
-- Kötü: 14 düğümlü, her biri farklı renkte, açıklamasız bir şema ve depoya eklenmiş `diyagram.png`.
-- İyi sayı: "29 kontrol yeşil (`./harness/bin/check` çıktısı)". Kötü: "yaklaşık 30 test".
+## Examples
+- Good: "### What happens when an order is deleted? (a mermaid flow, 6 nodes, green: automatic, red: user decision) + one sentence below and a step table."
+- Bad: a 14-node diagram, each node a different color, with no description, and a `diyagram.png` added to the repo.
+- Good number: "29 checks green (`./harness/bin/check` output)". Bad: "about 30 tests".

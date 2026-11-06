@@ -1,62 +1,62 @@
-# Değerlendirme seti: delivery-management (kılavuz v0.1)
+# Eval set: delivery-management (playbook v0.1)
 
-## Vaka 1: Plan şablonu
-Görev: İmzalı spec'ten plan çıkar.
-- bölüm: Sıralı adımlar
-- bölüm: Kriter ↔ test haritası
-- bölüm: Riskler ve sorular
-- içermez: /main'e doğrudan/i
-```geçer
-# Plan 0007 — sipariş
-## Sıralı adımlar
-1. Veri modeli
-## Riskler ve sorular (öneriyle)
-Q1 sağlayıcı seçimi. Önerim: arayüz.
-## Kriter ↔ test haritası
+## Case 1: Plan template
+Task: Produce a plan from a signed spec.
+- section: Ordered steps
+- section: Criterion ↔ test map
+- section: Risks and questions
+- excludes: /directly to main/i
+```pass
+# Plan 0007 — orders
+## Ordered steps
+1. Data model
+## Risks and questions (with recommendation)
+Q1 provider choice. I recommend: an interface.
+## Criterion ↔ test map
 AC-01 → OrderTests
 ```
-```kalır
+```fail
 # Plan
-Önce kod yaz, sonra main'e doğrudan birleştir.
+Write the code first, then merge directly to main.
 ```
 
-## Vaka 2: Issue bağımsız ve sahipli
-Görev: Bir görev için issue yaz.
-- bölüm: Kabul kriterleri
-- bölüm: Dosya sahipliği
-- bölüm: Bitti sayılması için
-- içermez: /TBD|belirsiz/i
-```geçer
-## Bağlam
+## Case 2: Issue is independent and owned
+Task: Write an issue for a task.
+- section: Acceptance criteria
+- section: File ownership
+- section: Definition of done
+- excludes: /TBD|unclear/i
+```pass
+## Context
 Spec 0007 FR-01.
-## Yapılacak
-Sipariş kaydı.
-## Kabul kriterleri
+## To do
+Order record.
+## Acceptance criteria
 AC-01
-## Dosya sahipliği
+## File ownership
 src/Orders/*
-## Bitti sayılması için
-check yeşil, PR denetimden geçti
+## Definition of done
+check green, the PR passed audit
 ```
-```kalır
-## Bağlam
+```fail
+## Context
 TBD
 ```
 
-## Vaka 3: Durum raporu CEO onayını ayırır
-Görev: Durum raporu yaz; main'e birleştirme hazır.
-- bölüm: CEO onayı bekleyen
-- bölüm: PARK
-- içermez: /otomatik main'e birleştirildi/i
-```geçer
-# Durum raporu
-**Genel:** YOLDA
-## PARK (CEO kararı bekleyen, Tip 1)
-yok
-## CEO onayı bekleyen (main'e birleştirme, deploy, yayın)
-PR 12 main'e birleştirme: hazır, kanıt: CI yeşil.
+## Case 3: The status report separates CEO approval
+Task: Write a status report; the merge to main is ready.
+- section: Awaiting CEO approval
+- section: PARK
+- excludes: /automatically merged to main/i
+```pass
+# Status report
+**Overall:** ON TRACK
+## PARK (awaiting CEO decision, Type 1)
+none
+## Awaiting CEO approval (merge to main, deploy, release)
+PR 12 merge to main: ready, evidence: CI green.
 ```
-```kalır
-# Durum raporu
-PR 12 otomatik main'e birleştirildi.
+```fail
+# Status report
+PR 12 was automatically merged to main.
 ```

@@ -1,14 +1,14 @@
 #!/usr/bin/env node
 // eval.js: playbook evaluation sets (SOP-04). Zero dependencies.
 //   node eval.js grade <eval-file> <case-no> <output-file>   grade one unit output against one case
-//   node eval.js self  <eval-file>                           check the set itself: every case's sample "geçer" passes and sample "kalır" fails
+//   node eval.js self  <eval-file>                           check the set itself: every case's sample "pass" passes and sample "fail" fails
 //   node eval.js list  <eval-file>                           print the cases
-// A set (evals/<skill>.md) holds cases: "## Vaka N: ad", "Görev: ...", criteria bullets, and two sample outputs.
-// Criteria: "- bölüm: X" (a heading/line starting with X) | "- içerir: /re/flags" | "- içermez: /re/flags" | "- en az N: /re/flags".
+// A set (evals/<skill>.md) holds cases: "## Case N: name", "Task: ...", criteria bullets, and two sample outputs.
+// Criteria: "- section: X" (a heading/line starting with X) | "- contains: /re/flags" | "- excludes: /re/flags" | "- at least N: /re/flags".
 "use strict";
 const fs = require("fs");
 
-const lc = (s) => s.toLocaleLowerCase("tr");
+const lc = (s) => s.toLowerCase();
 function toRegex(src, forceGlobal) {
   const m = String(src).trim().match(/^\/([\s\S]+)\/([a-z]*)$/);
   if (!m) throw new Error("not a /regex/: " + src);
@@ -18,18 +18,18 @@ function toRegex(src, forceGlobal) {
 
 function parseSet(text) {
   const head = text.match(/^#\s+(.+)$/m);
-  const parts = text.split(/^## Vaka (\d+):\s*(.*)$/m);
+  const parts = text.split(/^## Case (\d+):\s*(.*)$/m);
   const cases = [];
   for (let i = 1; i < parts.length; i += 3) {
     const body = parts[i + 2];
-    const task = (body.match(/^Görev:\s*([\s\S]*?)(?=^Geçer:|^```|^- )/m) || [])[1];
+    const task = (body.match(/^Task:\s*([\s\S]*?)(?=^Pass:|^```|^- )/m) || [])[1];
     const criteria = [];
     for (const l of body.split("\n")) {
-      const m = l.match(/^- (bölüm|içerir|içermez|en az (\d+)):\s*(.+)$/);
-      if (m) criteria.push({ kind: m[2] ? "en az" : m[1], n: m[2] ? Number(m[2]) : 0, value: m[3].trim() });
+      const m = l.match(/^- (section|contains|excludes|at least (\d+)):\s*(.+)$/);
+      if (m) criteria.push({ kind: m[2] ? "at least" : m[1], n: m[2] ? Number(m[2]) : 0, value: m[3].trim() });
     }
     const sample = (kind) => { const m = body.match(new RegExp("```" + kind + "\\n([\\s\\S]*?)```")); return m ? m[1] : null; };
-    cases.push({ no: Number(parts[i]), name: parts[i + 1].trim(), task: (task || "").trim(), criteria, pass: sample("geçer"), fail: sample("kalır") });
+    cases.push({ no: Number(parts[i]), name: parts[i + 1].trim(), task: (task || "").trim(), criteria, pass: sample("pass"), fail: sample("fail") });
   }
   return { title: head ? head[1] : "", cases };
 }
@@ -38,12 +38,12 @@ function gradeText(text, criteria) {
   return criteria.map((c) => {
     let ok, detail = c.value;
     try {
-      if (c.kind === "bölüm") ok = text.split("\n").some((l) => lc(l.replace(/^[#*\s>|`-]+/, "")).startsWith(lc(c.value)));
-      else if (c.kind === "içerir") ok = toRegex(c.value).test(text);
-      else if (c.kind === "içermez") ok = !toRegex(c.value).test(text);
-      else { const n = (text.match(toRegex(c.value, true)) || []).length; ok = n >= c.n; detail += ` (bulunan ${n})`; }
-    } catch (e) { ok = false; detail += " [geçersiz ölçüt: " + e.message + "]"; }
-    return { ok, label: c.kind === "en az" ? `en az ${c.n}` : c.kind, detail };
+      if (c.kind === "section") ok = text.split("\n").some((l) => lc(l.replace(/^[#*\s>|`-]+/, "")).startsWith(lc(c.value)));
+      else if (c.kind === "contains") ok = toRegex(c.value).test(text);
+      else if (c.kind === "excludes") ok = !toRegex(c.value).test(text);
+      else { const n = (text.match(toRegex(c.value, true)) || []).length; ok = n >= c.n; detail += ` (found ${n})`; }
+    } catch (e) { ok = false; detail += " [invalid criterion: " + e.message + "]"; }
+    return { ok, label: c.kind === "at least" ? `at least ${c.n}` : c.kind, detail };
   });
 }
 
@@ -54,13 +54,13 @@ function validate(file) {
   if (set.cases.length < 3) problems.push(`needs at least 3 cases (has ${set.cases.length})`);
   for (const c of set.cases) {
     const id = `case ${c.no}`;
-    if (!c.task) problems.push(`${id}: Görev missing`);
-    if (c.criteria.filter((x) => x.kind !== "içermez").length < 1) problems.push(`${id}: needs a positive criterion (bölüm/içerir/en az)`);
-    if (c.criteria.filter((x) => x.kind === "içermez").length < 1) problems.push(`${id}: needs a negative criterion (içermez)`);
-    if (c.pass === null || c.fail === null) { problems.push(`${id}: needs both a 'geçer' and a 'kalır' sample`); continue; }
+    if (!c.task) problems.push(`${id}: Task missing`);
+    if (c.criteria.filter((x) => x.kind !== "excludes").length < 1) problems.push(`${id}: needs a positive criterion (section/contains/at least)`);
+    if (c.criteria.filter((x) => x.kind === "excludes").length < 1) problems.push(`${id}: needs a negative criterion (excludes)`);
+    if (c.pass === null || c.fail === null) { problems.push(`${id}: needs both a 'pass' and a 'fail' sample`); continue; }
     const p = gradeText(c.pass, c.criteria), f = gradeText(c.fail, c.criteria);
-    if (p.some((x) => !x.ok)) problems.push(`${id}: 'geçer' sample fails: ${p.filter((x) => !x.ok).map((x) => x.label + " " + x.detail).join("; ")}`);
-    if (f.every((x) => x.ok)) problems.push(`${id}: 'kalır' sample passes (criteria do not discriminate)`);
+    if (p.some((x) => !x.ok)) problems.push(`${id}: 'pass' sample fails: ${p.filter((x) => !x.ok).map((x) => x.label + " " + x.detail).join("; ")}`);
+    if (f.every((x) => x.ok)) problems.push(`${id}: 'fail' sample passes (criteria do not discriminate)`);
   }
   return problems;
 }

@@ -1,42 +1,42 @@
-# Değerlendirme seti: software-architecture (kılavuz v0.1)
+# Eval set: software-architecture (playbook v0.1)
 
-## Vaka 1: Tasarım biçimi ve seçenekler
-Görev: Bir sipariş yönetimi sistemi için çözüm mimarisi tasarla.
-- içerir: /Mimari tasarım:/
-- bölüm: Seçenekler ve ödünleşim
-- içerir: /Vazgeçme maliyeti/i
-- içermez: /mikroservis kullanalım, modern/i
-```geçer
-Mimari tasarım: siparis | Durum: denetime hazır
-Seçenekler ve ödünleşim:
-| Karar | Seçenek | Artı | Eksi | Vazgeçme maliyeti | Öneri |
-| K-01 | (a) tek servis, (b) mikroservis | basit | ölçek sınırı | düşük | (a) |
+## Case 1: Design format and options
+Task: Design the solution architecture for an order management system.
+- contains: /Architecture design:/
+- section: Options and trade-offs
+- contains: /Cost of backing out/i
+- excludes: /let's use microservices, it's modern/i
+```pass
+Architecture design: orders | Status: ready for review
+Options and trade-offs:
+| Decision | Option | Pro | Con | Cost of backing out | Recommendation |
+| K-01 | (a) single service, (b) microservices | simple | scale limit | low | (a) |
 ```
-```kalır
-Mikroservis kullanalım, modern.
-```
-
-## Vaka 2: Kalite nitelikleri ölçülebilir
-Görev: Aynı sistemin kalite niteliklerini yaz.
-- içerir: /p95\s*<\s*\d+\s*ms/i
-- içerir: /varsayım/i
-- içermez: /hızlı olmalı/i
-```geçer
-| Gecikme | p95 < 300 ms | varsayım: 50 eşzamanlı kullanıcı |
-```
-```kalır
-Sistem hızlı olmalı ve güvenli olmalı.
+```fail
+Let's use microservices, it's modern.
 ```
 
-## Vaka 3: Göç tasarımı
-Görev: Bir Django monolitini .NET'e taşıma tasarımı yaz.
-- içerir: /parite/i
-- içerir: /geri alma/i
-- içerir: /kopya/i
-- içermez: /kaynak veriye doğrudan yaz/i
-```geçer
-Göç tasarımı: Django → .NET, dilim dilim. Parite ölçütü: envanter ve karakterizasyon testleri. Veri göçü: kopya üzerinde çalışılır. Geri alma: yönlendirme eski sisteme döner.
+## Case 2: Quality attributes are measurable
+Task: Write the quality attributes of the same system.
+- contains: /p95\s*<\s*\d+\s*ms/i
+- contains: /assumption/i
+- excludes: /should be fast/i
+```pass
+| Latency | p95 < 300 ms | assumption: 50 concurrent users |
 ```
-```kalır
-Kaynak veriye doğrudan yazarız, hepsini bir seferde taşırız.
+```fail
+The system should be fast and should be secure.
+```
+
+## Case 3: Migration design
+Task: Write the design for migrating a Django monolith to .NET.
+- contains: /parity/i
+- contains: /rollback/i
+- contains: /copy/i
+- excludes: /write directly to the source data/i
+```pass
+Migration design: Django → .NET, slice by slice. Parity criterion: inventory and characterization tests. Data migration: work on a copy. Rollback: routing returns to the old system.
+```
+```fail
+We write directly to the source data and move everything at once.
 ```

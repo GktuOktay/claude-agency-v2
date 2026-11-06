@@ -208,6 +208,13 @@ Eski kurulum: ~/.claude-backup-2026-11-01 (silme işlemi henüz yapılmadı).
 ## Revizyon 25: Sohbette otomatik devreye girme (2026-11-05)
 - CEO: sohbet ederken birimler otomatik devreye girmeli; yapı her projede kullanılacak.
 - Tespit: birimler yalnızca bu depoda görünüyordu ve hangi sözün hangi birimi çağıracağını yazan bir kural yoktu; ana oturum yalnızca istendiğinde çağırıyordu. Revizyon 5'te (A5) "yeni birimler her projede kullanılsın mı" sorusu kapatılmış ama yapılmamıştı.
-- Karar: yönlendirme kuralı (`.claude/rules/yonlendirme.md`) tek kaynak; `install-global.sh` ile agent, skill ve kural her sohbette görünür; koruma kancaları (guard, loop, stop) proje bazında `install-project.sh` ile, çünkü genel kullanıcı ayarına koyulursa şirketle ilgisiz her oturumda onay penceresi açar.
+- Karar: yönlendirme kuralı (`.claude/rules/routing.md`) tek kaynak; `install-global.sh` ile agent, skill ve kural her sohbette görünür; koruma kancaları (guard, loop, stop) proje bazında `install-project.sh` ile, çünkü genel kullanıcı ayarına koyulursa şirketle ilgisiz her oturumda onay penceresi açar.
 - **Ruling:** kancalar genel değil proje bazlı — ilgisiz projelerde gürültü olmasın; yanlışsa maliyet: kurulmamış projede imza kapısı ve guard yok, hat yalnızca talimatla izlenir (kural dosyası bunu söyler).
 - Dürüst sınır: ana oturumun kuralı gerçekten uygulayıp birimleri kendiliğinden çağırdığı canlı sohbette henüz gözlenmedi; ilk gerçek işte izlenecek.
+
+## Revizyon 26: Modelin okuduğu her şey İngilizce (2026-11-06)
+- CEO: her şey Türkçe yazılmıştı; hepsi İngilizce olmalı, daha iyi çalışır.
+- Karar: modelin okuduğu her dosya İngilizceye çevrildi: `CLAUDE.md`, 18 agent, 21 skill, `.claude/rules/`, 14 şablon (`templates/`), 18 eval seti ve eval DSL'i (`section/contains/excludes/at least`, `Case`, `Task`, `pass/fail`), scorecard anahtarları (`job`, `date`, `fix_rounds` ...), loop ve stop hook mesajları. Lint'in zorunlu skill başlıkları İngilizce (Purpose, Inputs, Method, Output template, Checklist, Prohibitions, Tools and permissions, Stop and escalate, Examples).
+- Dosya adları değişti: `.claude/rules/routing.md` ve `terse-mode.md` (eskiden `yonlendirme.md`, `kisa-konusma.md`). `install-global.sh` artık kendi bağlarından hedefi silinmiş olanları temizliyor.
+- **Ruling:** insan okuyan belgeler Türkçe kaldı (`docs/`, `README.md`, tanıtım sayfası, guard onay penceresi metinleri) — CEO bunları okuyor, model için değil; CEO ile sohbet Türkçe sürer. Yanlışsa maliyet: aynı çeviriyi o dosyalar için de yapmak.
+- Bilinen sınır: `writing-standards` Türkçe müşteri metni içindir, kaçınılacak kalıp listesi bilerek Türkçe; `humanize-check.js` Türkçe metni denetler ve çıktı etiketleri (UYARI/HATA) Türkçe kaldı. Çeviri sonrası agent çıktılarının eval setlerini geçtiği tek agent (internal-auditor) ile örneklendi, diğerleri yeniden koşturulmadı.

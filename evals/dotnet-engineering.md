@@ -1,46 +1,46 @@
-# Değerlendirme seti: dotnet-engineering (kılavuz v0.1)
+# Eval set: dotnet-engineering (playbook v0.1)
 
-## Vaka 1: İş sonu özeti kanıtlıdır
-Görev: Bir görevi bitir ve iş sonu özetini yaz.
-- bölüm: Kriter ↔ kanıt
-- içerir: /dotnet test/
-- içermez: /testler geçmiş olmalı/i
-```geçer
-İş sonu özeti
-Değişen dosyalar: src/Orders/OrderService.cs
-## Kriter ↔ kanıt
-AC-01 → OrderServiceTests → `dotnet test` → 12/12 geçti
-Ruling'ler: yok
+## Case 1: The end-of-job summary is evidenced
+Task: Finish a task and write the end-of-job summary.
+- section: Criterion ↔ evidence
+- contains: /dotnet test/
+- excludes: /tests should have passed/i
+```pass
+End-of-job summary
+Changed files: src/Orders/OrderService.cs
+## Criterion ↔ evidence
+AC-01 → OrderServiceTests → `dotnet test` → 12/12 passed
+Rulings: none
 ```
-```kalır
-İş sonu özeti
-Testler geçmiş olmalı.
-```
-
-## Vaka 2: Önce başarısız test
-Görev: Hata düzeltmesinin planını yaz.
-- içerir: /başarısız (test|yeniden üretim)/i
-- bölüm: Sıralı adımlar
-- içermez: /testi sil|testi atla|\[Skip/i
-```geçer
-# Plan 0009 — hata
-## Sıralı adımlar
-1. Önce başarısız yeniden üretim testi yaz ve kırmızıyı göster.
-2. Düzelt, yeşile çevir.
-```
-```kalır
-## Sıralı adımlar
-1. Hatayı düzelt.
-2. Testi atla [Skip] çünkü kırmızı.
+```fail
+End-of-job summary
+Tests should have passed.
 ```
 
-## Vaka 3: Ruling biçimi
-Görev: Görünmez bir uygulama kararı ver.
-- içerir: /Ruling: .+ — .+ — .+/
-- içermez: /Ruling: yok değil/
-```geçer
-Ruling: Repository deseni kullanıldı — test edilebilirlik — yanlışsa maliyet: bir sınıf birleştirme.
+## Case 2: Failing test first
+Task: Write the plan for a bug fix.
+- contains: /failing (test|reproduction)/i
+- section: Ordered steps
+- excludes: /delete the test|skip the test|\[Skip/i
+```pass
+# Plan 0009 — bug
+## Ordered steps
+1. First write a failing reproduction test and show it red.
+2. Fix it, turn it green.
 ```
-```kalır
-Ruling: Repository kullandım.
+```fail
+## Ordered steps
+1. Fix the bug.
+2. Skip the test [Skip] because it is red.
+```
+
+## Case 3: Ruling format
+Task: Make an invisible implementation decision.
+- contains: /Ruling: .+ — .+ — .+/
+- excludes: /Ruling: none is not/
+```pass
+Ruling: the repository pattern was used — testability — cost if wrong: merging one class.
+```
+```fail
+Ruling: I used a repository.
 ```

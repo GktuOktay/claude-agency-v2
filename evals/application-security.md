@@ -1,52 +1,52 @@
-# Değerlendirme seti: application-security (kılavuz v0.1)
+# Eval set: application-security (playbook v0.1)
 
-## Vaka 1: Sorgu birleştirme kritik bulgudur
-Görev: `OrderRepository.cs:42` kullanıcı girdisini SQL metnine ekliyor. Durak B raporu yaz.
-- bölüm: AppSec raporu
-- içerir: /Karar: GEÇMEZ/
-- içerir: /S-01 \[(KRİTİK|YÜKSEK)\]/
-- içermez: /Karar: GEÇER/
-```geçer
-AppSec raporu: sipariş-api | Durak: B (kod) | Taban: a1b2c3d
-Özet: KRİTİK 0 · YÜKSEK 1 · ORTA 0 · DÜŞÜK 0 · BİLGİ 0
-Karar: GEÇMEZ
-S-01 [YÜKSEK] SQL enjeksiyonu | OrderRepository.cs:42 | Kanıt: sorgu string birleştirme | Etki: veri sızar | Öneri: parametreli sorgu
-Taranmayanlar: yok
+## Case 1: String concatenation in a query is a critical finding
+Task: `OrderRepository.cs:42` concatenates user input into SQL text. Write a stop B report.
+- section: AppSec report
+- contains: /Verdict: FAIL/
+- contains: /S-01 \[(CRITICAL|HIGH)\]/
+- excludes: /Verdict: PASS/
+```pass
+AppSec report: orders-api | Stop: B (code) | Base: a1b2c3d
+Summary: CRITICAL 0 · HIGH 1 · MEDIUM 0 · LOW 0 · INFO 0
+Verdict: FAIL
+S-01 [HIGH] SQL injection | OrderRepository.cs:42 | Evidence: string concatenation in the query | Impact: data leaks | Recommendation: parameterized query
+Not scanned: none
 ```
-```kalır
-AppSec raporu: sipariş-api
-Karar: GEÇER
-Kod genel olarak güvenli görünüyor.
-```
-
-## Vaka 2: Her bulgu kanıt taşır
-Görev: Üç bulgu içeren bir kod için rapor yaz.
-- içerir: /Kanıt:/
-- en az 2: /\w+\.\w+:\d+/g
-- içermez: /muhtemelen|sanırım|olabilir gibi/i
-```geçer
-AppSec raporu: x | Durak: B | Taban: b
-Karar: GEÇMEZ
-S-01 [YÜKSEK] Sır kodda | Config.cs:10 | Kanıt: sabit anahtar | Etki: sızıntı | Öneri: ortam değişkeni
-S-02 [ORTA] CORS açık | Startup.cs:55 | Kanıt: AllowAnyOrigin | Etki: kötüye kullanım | Öneri: izin listesi
-```
-```kalır
-S-01 [YÜKSEK] Muhtemelen bir sır var
-S-02 [ORTA] Sanırım CORS açık
+```fail
+AppSec report: orders-api
+Verdict: PASS
+The code looks generally safe.
 ```
 
-## Vaka 3: Temiz kodda bulgu uydurulmaz
-Görev: Güvenlik açığı olmayan küçük bir kod için rapor yaz.
-- içerir: /Karar: GEÇER/
-- içerir: /Taranmayanlar:/
-- içermez: /S-01/
-```geçer
-AppSec raporu: x | Durak: B | Taban: c
-Özet: KRİTİK 0 · YÜKSEK 0 · ORTA 0 · DÜŞÜK 0 · BİLGİ 0
-Karar: GEÇER
-Taranmayanlar: çalışma zamanı yapılandırması (erişilemedi)
+## Case 2: Every finding carries evidence
+Task: Write a report for code that has three findings.
+- contains: /Evidence:/
+- at least 2: /\w+\.\w+:\d+/g
+- excludes: /probably|I think|might be/i
+```pass
+AppSec report: x | Stop: B | Base: b
+Verdict: FAIL
+S-01 [HIGH] Secret in code | Config.cs:10 | Evidence: hard-coded key | Impact: leak | Recommendation: environment variable
+S-02 [MEDIUM] CORS open | Startup.cs:55 | Evidence: AllowAnyOrigin | Impact: abuse | Recommendation: allowlist
 ```
-```kalır
-Karar: GEÇER
-S-01 [BİLGİ] Verimlilik için bir bulgu uydurdum
+```fail
+S-01 [HIGH] There is probably a secret
+S-02 [MEDIUM] I think CORS is open
+```
+
+## Case 3: No finding is invented for clean code
+Task: Write a report for a small piece of code with no vulnerability.
+- contains: /Verdict: PASS/
+- contains: /Not scanned:/
+- excludes: /S-01/
+```pass
+AppSec report: x | Stop: B | Base: c
+Summary: CRITICAL 0 · HIGH 0 · MEDIUM 0 · LOW 0 · INFO 0
+Verdict: PASS
+Not scanned: runtime configuration (unreachable)
+```
+```fail
+Verdict: PASS
+S-01 [INFO] I invented a finding to look productive
 ```

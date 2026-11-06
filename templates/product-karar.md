@@ -1,31 +1,31 @@
-# Ürün karar notu NNNN — <konu>
+# Product decision note NNNN — <topic>
 
-- Tarih:
-- Soru: <!-- tek cümle: "X için Y segmenti Z'yi öder mi / zaten çözülüyor mu?" -->
-- Karar: **YAP | YAPMA | FARKLI YAP**
-- Güven düzeyi: yüksek | orta | düşük   <!-- neye göre: kaç bağımsız kaynak, ne kadar güncel -->
+- Date:
+- Question: <!-- one sentence: "Will segment Y pay for X / is it already solved?" -->
+- Decision: **DO | DON'T | DO DIFFERENTLY**
+- Confidence level: high | medium | low   <!-- based on: how many independent sources, how recent -->
 
-## Özet
-<!-- 3-5 cümle. CEO bunu okuyup karar verebilmeli. -->
+## Summary
+<!-- 3-5 sentences. The CEO should be able to read this and decide. -->
 
-## Kanıt
-<!-- Her iddia: kendi cümlenle özet + kaynak URL + erişim tarihi. Alıntı değil. Bulunamayan: "bulunamadı". Sayı uydurma yok. -->
-| # | İddia | Kaynak | Tarih | Tür (birincil/ikincil) |
+## Evidence
+<!-- Each claim: a summary in your own words + source URL + access date. Not a quotation. If not found: "not found". No invented numbers. -->
+| # | Claim | Source | Date | Type (primary/secondary) |
 |---|---|---|---|---|
 
-## Rakipler ve alternatifler
-<!-- Doğrudan rakip, dolaylı çözüm, "hiçbir şey yapmama". -->
-| Ürün | Hedef kitle | Temel yetenek | Fiyat | Güçlü | Zayıf | Kanıt # |
+## Competitors and alternatives
+<!-- Direct competitor, indirect solution, "do nothing". -->
+| Product | Target audience | Core capability | Price | Strength | Weakness | Evidence # |
 |---|---|---|---|---|---|---|
 
-## Fırsat ve risk
-<!-- Kitle büyüklüğü (aralık + belirsizlik), kaba kazanç/maliyet (varsayımlar yazılı), yasal/mağaza riski (Quality office'e işaretle). -->
+## Opportunity and risk
+<!-- Audience size (range + uncertainty), rough revenue/cost (assumptions written), legal/store risk (flag to the Quality office). -->
 
-## Neyi bilmiyoruz
-<!-- Karara etki eden açık sorular ve nasıl öğrenilir. -->
+## What we do not know
+<!-- Open questions that affect the decision and how to learn them. -->
 
-## Yeniden açma tetikleyicileri
-<!-- Hangi bulgu bu kararı değiştirir. -->
+## Reopening triggers
+<!-- Which finding would change this decision. -->
 
-## Sonraki adım
-<!-- YAP ise: Business analyst'e verilecek niyet cümlesi. -->
+## Next step
+<!-- If DO: the intent sentence to hand to the Business analyst. -->

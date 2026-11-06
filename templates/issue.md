@@ -1,23 +1,23 @@
-<!-- GitHub issue gövdesi: her atomik görev için bir issue. Yalnızca CEO'nun kendi depolarında açılır. -->
-**Başlık:** [NNNN] <görev adı>
-**Etiketler:** spec-NNNN, <birim>, <tip: feature | change | bug>
+<!-- GitHub issue body: one issue per atomic task. Opened only in the CEO's own repositories. -->
+**Title:** [NNNN] <task name>
+**Labels:** spec-NNNN, <unit>, <type: feature | change | bug>
 
-## Bağlam
-Spec: `specs/active/NNNN-<ad>.md` · Kabul kriterleri: AC-n, AC-m
+## Context
+Spec: `specs/active/NNNN-<name>.md` · Acceptance criteria: AC-n, AC-m
 Plan: `plans/NNNN-plan.md`
 
-## Yapılacak
-<!-- Spec görev listesindeki satırın açık hali. Teknik çözüm yok; davranış ve sınırlar. -->
+## To do
+<!-- The expanded form of the row in the spec's task list. No technical solution; behavior and boundaries. -->
 
-## Kabul kriterleri
+## Acceptance criteria
 - [ ] AC-n —
 - [ ] AC-m —
 
-## Bağımlılıklar
-Önce: #<n>   Sonra: #<m>
+## Dependencies
+First: #<n>   After: #<m>
 
-## Dosya sahipliği
-<!-- Bu görevin yazabileceği yollar. Başka görevle çakışmaz. -->
+## File ownership
+<!-- The paths this task may write. Does not conflict with another task. -->
 
-## Bitti sayılması için
-Tam profil test yeşili (işaretçi: `CHECK GREEN (full, ...) @<sha>`) + bağımsız denetim temiz raporu.
+## Definition of done
+Full-profile test green (marker: `CHECK GREEN (full, ...) @<sha>`) + a clean independent audit report.

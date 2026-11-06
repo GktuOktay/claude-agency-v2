@@ -1,29 +1,29 @@
-# Durum raporu — <iş> — <tarih saat>
+# Status report — <job> — <date time>
 
-**Genel:** YOLDA | RİSKLİ | DURDU (neden: )
-**Kota ve süre:** tahmin <x> / kullanılan <y> / tavan <z>
-**Kritik yol:** <görev zinciri> — sapma: <yok | +n saat>
+**Overall:** ON TRACK | AT RISK | STOPPED (reason: )
+**Quota and time:** estimate <x> / used <y> / ceiling <z>
+**Critical path:** <task chain> — deviation: <none | +n hours>
 
-## Tamamlanan
-| Görev | PR | Kanıt | Denetim |
+## Completed
+| Task | PR | Evidence | Audit |
 |---|---|---|---|
 
-## Süren
-| Görev | Sahip birim | Beklenen bitiş | Engel |
+## In progress
+| Task | Owning unit | Expected finish | Blocker |
 |---|---|---|---|
 
-## PARK (CEO kararı bekleyen, Tip 1)
-| Görev | Soru | Önerim | Neden bloklu |
+## PARK (awaiting CEO decision, Type 1)
+| Task | Question | My recommendation | Why it is blocked |
 |---|---|---|---|
 
-## Varsayımlar (Tip 3, toplu)
-| Varsayım | Neden | Değiştirmek istersen |
+## Assumptions (Type 3, together)
+| Assumption | Why | If you want to change it |
 |---|---|---|
 
-## Ruling'ler (Tip 2)
+## Rulings (Type 2)
 
-## CEO onayı bekleyen (main'e birleştirme, deploy, yayın)
-| Ne | Hazırlık durumu | Kanıt |
+## Awaiting CEO approval (merge to main, deploy, release)
+| What | Preparation status | Evidence |
 |---|---|---|
 
-## Riskler
+## Risks

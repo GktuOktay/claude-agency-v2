@@ -1,29 +1,29 @@
-# Plan NNNN — <spec adı>
+# Plan NNNN — <spec name>
 
-- Spec: `specs/active/NNNN-<ad>.md`
+- Spec: `specs/active/NNNN-<name>.md`
 - Status: Awaiting approval | Approved | Superseded
-- Hazırlayan: <!-- uygulama birimi; plan reçetenin koddan önce boşluk yoklamasıdır -->
+- Prepared by: <!-- the implementing unit; the plan is the recipe's gap probe before any code -->
 
-## Dosyalar (etki alanı)
-<!-- Yol yol. Buradaki liste dışına çıkmak plan sapmasıdır. -->
+## Files (impact area)
+<!-- Path by path. Going outside this list is a plan deviation. -->
 
-## Sıralı adımlar
-<!-- Commit boyutunda, bağımlılık sırasıyla. Her adımın doğrulama komutu. -->
+## Ordered steps
+<!-- Commit-sized, in dependency order. A verification command for each step. -->
 
-## Reçetede bulunan boşluklar
-<!-- Koddan önce bulunan eksikler. Tip 1 ise CEO'ya, Tip 2/3 ise karar + gerekçe. Boşluk yoksa: "yok". -->
+## Gaps found in the recipe
+<!-- Gaps found before coding. If Type 1, to the CEO; if Type 2/3, a decision + rationale. If there is no gap: "none". -->
 
-## Riskler ve sorular (öneriyle)
+## Risks and questions (with recommendation)
 
-## Kriter ↔ test haritası
-| Kriter | Kanıt | Profil |
+## Criterion ↔ test map
+| Criterion | Evidence | Profile |
 |---|---|---|
 
-## Build kanıtı
-<!-- Yalnızca işaretçi satırlar: CHECK GREEN (full, ...) @<sha> -->
+## Build evidence
+<!-- Marker lines only: CHECK GREEN (full, ...) @<sha> -->
 
-## Ruling'ler
-<!-- Ruling: <karar> — <neden> — <yanlışsa maliyet> -->
+## Rulings
+<!-- Ruling: <decision> — <why> — <cost if wrong> -->
 
-## Triyaj kayıtları
-<!-- Denetim triyajı: Bulgu | Karar (gerçek/gürültü/ertele/araştır) | Gerekçe -->
+## Triage records
+<!-- Audit triage: Finding | Decision (real/noise/defer/investigate) | Reason -->

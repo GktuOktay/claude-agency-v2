@@ -11,32 +11,32 @@ rc() { "$@" >/dev/null 2>&1; echo $?; }
 mkdir -p "$T/sc"
 mk() { # mk <file> <dc> <real> <noise> <est-token> <real-token>
   cat > "$T/sc/$1.md" <<EOF
-- is: $1
-- tarih: 2026-11-02
-- spec_revizyonu: 1
-- duzeltme_turu: $2
-- bulgu_gercek: $3
-- bulgu_gurultu: $4
-- bulgu_ertelenen: 0
-- regresyon: 0
-- kacan_hata: 0
-- tahmin_token: $5
-- gercek_token: $6
-- tahmin_sure_dk: 100
-- gercek_sure_dk: 150
-- durma_nedeni: yok
+- job: $1
+- date: 2026-11-02
+- spec_revisions: 1
+- fix_rounds: $2
+- findings_real: $3
+- findings_noise: $4
+- findings_deferred: 0
+- regressions: 0
+- escaped_defects: 0
+- estimate_tokens: $5
+- actual_tokens: $6
+- estimate_minutes: 100
+- actual_minutes: 150
+- stop_reason: none
 EOF
 }
 mk 0001-a 1 3 1 100 120; mk 0002-b 0 1 1 100 200
 out=$(node "$HERE/bin/scorecard.js" "$T/sc"); r=$?
 t "scorecard: valid files summarize"          0 "$r"
-t "scorecard: counts the jobs"                1 "$(printf '%s' "$out" | grep -c 'Scorecard özeti: 2 iş')"
+t "scorecard: counts the jobs"                1 "$(printf '%s' "$out" | grep -c 'Scorecard summary: 2 jobs')"
 t "scorecard: average token ratio is 1.60"    1 "$(printf '%s' "$out" | grep -c 'token 1.60')"
-t "scorecard: noise rate is 33%"              1 "$(printf '%s' "$out" | grep -c 'gürültü oranı 33%')"
-t "scorecard: under 3 jobs says insufficient data" 1 "$(printf '%s' "$out" | grep -c 'yetersiz veri')"
-printf -- '- is: 0003-c\n- tarih: yarin\n- duzeltme_turu: x\n' > "$T/sc/0003-c.md"
+t "scorecard: noise rate is 33%"              1 "$(printf '%s' "$out" | grep -c 'noise rate 33%')"
+t "scorecard: under 3 jobs says insufficient data" 1 "$(printf '%s' "$out" | grep -c 'insufficient data')"
+printf -- '- job: 0003-c\n- date: tomorrow\n- fix_rounds: x\n' > "$T/sc/0003-c.md"
 t "scorecard: a malformed file makes the exit non-zero" 1 "$(rc node "$HERE/bin/scorecard.js" "$T/sc")"
-t "scorecard: malformed file is named"        1 "$(node "$HERE/bin/scorecard.js" "$T/sc" 2>&1 | grep -c 'BOZUK  0003-c.md')"
+t "scorecard: malformed file is named"        1 "$(node "$HERE/bin/scorecard.js" "$T/sc" 2>&1 | grep -c 'MALFORMED  0003-c.md')"
 t "scorecard: the template itself counts as unfilled" 1 "$(rc node -e 'const s=require(process.argv[1]);const v=s.validate(s.parse(require("fs").readFileSync(process.argv[2],"utf8")));process.exit(v.length?1:0)' "$HERE/bin/scorecard.js" "$HERE/../templates/scorecard.md")"
 t "scorecard: empty dir is fine"              0 "$(rc node "$HERE/bin/scorecard.js" "$T/none")"
 
@@ -55,12 +55,12 @@ t "humanize: Turkish dotted/dotless I is handled (EN İYİ)" 1 "$(rc node "$HERE
 # --- eval.js
 all_sets() { for f in "$HERE"/../evals/*.md; do [ "$(basename "$f")" = README.md ] && continue; node "$HERE/bin/eval.js" self "$f" >/dev/null 2>&1 || return 1; done; return 0; }
 t "eval: every shipped set checks itself"   0 "$(all_sets; echo $?)"
-printf '# x\n\n## Vaka 1: a\nGörev: g\n- içerir: /abc/\n```geçer\nabc\n```\n```kalır\nxyz\n```\n' > "$T/short.md"
+printf '# x\n\n## Case 1: a\nTask: g\n- contains: /abc/\n```pass\nabc\n```\n```fail\nxyz\n```\n' > "$T/short.md"
 t "eval: a set with fewer than 3 cases is invalid"   1 "$(rc node "$HERE/bin/eval.js" self "$T/short.md")"
-printf '# x\n\n## Vaka 1: a\nGörev: g\n- içerir: /a/\n- içermez: /zzz/\n```geçer\nabc\n```\n```kalır\nabc\n```\n' > "$T/vacuous.md"
+printf '# x\n\n## Case 1: a\nTask: g\n- contains: /a/\n- excludes: /zzz/\n```pass\nabc\n```\n```fail\nabc\n```\n' > "$T/vacuous.md"
 t "eval: a criterion that cannot fail is caught"     1 "$(node "$HERE/bin/eval.js" self "$T/vacuous.md" | grep -c 'do not discriminate')"
-printf 'AppSec raporu: x | Durak: B\nKarar: GEÇMEZ\nS-01 [YÜKSEK] x | A.cs:1 | Kanıt: y\n' > "$T/out-good.md"
-printf 'Karar: GEÇER\n' > "$T/out-bad.md"
+printf 'AppSec report: x | Stop: B\nVerdict: FAIL\nS-01 [HIGH] x | A.cs:1 | Evidence: y\n' > "$T/out-good.md"
+printf 'Verdict: PASS\n' > "$T/out-bad.md"
 S="$HERE/../evals/application-security.md"
 t "eval: grade passes a good output"   0 "$(rc node "$HERE/bin/eval.js" grade "$S" 1 "$T/out-good.md")"
 t "eval: grade fails a bad output"     1 "$(rc node "$HERE/bin/eval.js" grade "$S" 1 "$T/out-bad.md")"
