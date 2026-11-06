@@ -1,21 +1,21 @@
-# Scorecard — <iş>
-<!-- Internal audit iş sonunda doldurur: docs/scorecards/NNNN-<ad>.md. Makine okur (harness/bin/scorecard.js):
-     "- anahtar: değer" satırlarını bozma; sayılar yalnızca rakam; tarih YYYY-MM-DD. Boş veya <...> bırakılan alan dosyayı bozuk sayar. -->
+# Scorecard — <job>
+<!-- Internal audit fills this in at the end of the job: docs/scorecards/NNNN-<name>.md. A machine reads it (harness/bin/scorecard.js):
+     do not break the "- key: value" lines; numbers are digits only; date is YYYY-MM-DD. A field left empty or as <...> makes the file count as malformed. -->
 
-- is: NNNN-<ad>
-- tarih: YYYY-MM-DD
-- spec_revizyonu: 0
-- duzeltme_turu: 0
-- bulgu_gercek: 0
-- bulgu_gurultu: 0
-- bulgu_ertelenen: 0
-- regresyon: 0
-- kacan_hata: 0
-- tahmin_token: 0
-- gercek_token: 0
-- tahmin_sure_dk: 0
-- gercek_sure_dk: 0
-- durma_nedeni: yok
+- job: NNNN-<name>
+- date: YYYY-MM-DD
+- spec_revisions: 0
+- fix_rounds: 0
+- findings_real: 0
+- findings_noise: 0
+- findings_deferred: 0
+- regressions: 0
+- escaped_defects: 0
+- estimate_tokens: 0
+- actual_tokens: 0
+- estimate_minutes: 0
+- actual_minutes: 0
+- stop_reason: none
 
-## Notlar
-<!-- Sapma nedeni, kılavuz ihlali (hangi birim, hangi madde), eksik uzmanlık gözlemi. Talent & capacity bu bölümü okur. -->
+## Notes
+<!-- The cause of any deviation, playbook violations (which unit, which item), observed missing expertise. Talent & capacity reads this section. -->

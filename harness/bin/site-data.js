@@ -164,7 +164,7 @@ const INFRA = [
   ["Approver anahtarı", "ed25519; özel anahtar ~/.company/keys altında, repoda yalnızca genel anahtar.", "harness/keys/ceo.pub.pem"],
   ["Agent token'ı", "~/.company/agent.env (mod 600), --env-file ile verilir; iş bitince silinir.", "harness/README.md"],
   ["Global kurulum", "install-global.sh agent, skill ve yönlendirme kuralını ~/.claude altına sembolik bağlarla koyar; tek kaynak depo, git pull her projeyi günceller. install-project.sh bir projeye guard, loop, stop ve notify hook'larını ekler.", "harness/bin/install-global.sh"],
-  ["Yönlendirme kuralı", "Hangi sözün hangi agent'ı çağıracağını ve hattı (spec önce, imza sonra, kod en son) yazar; sohbette Orchestrator bunu sormadan uygular.", ".claude/rules/yonlendirme.md"],
+  ["Yönlendirme kuralı", "Hangi sözün hangi agent'ı çağıracağını ve hattı (spec önce, imza sonra, kod en son) yazar; sohbette Orchestrator bunu sormadan uygular.", ".claude/rules/routing.md"],
 ];
 
 function countTests(file, re) { const t = fs.readFileSync(path.join(ROOT, "harness", file), "utf8"); return (t.match(new RegExp(re.source, "gm")) || []).length; }
@@ -189,7 +189,7 @@ function skills(agents) {
     const f = path.join(dir, d, "SKILL.md"); if (!fs.existsSync(f)) continue;
     const t = fs.readFileSync(f, "utf8"); const meta = fm(f); const owners = agents.filter((a) => (a.skills || []).includes(d)).map((a) => a.id);
     const ev = path.join(ROOT, "evals", d + ".md");
-    out.push({ id: d, desc: String(meta.description || "").replace(/^(Çalışma kılavuzu|Ortak standart):\s*/, ""), kind: (meta.description || "").startsWith("Ortak standart") ? "ortak standart" : "agent playbook",
+    out.push({ id: d, desc: String(meta.description || "").replace(/^(Playbook|Shared standard):\s*/, ""), kind: (meta.description || "").startsWith("Shared standard") ? "ortak standart" : "agent playbook",
       sections: [...t.matchAll(/^## (.+)$/gm)].map((x) => x[1]), lines: t.split("\n").length, owners, cases: fs.existsSync(ev) ? parseSet(fs.readFileSync(ev, "utf8")).cases.length : 0, file: `.claude/skills/${d}/SKILL.md` });
   }
   return out;

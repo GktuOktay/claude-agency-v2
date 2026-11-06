@@ -208,6 +208,6 @@ Eski kurulum: ~/.claude-backup-2026-11-01 (silme işlemi henüz yapılmadı).
 ## Revizyon 25: Sohbette otomatik devreye girme (2026-11-05)
 - CEO: sohbet ederken birimler otomatik devreye girmeli; yapı her projede kullanılacak.
 - Tespit: birimler yalnızca bu depoda görünüyordu ve hangi sözün hangi birimi çağıracağını yazan bir kural yoktu; ana oturum yalnızca istendiğinde çağırıyordu. Revizyon 5'te (A5) "yeni birimler her projede kullanılsın mı" sorusu kapatılmış ama yapılmamıştı.
-- Karar: yönlendirme kuralı (`.claude/rules/yonlendirme.md`) tek kaynak; `install-global.sh` ile agent, skill ve kural her sohbette görünür; koruma kancaları (guard, loop, stop) proje bazında `install-project.sh` ile, çünkü genel kullanıcı ayarına koyulursa şirketle ilgisiz her oturumda onay penceresi açar.
+- Karar: yönlendirme kuralı (`.claude/rules/routing.md`) tek kaynak; `install-global.sh` ile agent, skill ve kural her sohbette görünür; koruma kancaları (guard, loop, stop) proje bazında `install-project.sh` ile, çünkü genel kullanıcı ayarına koyulursa şirketle ilgisiz her oturumda onay penceresi açar.
 - **Ruling:** kancalar genel değil proje bazlı — ilgisiz projelerde gürültü olmasın; yanlışsa maliyet: kurulmamış projede imza kapısı ve guard yok, hat yalnızca talimatla izlenir (kural dosyası bunu söyler).
 - Dürüst sınır: ana oturumun kuralı gerçekten uygulayıp birimleri kendiliğinden çağırdığı canlı sohbette henüz gözlenmedi; ilk gerçek işte izlenecek.

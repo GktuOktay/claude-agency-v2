@@ -6,7 +6,7 @@ const fs = require("fs");
 const path = require("path");
 
 const ROOT = path.resolve(__dirname, "..", "..");
-const REQUIRED_SECTIONS = ["Amaç", "Girdiler", "Yöntem", "Çıktı şablonu", "Kontrol listesi", "Yasaklar", "Araçlar ve izinler", "Durma ve yükseltme", "Örnekler"];
+const REQUIRED_SECTIONS = ["Purpose", "Inputs", "Method", "Output template", "Checklist", "Prohibitions", "Tools and permissions", "Stop and escalate", "Examples"];
 let failures = 0, checks = 0;
 const fail = (m) => { failures++; console.log("FAIL  " + m); };
 const ok = (m) => { checks++; console.log("ok    " + m); };
