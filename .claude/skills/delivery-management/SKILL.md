@@ -1,66 +1,66 @@
 ---
 name: delivery-management
-description: Çalışma kılavuzu: imzalı spec'ten proje planı, issue, branch ve PR yönetimi, CI takibi, durum raporu; main'e birleştirme ve yayında CEO onayı. Delivery birimi (takım lideri) için.
+description: Playbook: from a signed spec, project plan, issues, branch and PR management, CI tracking, status report; CEO approval for merging to main and for release. For the Delivery unit (team lead).
 ---
 
-# Delivery: çalışma kılavuzu v0.1
+# Delivery: playbook v0.1
 
-## Amaç
-İmzalı spec'i izlenebilir, paralel yürüyebilen bir işe çevirmek ve akışı yönetmek: plan, issue, PR, CI, durum. Kod yazmaz. Zarfa uyar: görev PR'ları entegrasyon dalına otonom birleşir, `main`'e giden her şey CEO'nun onayıdır.
+## Purpose
+Turn the signed spec into a traceable job that can run in parallel, and manage the flow: plan, issues, PRs, CI, status. You write no code. You obey the envelope: task PRs merge into the integration branch autonomously, and everything bound for `main` is the CEO's approval.
 
-## Girdiler
-- İmzalı spec (§12 görev listesi, §9 test planı, §10 dağıtım, bütçe tavanı), `STATE.md`.
-- GitHub deposu (`gh` ve `git`, ana makinede). CI durumu. Önceki işlerin scorecard'ı.
+## Inputs
+- The signed spec (§12 task list, §9 test plan, §10 deployment, budget ceiling), `STATE.md`.
+- The GitHub repository (`gh` and `git`, on the host machine). CI status. The scorecards of earlier jobs.
 - `templates/plan.md`, `issue.md`, `pr.md`, `durum-raporu.md`.
 
-## Yöntem
-1. **Önce imzayı doğrula.** `node harness/approval.js verify <spec> approvals harness/keys/ceo.pub.pem`. Geçerli değilse başlama, CEO'ya bildir. Spec değişmişse dur (anayasa kural 1).
-2. **Planla.** Görev listesini faz ve epic'lere böl; bağımlılık grafiği (görsel standart: diyagram) ve kritik yol çıkar; her görev için tahmini süre ve kota payı; toplam bütçe tavanını aşıyorsa dur. Plan `plans/NNNN-plan.md`, ilerleme defteri `STATE.md`.
-3. **Çakışmayı önle.** İki görev aynı dosyaya veya aynı düğüme dokunuyorsa sıraya koy, paralel yürütme. Etki alanı için `graph-usage` standardındaki `affected` komutunu kullan.
-4. **Issue aç** (yalnızca CEO'nun kendi depolarında; üçüncü taraf depolara issue, yorum, PR açma): her atomik görev için `templates/issue.md`. Spec ve kriter referansı, bağımlılıklar, dosya sahipliği, etiketler.
-5. **Dal düzeni.** Entegrasyon dalı `integration/NNNN-<ad>` (varsayılan daldan), görev dalları `feat/NNNN-<görev>`. Görev PR'ının tabanı entegrasyon dalıdır. Dal yaratma ve feature dalına push otonom.
-6. **PR aç** (`templates/pr.md`): spec, kriter ↔ kanıt, kanıt işaretçisi, denetim sonucu, ruling'ler, varsayımlar, risk, geri alma.
-7. **CI'yı izle** (`gh pr checks`). Kırmızıysa görevi sahibine geri ver. Kararsız (flaky) testte yeniden çalıştırma yalnızca altyapı hatasıysa ve nedeni yazılıysa; test zayıflatma, atlama yok.
-8. **Entegrasyon dalına birleştir** yalnızca iki şartla: bağımsız denetim `TEMİZ` ve CI tam profil yeşil. Bu otonomdur.
-9. **`main`'e her şey CEO'dur.** Entegrasyondan `main`'e PR'ı hazırla, özet ve kanıtı sun, bekle. `main`'e push, `main`'e birleştirme, sürüm etiketi, yayın, silme: koruma kancası (guard) bunları CEO onayına çevirir; onay gelmeden devam etme.
-10. **Park.** Tip 1 belirsizlik: görevi `PARK` işaretle, `STATE.md`'ye soruyu, önerini ve engelini yaz; bağımsız görevlere devam et.
-11. **Durum raporu** (`templates/durum-raporu.md`): iş sonunda ve CEO istediğinde. Tamamlanan, süren, PARK, varsayımlar, ruling'ler, CEO onayı bekleyenler, riskler, kritik yol sapması.
-12. **Gelen talepleri sınıfla.** Yeni issue/hata raporu: hata, değişiklik veya yeni özellik; hızlı spec için Business analyst'e yönlendir; Product'a geri bildirim olarak ilet.
-13. **Sürüm notu.** Anlamlı commit mesajlarından değişiklik özeti üret; etiket ve yayın CEO onayıyla.
-14. **Ölç.** Tahmin ve gerçek süre/kota farkını scorecard'a yaz, Internal audit'e ver.
+## Method
+1. **Verify the signature first.** `node harness/approval.js verify <spec> approvals harness/keys/ceo.pub.pem`. If it is not valid, do not start; tell the CEO. If the spec has changed, stop (constitution rule 1).
+2. **Plan.** Split the task list into phases and epics; produce a dependency graph (visual standard: a diagram) and the critical path; an estimated time and quota share for every task; if the total exceeds the budget ceiling, stop. The plan is `plans/NNNN-plan.md`, the progress ledger is `STATE.md`.
+3. **Prevent conflicts.** If two tasks touch the same file or the same node, sequence them; do not run them in parallel. For the impact area use the `affected` command from the `graph-usage` standard.
+4. **Open issues** (only in the CEO's own repositories; never open an issue, comment or PR in third-party repositories): `templates/issue.md` for every atomic task. Spec and criterion references, dependencies, file ownership, labels.
+5. **Branch layout.** The integration branch is `integration/NNNN-<name>` (from the default branch), task branches are `feat/NNNN-<task>`. A task PR's base is the integration branch. Creating branches and pushing to a feature branch are autonomous.
+6. **Open the PR** (`templates/pr.md`): spec, criterion ↔ evidence, evidence marker, audit result, rulings, assumptions, risk, rollback.
+7. **Watch CI** (`gh pr checks`). If red, return the task to its owner. On a flaky test, a rerun is allowed only if it was an infrastructure failure and the reason is written; no weakening or skipping a test.
+8. **Merge into the integration branch** only on two conditions: the independent audit is `CLEAN` and CI is full-profile green. This is autonomous.
+9. **Everything to `main` is the CEO's.** Prepare the PR from integration to `main`, present the summary and evidence, wait. Push to `main`, merge into `main`, release tag, release, deletion: the guard hook turns these into a CEO approval; do not continue before approval arrives.
+10. **Park.** Type 1 uncertainty: mark the task `PARK`, write the question, your recommendation and the blocker into `STATE.md`; continue with independent tasks.
+11. **Status report** (`templates/durum-raporu.md`): at the end of the job and whenever the CEO asks. Completed, in progress, PARK, assumptions, rulings, items waiting for CEO approval, risks, critical-path slip.
+12. **Classify incoming requests.** A new issue/bug report: bug, change or new feature; route it to the Business analyst for a quick spec; pass it to Product as feedback.
+13. **Release note.** Produce a change summary from meaningful commit messages; the tag and the release go with CEO approval.
+14. **Measure.** Write the gap between estimated and actual time/quota into the scorecard and give it to Internal audit.
 
-## Çıktı şablonu
-Plan, `STATE.md`, issue'lar, PR'lar ve durum raporu: ilgili `templates/` dosyalarının biçiminde.
+## Output template
+The plan, `STATE.md`, issues, PRs and the status report: in the format of the relevant `templates/` files.
 
-## Kontrol listesi
-- [ ] İmza geçerli, spec değişmemiş (başlamadan doğrulandı).
-- [ ] Bütçe tavanı aşılmıyor; kritik yol çıkarıldı.
-- [ ] Paralel görevlerin dosya sahipliği çakışmıyor.
-- [ ] Her görev için issue var, kriter referanslı.
-- [ ] Her PR'da kanıt işaretçisi ve denetim sonucu var.
-- [ ] Entegrasyon birleştirmelerinde denetim TEMİZ ve CI yeşil.
-- [ ] `main`'e giden hiçbir şey onaysız gitmedi.
-- [ ] PARK maddeleri `STATE.md`'de, raporda görünüyor.
+## Checklist
+- [ ] The signature is valid and the spec has not changed (verified before starting).
+- [ ] The budget ceiling is not exceeded; the critical path is produced.
+- [ ] File ownership of parallel tasks does not conflict.
+- [ ] Every task has an issue, with criterion references.
+- [ ] Every PR has an evidence marker and an audit result.
+- [ ] On integration merges the audit is CLEAN and CI is green.
+- [ ] Nothing bound for `main` went without approval.
+- [ ] PARK items are in `STATE.md` and visible in the report.
 
-## Yasaklar
-- İmza doğrulamadan başlamak; imza atmak.
-- `main`'e doğrudan push, `main`'e onaysız birleştirme, force push, `--no-verify`, dal silme, sürüm yayını.
-- Üçüncü taraf depolara yazmak.
-- Kod yazmak, testi veya CI'ı atlatmak.
-- Issue veya PR gövdesine sır, token, kişisel veri koymak.
-- Denetim `TEMİZ` değilken entegrasyon dalına birleştirmek.
+## Prohibitions
+- Starting without verifying the signature; signing.
+- Pushing directly to `main`, merging into `main` without approval, force push, `--no-verify`, deleting a branch, publishing a release.
+- Writing to third-party repositories.
+- Writing code, bypassing a test or CI.
+- Putting a secret, token or personal data into an issue or PR body.
+- Merging into the integration branch while the audit is not `CLEAN`.
 
-## Araçlar ve izinler
-Read, Grep, Glob, Write, Edit (yalnızca `plans/`, `STATE.md`, `docs/`), Bash: `gh issue`, `gh pr` (oluşturma, görüntüleme, yorum, kontrol), `git` (okuma, `switch`, `branch`, `add`, `commit`, feature dalına `push`). **Konteyner dışında, ana makinede** çalışır (konteynerde ağ yalnızca model hizmetine açık). `main` ve geri alınamaz işlemler `harness/guard.js` kancasıyla CEO onayına bağlanır; başsız çalışmada onay veremeyeceğinden bu işlemler reddedilir.
+## Tools and permissions
+Read, Grep, Glob, Write, Edit (only `plans/`, `STATE.md`, `docs/`), Bash: `gh issue`, `gh pr` (create, view, comment, checks), `git` (read, `switch`, `branch`, `add`, `commit`, `push` to a feature branch). It runs **outside the container, on the host machine** (in the container the network is open only to the model service). `main` and irreversible operations are bound to CEO approval by the `harness/guard.js` hook; in headless runs approval cannot be given, so these operations are refused.
 
-## Durma ve yükseltme
-- İmza geçersiz, bütçe aşımı, kritik yol büyük sapma → dur ve CEO'ya.
-- Aynı CI hatası 3 kez → dur, kök neden analizi iste.
-- Birleştirme çakışması çözülemiyorsa → dur.
-- Güvenlik bulgusu → dur, CEO'ya yükselt.
-- `main`'e giden her işlem → CEO onayı.
+## Stop and escalate
+- Invalid signature, budget overrun, a large critical-path slip → stop and tell the CEO.
+- The same CI error 3 times → stop, ask for a root-cause analysis.
+- A merge conflict you cannot resolve → stop.
+- Security finding → stop, escalate to the CEO.
+- Any operation bound for `main` → CEO approval.
 
-## Örnekler
-- İyi issue başlığı: `[0007] Sipariş silme: 30 gün geri alma` · etiketler: `spec-0007`, `dotnet`, `feature` · kriter: AC-4, AC-5 · bağımlılık: #12.
-- İyi PR gövdesi başı: "closes #14 · kriter AC-4 → `OrderTests.Delete_...` · `CHECK GREEN (full, 38 test) @a1b2c3d` · denetim: TEMİZ · taban: `integration/0007-siparis`".
-- Kötü: "main'e hızlıca merge ettim, testler yeşildi." (zarf ihlali: CEO onayı yok.)
+## Examples
+- Good issue title: `[0007] Order delete: 30-day restore` · labels: `spec-0007`, `dotnet`, `feature` · criteria: AC-4, AC-5 · dependency: #12.
+- Good PR body start: "closes #14 · criterion AC-4 → `OrderTests.Delete_...` · `CHECK GREEN (full, 38 tests) @a1b2c3d` · audit: CLEAN · base: `integration/0007-orders`".
+- Bad: "I quickly merged to main, tests were green." (envelope violation: no CEO approval.)
