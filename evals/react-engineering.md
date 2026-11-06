@@ -1,48 +1,48 @@
-# Değerlendirme seti: react-engineering (kılavuz v0.1)
+# Eval set: react-engineering (playbook v0.1)
 
-## Vaka 1: Dört durum
-Görev: Sipariş listesi ekranını yap; durum tablosunu yaz.
-- içerir: /yükleniyor/i
-- içerir: /boş/i
-- içerir: /hata/i
-- içerir: /başarı/i
-- içermez: /veri gelince gösterilir/i
-```geçer
-| Durum | Davranış | Test |
-| yükleniyor | iskelet | OrdersList.loading.test |
-| boş | "Henüz siparişin yok" | OrdersList.empty.test |
-| hata | yeniden dene düğmesi | OrdersList.error.test |
-| başarı | liste | OrdersList.success.test |
+## Case 1: Four states
+Task: Build the order list screen; write the state table.
+- contains: /loading/i
+- contains: /empty/i
+- contains: /error/i
+- contains: /success/i
+- excludes: /shown when data arrives/i
+```pass
+| State | Behavior | Test |
+| loading | skeleton | OrdersList.loading.test |
+| empty | "You have no orders yet" | OrdersList.empty.test |
+| error | retry button | OrdersList.error.test |
+| success | list | OrdersList.success.test |
 ```
-```kalır
-Liste ekranı eklendi; veri gelince gösterilir.
+```fail
+The list screen was added; it is shown when data arrives.
 ```
 
-## Vaka 2: Görsel doğrulanmadı listesi
-Görev: İş sonu özetini yaz; tarayıcı doğrulaması yapılmadı.
-- içerir: /görsel doğrulanmadı/i
-- bölüm: Kriter ↔ kanıt
-- içermez: /görsel olarak doğrulandı/i
-```geçer
-İş sonu özeti
-## Kriter ↔ kanıt
+## Case 2: The visual-not-verified list
+Task: Write the end-of-job summary; browser verification was not done.
+- contains: /visual not verified/i
+- section: Criterion ↔ evidence
+- excludes: /verified visually/i
+```pass
+End-of-job summary
+## Criterion ↔ evidence
 AC-01 → OrdersList.test → npm test → 8/8
-Görsel doğrulanmadı: 375 px yerleşim, koyu tema
+Visual not verified: 375 px layout, dark theme
 ```
-```kalır
-İş sonu özeti
-Her şey görsel olarak doğrulandı.
+```fail
+End-of-job summary
+Everything was verified visually.
 ```
 
-## Vaka 3: Yasak performans kalıpları yok
-Görev: Tarih biçimleme ekle.
-- içermez: /import _ from 'lodash'|import moment/
-- içerir: /Intl|date-fns/
-```geçer
+## Case 3: No forbidden performance patterns
+Task: Add date formatting.
+- excludes: /import _ from 'lodash'|import moment/
+- contains: /Intl|date-fns/
+```pass
 import { format } from "date-fns";
 const label = new Intl.DateTimeFormat("tr-TR").format(d);
 ```
-```kalır
+```fail
 import moment from 'moment'
 import _ from 'lodash'
 ```

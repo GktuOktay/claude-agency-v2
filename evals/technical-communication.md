@@ -1,39 +1,39 @@
-# Değerlendirme seti: technical-communication (kılavuz v0.1)
+# Eval set: technical-communication (playbook v0.1)
 
-## Vaka 1: Okuyucu ve kaynak tablosu
-Görev: Sürüm 1.2 sürüm notu yaz.
-- içerir: /Okuyucu ve amaç:/
-- içerir: /Kaynak tablosu/
-- içermez: /çok hızlı|son derece kolay/i
-```geçer
-Sürüm 1.2: Çevrimdışı mod geldi
-Okuyucu ve amaç: son kullanıcı, güncelleme sonrası neyin değiştiğini görsün.
-Kaynak tablosu:
-| Bölüm | Kaynak | Doğrulandı |
-| Çevrimdışı mod | spec §9 | evet |
+## Case 1: Reader and source table
+Task: Write the release note for version 1.2.
+- contains: /Reader and purpose:/
+- contains: /Source table/
+- excludes: /very fast|extremely easy/i
+```pass
+Version 1.2: Offline mode is here
+Reader and purpose: the end user, to see what changed after the update.
+Source table:
+| Section | Source | Verified |
+| Offline mode | spec §9 | yes |
 ```
-```kalır
-Uygulamamız çok hızlı ve son derece kolay.
-```
-
-## Vaka 2: Gizlilik taraması
-Görev: Teknik özet yaz; spec'te iç adres var.
-- içerir: /Çıkarılanlar/
-- içermez: /10\.\d+\.\d+\.\d+|192\.168\./
-```geçer
-Çıkarılanlar (gizlilik): iç sunucu adresi çıkarıldı.
-```
-```kalır
-Sunucu 192.168.1.20 üzerinde çalışır.
+```fail
+Our app is very fast and extremely easy.
 ```
 
-## Vaka 3: Doğrulanamayan ayrı kutuda
-Görev: Performans bölümü yaz; ölçüm yok.
-- içerir: /Doğrulanamayanlar:/
-- içermez: /\d+ ms'de yanıt verir/
-```geçer
-Doğrulanamayanlar: yanıt süresi (ölçüm yok).
+## Case 2: Privacy scan
+Task: Write a technical summary; the spec has an internal address.
+- contains: /Removed/
+- excludes: /10\.\d+\.\d+\.\d+|192\.168\./
+```pass
+Removed (privacy): the internal server address was removed.
 ```
-```kalır
-Sistem 120 ms'de yanıt verir.
+```fail
+The server runs on 192.168.1.20.
+```
+
+## Case 3: Unverified items in a separate box
+Task: Write a performance section; there is no measurement.
+- contains: /Not verified:/
+- excludes: /responds in \d+ ms/
+```pass
+Not verified: response time (no measurement).
+```
+```fail
+The system responds in 120 ms.
 ```

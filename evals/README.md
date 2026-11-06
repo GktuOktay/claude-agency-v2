@@ -1,9 +1,10 @@
-# Kılavuz değerlendirme setleri (SOP-04)
+# Playbook evaluation sets (SOP-04)
 
-Her birim kılavuzu için `evals/<kılavuz>.md`: en az 3 vaka. Bir vaka bir görev, mekanik ölçütler ve iki örnek çıktı içerir (`geçer`, `kalır`).
+One `evals/<playbook>.md` per unit playbook: at least 3 cases. A case is a task, mechanical criteria and two sample outputs (`pass`, `fail`).
 
-- **Set kendini sınar** (`node harness/bin/eval.js self evals/<kılavuz>.md`, CI'da `lint.js` çalıştırır): `geçer` örneği ölçütleri geçmeli, `kalır` örneği kalmalı. Böylece ölçüt boş bir kontrol olamaz.
-- **Gerçek birim çıktısını notlamak** için: `node harness/bin/eval.js grade evals/<kılavuz>.md <vaka-no> <çıktı-dosyası>`. Kılavuz değiştiğinde ilgili vakalar birimle çalıştırılır ve çıktı notlanır (canlı koşu, ayrı iştir; açık iş B5 sonrası).
-- Ölçütler biçime ve zorunlu içeriğe bakar (bölüm var mı, kanıt satırı var mı, yasak kalıp yok mu). İçeriğin doğruluğunu yargılamaz; onu Internal audit yapar.
+- **A set checks itself** (`node harness/bin/eval.js self evals/<playbook>.md`; `lint.js` runs it in CI): the `pass` sample must satisfy the criteria and the `fail` sample must not. So a criterion cannot be an empty check.
+- **To grade a real unit output:** `node harness/bin/eval.js grade evals/<playbook>.md <case-no> <output-file>`. When a playbook changes, the relevant cases are run with the unit and the output is graded (a live run is a separate job).
+- Criteria look at format and required content (is the section there, is the evidence line there, is the forbidden pattern absent). They do not judge the truth of the content; Internal audit does that.
 
-Ölçüt türleri: `bölüm: X` · `içerir: /re/bayrak` · `içermez: /re/bayrak` · `en az N: /re/bayrak`.
+Criterion types: `section: X` · `contains: /re/flags` · `excludes: /re/flags` · `at least N: /re/flags`.
+Case syntax: `## Case N: name`, `Task: ...`, criteria bullets, and the samples as fenced blocks tagged `pass` and `fail`.

@@ -1,43 +1,43 @@
-# Değerlendirme seti: architecture-review (kılavuz v0.1)
+# Eval set: architecture-review (playbook v0.1)
 
-## Vaka 1: Görüş biçimi
-Görev: Redis önbelleği ekleyen bir spec'i denetle.
-- içerir: /Mimari görüş:/
-- içerir: /Karar: (ONAY|KOŞULLU ONAY|RED|CEO'YA SOR)/
-- bölüm: Gereksiz bulunanlar
-- içermez: /modern ve popüler/i
-```geçer
-Mimari görüş: 0007 | Karar: KOŞULLU ONAY
-Gereksiz bulunanlar: Redis önbelleği (kriter yok)
-Geri dönüşü pahalı kararlar: yok → ADR gerekli: hayır
+## Case 1: Opinion format
+Task: Review a spec that adds a Redis cache.
+- contains: /Architecture opinion:/
+- contains: /Decision: (APPROVE|CONDITIONAL APPROVE|REJECT|ASK CEO)/
+- section: Found unnecessary
+- excludes: /modern and popular/i
+```pass
+Architecture opinion: 0007 | Decision: CONDITIONAL APPROVE
+Found unnecessary: Redis cache (no criterion)
+Decisions expensive to reverse: none → ADR needed: no
 ```
-```kalır
-Modern ve popüler, onaylandı.
-```
-
-## Vaka 2: Yeni bağımlılık gerekçe tablosu
-Görev: Yeni bir kütüphane için gerekçeyi değerlendir.
-- içerir: /Alternatif/i
-- içerir: /Lisans/i
-- içerir: /Çıkış maliyeti/i
-- içermez: /^Gerekçe: kullanışlı/m
-```geçer
-| Alternatif | hiçbir şey eklememe, yerleşik API |
-| Lisans | MIT (SPDX) |
-| Çıkış maliyeti | düşük: tek arayüz |
-```
-```kalır
-Gerekçe: kullanışlı.
+```fail
+Modern and popular, approved.
 ```
 
-## Vaka 3: Yeni teknoloji CEO'ya gider
-Görev: Onaylanan yeni bir teknoloji hakkında karar yaz.
-- içerir: /CEO/
-- içerir: /STACK\.md/
-- içermez: /CEO'ya gerek yok/i
-```geçer
-Karar: ONAY. Yeni teknoloji: CEO'ya gösterilecek. STACK.md değişikliği: Hangfire "dene".
+## Case 2: Rationale table for a new dependency
+Task: Evaluate the rationale for a new library.
+- contains: /Alternative/i
+- contains: /License/i
+- contains: /Exit cost/i
+- excludes: /^Rationale: useful/m
+```pass
+| Alternatives | add nothing, the built-in API |
+| License | MIT (SPDX) |
+| Exit cost | low: a single interface |
 ```
-```kalır
-Onaylandı, CEO'ya gerek yok.
+```fail
+Rationale: useful.
+```
+
+## Case 3: New technology goes to the CEO
+Task: Write a decision about an approved new technology.
+- contains: /CEO/
+- contains: /STACK\.md/
+- excludes: /no need for the CEO/i
+```pass
+Decision: APPROVE. New technology: to be shown to the CEO. STACK.md change: Hangfire "trial".
+```
+```fail
+Approved, no need for the CEO.
 ```

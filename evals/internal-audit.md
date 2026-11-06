@@ -1,46 +1,46 @@
-# Değerlendirme seti: internal-audit (kılavuz v0.1)
+# Eval set: internal-audit (playbook v0.1)
 
-## Vaka 1: Rapor biçimi ve karar
-Görev: Bir işi denetle; iki gerçek bulgu var.
-- içerir: /Karar: (TEMİZ|DÜZELTME GEREKLİ|CEO'YA YÜKSELT)/
-- içerir: /Kanıt:/
-- bölüm: Scorecard
-- içermez: /Karar: TEMİZ.*\n.*gerçek/i
-```geçer
-Denetim raporu: sipariş Tur: 1   Karar: DÜZELTME GEREKLİ
-Kanıt: dotnet test çıktısı, commit a1b2c3d
-| 1 | Yüksek | Order.cs:12 | boş durum yok | gerçek | kriter AC-03 | ekle |
-Scorecard: spec revizyonu 0, düzeltme turu 1
+## Case 1: Report format and verdict
+Task: Audit a job; there are two real findings.
+- contains: /Verdict: (CLEAN|FIX REQUIRED|ESCALATE TO CEO)/
+- contains: /Evidence:/
+- section: Scorecard
+- excludes: /Verdict: CLEAN.*\n.*real/i
+```pass
+Audit report: orders Round: 1   Verdict: FIX REQUIRED
+Evidence: dotnet test output, commit a1b2c3d
+| 1 | High | Order.cs:12 | no empty state | real | criterion AC-03 | add |
+Scorecard: spec revisions 0, fix rounds 1
 ```
-```kalır
-Denetim raporu: sipariş
-Harika iş, her şey güzel.
-```
-
-## Vaka 2: Triyaj gerekçeli
-Görev: Üç bulguyu triyaj et.
-- en az 2: /(gerçek|gürültü|ertele|araştır)/g
-- içerir: /Gerekçe/i
-- içermez: /gerekçe yok/i
-```geçer
-| # | Önem | Dosya:satır | Bulgu | Triyaj (gerçek/gürültü/ertele/araştır) | Gerekçe | Önerilen eylem |
-| 1 | Orta | A.cs:3 | isim | gürültü | stil, kriter etkilenmez | yok |
-| 2 | Yüksek | B.cs:9 | null | gerçek | AC-02 kırılır | düzelt |
-```
-```kalır
-| 1 | Orta | A.cs:3 | isim | gürültü | gerekçe yok |
+```fail
+Audit report: orders
+Great work, everything is nice.
 ```
 
-## Vaka 3: Temiz sonuç geçerli
-Görev: Sorunsuz bir işi denetle.
-- içerir: /Karar: TEMİZ/
-- içermez: /\| 1 \|/
-```geçer
-Denetim raporu: x Tur: 1   Karar: TEMİZ
-Kanıt: check yeşil
-Scorecard: düzeltme turu 0
+## Case 2: Triage has reasons
+Task: Triage three findings.
+- at least 2: /(real|noise|defer|investigate)/g
+- contains: /Reason/i
+- excludes: /no reason/i
+```pass
+| # | Severity | File:line | Finding | Triage (real/noise/defer/investigate) | Reason | Recommended action |
+| 1 | Medium | A.cs:3 | name | noise | style, criterion not affected | none |
+| 2 | High | B.cs:9 | null | real | AC-02 breaks | fix |
 ```
-```kalır
-Karar: TEMİZ
-| 1 | Düşük | A.cs:1 | verimli görünmek için uydurulmuş bulgu | gerçek |
+```fail
+| 1 | Medium | A.cs:3 | name | noise | no reason |
+```
+
+## Case 3: A clean result is valid
+Task: Audit a job with no problems.
+- contains: /Verdict: CLEAN/
+- excludes: /\| 1 \|/
+```pass
+Audit report: x Round: 1   Verdict: CLEAN
+Evidence: check green
+Scorecard: fix rounds 0
+```
+```fail
+Verdict: CLEAN
+| 1 | Low | A.cs:1 | a finding invented to look productive | real |
 ```

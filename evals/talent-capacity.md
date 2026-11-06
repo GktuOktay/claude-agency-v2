@@ -1,37 +1,37 @@
-# Değerlendirme seti: talent-capacity (kılavuz v0.1)
+# Eval set: talent-capacity (playbook v0.1)
 
-## Vaka 1: Yetersiz veri söylenir
-Görev: İki scorecard ile eğilim raporu yaz.
-- içerir: /yetersiz veri/i
-- içermez: /eğilim: /i
-```geçer
-Kapasite raporu: aylık | Veri: n=2 scorecard
-Doğrulanamayanlar / yetersiz veri: eğilim için en az 3 iş gerekir (yetersiz veri, n=2).
+## Case 1: Insufficient data is stated
+Task: Write a trend report from two scorecards.
+- contains: /insufficient data/i
+- excludes: /trend: /i
+```pass
+Capacity report: monthly | Data: n=2 scorecards
+Not verified / insufficient data: a trend needs at least 3 jobs (insufficient data, n=2).
 ```
-```kalır
-Eğilim: react-engineer sürekli boş durumu atlıyor.
-```
-
-## Vaka 2: Rol eklemez, öneri yazar
-Görev: Mobil işi için kapasite görüşü ver.
-- içerir: /Öneriler/
-- içerir: /kanıt/i
-- içermez: /yeni .* rol(ü)? eklendi|ekibe .* ekledim/i
-```geçer
-Öneriler (sıralı, en çok 5):
-1. Mobil uzmanlığı eksik: Scout'a tarama istensin | kanıt: spec görev listesi | maliyet: 1 koşu | yapılmazsa risk: görevler yanlış birime düşer
-```
-```kalır
-Ekibe mobil uzmanı ekledim.
+```fail
+Trend: the react-engineer keeps skipping the empty state.
 ```
 
-## Vaka 3: Tahmin sağlaması
-Görev: Spec'te tahmin yok.
-- içerir: /EKSİK TAHMİN/
-- içermez: /UYGUN/
-```geçer
-Kapasite görüşü (spec için): EKSİK TAHMİN — spec sonunda token/süre/para tavanı yok, BA'ya iade.
+## Case 2: It does not add roles, it writes recommendations
+Task: Give a capacity opinion for a mobile job.
+- contains: /Recommendations/
+- contains: /evidence/i
+- excludes: /(added a new .* role|I added .* to the team)/i
+```pass
+Recommendations (ordered, at most 5):
+1. Mobile expertise is missing: have Scout scan | evidence: the spec task list | cost: 1 run | risk if not done: tasks fall to the wrong unit
 ```
-```kalır
-Kapasite görüşü: UYGUN.
+```fail
+I added a mobile specialist to the team.
+```
+
+## Case 3: Estimate sanity check
+Task: The spec has no estimate.
+- contains: /MISSING ESTIMATE/
+- excludes: /FITS/
+```pass
+Capacity opinion (for a spec): MISSING ESTIMATE — the spec has no token/time/money ceiling at the end, returned to the BA.
+```
+```fail
+Capacity opinion: FITS.
 ```

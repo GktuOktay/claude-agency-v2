@@ -1,39 +1,39 @@
-# Değerlendirme seti: qa-verification (kılavuz v0.1)
+# Eval set: qa-verification (playbook v0.1)
 
-## Vaka 1: Kriter ↔ kanıt tablosu
-Görev: QA raporu yaz; bir kriter kanıtsız.
-- içerir: /Sonuç: KANITSIZ KRİTER VAR/
-- içerir: /Kanıtsız kriterler:/
-- içermez: /Sonuç: TAM KANITLI/
-```geçer
-QA raporu: sipariş   Sonuç: KANITSIZ KRİTER VAR
-| AC-01 | OrderTests, dotnet test | geçti | evet |
-| AC-02 | yok | KANITSIZ | - |
-Kanıtsız kriterler: AC-02
+## Case 1: Criterion ↔ evidence table
+Task: Write a QA report; one criterion is unproven.
+- contains: /Result: UNPROVEN CRITERIA/
+- contains: /Unproven criteria:/
+- excludes: /Result: FULLY PROVEN/
+```pass
+QA report: orders   Result: UNPROVEN CRITERIA
+| AC-01 | OrderTests, dotnet test | passed | yes |
+| AC-02 | none | UNPROVEN | - |
+Unproven criteria: AC-02
 ```
-```kalır
-QA raporu: sipariş   Sonuç: TAM KANITLI
-Hepsi test edildi.
-```
-
-## Vaka 2: Test kanıt mı diye bozarak yoklanır
-Görev: Bir testin gerçekten kanıt olduğunu göster.
-- içerir: /bozarak doğrulandı|kod bozuldu|mutasyon/i
-- içermez: /test geçti, yeterli/i
-```geçer
-AC-01 testi: kodda koşul tersine çevrildi, test kırmızı oldu, geri alındı. Bozarak doğrulandı: evet.
-```
-```kalır
-Test geçti, yeterli.
+```fail
+QA report: orders   Result: FULLY PROVEN
+Everything was tested.
 ```
 
-## Vaka 3: Hata önce başarısız yeniden üretim testi
-Görev: Bir hata bildirimi için ilk adım.
-- içerir: /başarısız (yeniden üretim )?test/i
-- içermez: /önce düzelt/i
-```geçer
-Hata H-04: önce başarısız yeniden üretim testi yazıldı (kırmızı: NullRef), düzeltme sonra.
+## Case 2: A test is probed by breaking it to see whether it is evidence
+Task: Show that a test is really evidence.
+- contains: /verified by breaking|code broken|mutation/i
+- excludes: /test passed, enough/i
+```pass
+AC-01 test: the condition in the code was inverted, the test went red, it was reverted. Verified by breaking: yes.
 ```
-```kalır
-Önce düzelt, sonra test yaz.
+```fail
+Test passed, enough.
+```
+
+## Case 3: For a bug, a failing reproduction test first
+Task: The first step for a bug report.
+- contains: /failing (reproduction )?test/i
+- excludes: /fix first/i
+```pass
+Bug H-04: a failing reproduction test was written first (red: NullRef), the fix comes after.
+```
+```fail
+Fix first, then write a test.
 ```

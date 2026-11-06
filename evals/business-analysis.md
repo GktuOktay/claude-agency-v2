@@ -1,54 +1,54 @@
-# Değerlendirme seti: business-analysis (kılavuz v0.1)
+# Eval set: business-analysis (playbook v0.1)
 
-## Vaka 1: Tam spec iskeleti
-Görev: "Kullanıcılar sipariş verebilsin" isteğinden tam spec yaz.
-- bölüm: 3. Gereksinimler (EARS)
-- bölüm: 5. Kabul kriterleri
-- bölüm: 8. Tehdit modeli
-- içerir: /Status: Draft/
-- içermez: /Status: Approved/
-```geçer
-# Spec 0007 — sipariş
+## Case 1: Full spec skeleton
+Task: From the request "Users should be able to place orders" write a full spec.
+- section: 3. Requirements (EARS)
+- section: 5. Acceptance criteria
+- section: 8. Threat model
+- contains: /Status: Draft/
+- excludes: /Status: Approved/
+```pass
+# Spec 0007 — orders
 - Status: Draft
-## 3. Gereksinimler (EARS)
-FR-01 Kullanıcı sepeti onayladığında sistem siparişi kaydetmelidir.
-## 5. Kabul kriterleri
-AC-01 FR-01: onay sonrası sipariş listesinde görünür.
-## 8. Tehdit modeli ve güvenlik
-Güven sınırı: istemci/sunucu.
+## 3. Requirements (EARS)
+FR-01 When the user confirms the cart, the system shall record the order.
+## 5. Acceptance criteria
+AC-01 FR-01: after confirmation the order appears in the order list.
+## 8. Threat model and security
+Trust boundary: client/server.
 ```
-```kalır
-# Spec 0007 — sipariş
+```fail
+# Spec 0007 — orders
 - Status: Approved
-## 3. Gereksinimler
-Sipariş verilsin.
+## 3. Requirements
+Orders should be placed.
 ```
 
-## Vaka 2: Kabul kriteri test edilebilir olmalı
-Görev: Kabul kriterlerini yaz.
-- en az 2: /^AC-\d+ /gm
-- içermez: /hızlı olmalı|kullanıcı dostu/i
-```geçer
-## 5. Kabul kriterleri
-AC-01 FR-01: sepet onaylandığında yanıt 2 saniyede döner.
-AC-02 FR-02: stok yetersizse hata kodu 409 döner.
+## Case 2: Acceptance criteria must be testable
+Task: Write the acceptance criteria.
+- at least 2: /^AC-\d+ /gm
+- excludes: /should be fast|user-friendly/i
+```pass
+## 5. Acceptance criteria
+AC-01 FR-01: when the cart is confirmed the response returns within 2 seconds.
+AC-02 FR-02: if stock is insufficient error code 409 is returned.
 ```
-```kalır
-## 5. Kabul kriterleri
-Sistem hızlı olmalı ve kullanıcı dostu olmalı.
+```fail
+## 5. Acceptance criteria
+The system should be fast and user-friendly.
 ```
 
-## Vaka 3: Bilinmeyen açık soruya yazılır
-Görev: Ödeme sağlayıcısı belirtilmemiş bir istekten spec yaz.
-- bölüm: 14. Açık sorular
-- içerir: /Önerim:/
-- içermez: /Iyzico kullanılacak|Stripe kullanılacak/i
-```geçer
-## 14. Açık sorular ve Spec Eleştirmeni bulguları
-Q-01 Ödeme sağlayıcısı belirtilmemiş. Önerim: sağlayıcıdan bağımsız arayüz, ilk uygulama CEO seçimine göre.
+## Case 3: The unknown goes to open questions
+Task: Write a spec from a request that does not name a payment provider.
+- section: 14. Open questions
+- contains: /I recommend:/
+- excludes: /Iyzico will be used|Stripe will be used/i
+```pass
+## 14. Open questions and Spec critic findings
+Q-01 The payment provider is not specified. I recommend: a provider-independent interface, the first implementation per the CEO's choice.
 ```
-```kalır
-## 14. Açık sorular
-Yok.
-Ödeme için Stripe kullanılacak.
+```fail
+## 14. Open questions
+None.
+Stripe will be used for payment.
 ```
