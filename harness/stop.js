@@ -48,8 +48,8 @@ function main(stdin) {
   });
 
   if (lastEdit < 0 || lastEvidence > lastEdit || HONEST.test(finalText)) return allow();
-  const reason = "Bu turda kod dosyaları değişti ama sonrasında derleme/test/check çalıştırılmadı. Anayasa kural 2: bitti = taze kanıt. " +
-    "Ya doğrulamayı şimdi çalıştır (ör. ./harness/bin/check, dotnet test) ve çıktıyı göster, ya da son mesajında değişikliğin 'doğrulanmadı' olduğunu açıkça yaz.";
+  const reason = "Code files changed in this turn but no build/test/check was run afterwards. Constitution rule 2: done = fresh evidence. " +
+    "Either run the verification now (e.g. ./harness/bin/check, dotnet test) and show the output, or state plainly in your final message that the change is 'not verified'.";
   process.stdout.write(JSON.stringify({ decision: "block", reason }));
   process.exit(0);
 }

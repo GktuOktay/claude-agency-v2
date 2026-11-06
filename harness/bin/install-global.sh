@@ -20,6 +20,13 @@ link() {
   elif [ -e "$dst" ]; then echo "skip $dst (exists, not ours)"; skipped=$((skipped+1)); return 0; fi
   ln -s "$src" "$dst"; n=$((n+1))
 }
+# drop our own links whose target was renamed or removed (never touches files that are not links into this repo)
+if [ "$mode" = install ]; then
+  for l in "$H"/agents/* "$H"/skills/* "$H"/rules/*; do
+    [ -L "$l" ] || continue
+    case "$(readlink "$l")" in "$REPO"/*) [ -e "$l" ] || { rm "$l"; n=$((n+1)); };; esac
+  done
+fi
 for f in "$REPO"/.claude/agents/*.md; do link "$f" "$H/agents/$(basename "$f")"; done
 for d in "$REPO"/.claude/skills/*/; do d=${d%/}; link "$d" "$H/skills/$(basename "$d")"; done
 for f in "$REPO"/.claude/rules/*.md; do link "$f" "$H/rules/$(basename "$f")"; done

@@ -24,7 +24,7 @@ t "COMPANY_LOOP_MAX=0 turns the hook off"            0 "$( export COMPANY_LOOP_M
 t "COMPANY_LOOP_MAX=2 tightens the threshold"        2 "$( export COMPANY_LOOP_MAX=2; call s13 Bash x >/dev/null; call s13 Bash x )"
 t "garbage input fails open"                         0 "$(printf 'not json' | node "$HERE/loop.js" >/dev/null 2>&1; echo $?)"
 t "unwritable state dir still fails open"            0 "$(COMPANY_LOOP_DIR=/nonexistent/dir sh -c 'node -e "process.stdout.write(JSON.stringify({session_id:\"a\",tool_name:\"Bash\",tool_input:{command:\"x\"}}))" | node "'"$HERE"'/loop.js" >/dev/null 2>&1; echo $?')"
-t "message tells the agent what to do"              1 "$( s=s14; seq_rc $s x x x x >/dev/null; node -e 'process.stdout.write(JSON.stringify({session_id:"s14",tool_name:"Bash",tool_input:{command:"x"}}))' | node "$HERE/loop.js" 2>&1 >/dev/null | grep -c 'dur, STATE.md' )"
+t "message tells the agent what to do"              1 "$( s=s14; seq_rc $s x x x x >/dev/null; node -e 'process.stdout.write(JSON.stringify({session_id:"s14",tool_name:"Bash",tool_input:{command:"x"}}))' | node "$HERE/loop.js" 2>&1 >/dev/null | grep -c 'update STATE.md' )"
 t "input key order does not matter"                  2 "$( s=s15; r=0; for i in 1 2 3 4 5; do if [ $((i%2)) = 0 ]; then j='{"a":1,"b":2}'; else j='{"b":2,"a":1}'; fi; r=$(printf '{"session_id":"s15","tool_name":"Write","tool_input":%s}' "$j" | node "$HERE/loop.js" >/dev/null 2>&1; echo $?); done; echo $r )"
 
 echo; if [ "$fail" -eq 0 ]; then echo "LOOP GUARD TESTS GREEN: $pass passed, 0 failed"; else echo "LOOP GUARD TESTS FAILED: $pass passed, $fail failed"; fi

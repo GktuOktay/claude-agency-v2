@@ -58,9 +58,9 @@ if (require.main === module) {
       try { fs.writeFileSync(file, JSON.stringify(hist), { mode: 0o600 }); } catch { /* read-only temp: still evaluate */ }
       const hit = detect(hist, MAX);
       if (hit) {
-        const what = hit.kind === "same" ? `aynı çağrı üst üste ${hit.n} kez` : `${hit.n} çağrılık döngü 3 kez tekrarlandı`;
-        process.stderr.write(`BLOCKED by company loop guard: ${what} (${name}). Aynı şeyi tekrarlamak sonuç vermiyor. ` +
-          "Farklı bir yaklaşım dene; olmuyorsa anayasa gereği dur, STATE.md'yi güncelle ve neyin başarısız olduğunu bildir.\n");
+        const what = hit.kind === "same" ? `the same call ${hit.n} times in a row` : `a ${hit.n}-call cycle repeated 3 times`;
+        process.stderr.write(`BLOCKED by company loop guard: ${what} (${name}). Repeating the same thing is not producing a result. ` +
+          "Try a different approach; if that does not work, stop as the constitution requires, update STATE.md and report what failed.\n");
         process.exit(2);
       }
     } catch { /* fail open */ }
