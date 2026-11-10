@@ -2,8 +2,8 @@
 name: talent-capacity
 description: Talent and capacity unit. From scorecard data reports bottlenecks, missing expertise, recurring playbook deviations and unused tools; gives a capacity opinion on the spec before signature (are the token, time and money ceilings realistic). Adds no roles, writes recommendations. Use before every spec goes to signature and at month ends.
 tools: Read, Grep, Glob, Write, Edit
-model: sonnet
-effort: medium
+model: haiku
+effort: low
 maxTurns: 25
 skills:
   - talent-capacity

@@ -218,3 +218,12 @@ Eski kurulum: ~/.claude-backup-2026-11-01 (silme işlemi henüz yapılmadı).
 - Dosya adları değişti: `.claude/rules/routing.md` ve `terse-mode.md` (eskiden `yonlendirme.md`, `kisa-konusma.md`). `install-global.sh` artık kendi bağlarından hedefi silinmiş olanları temizliyor.
 - **Ruling:** insan okuyan belgeler Türkçe kaldı (`docs/`, `README.md`, tanıtım sayfası, guard onay penceresi metinleri) — CEO bunları okuyor, model için değil; CEO ile sohbet Türkçe sürer. Yanlışsa maliyet: aynı çeviriyi o dosyalar için de yapmak.
 - Bilinen sınır: `writing-standards` Türkçe müşteri metni içindir, kaçınılacak kalıp listesi bilerek Türkçe; `humanize-check.js` Türkçe metni denetler ve çıktı etiketleri (UYARI/HATA) Türkçe kaldı. Çeviri sonrası agent çıktılarının eval setlerini geçtiği tek agent (internal-auditor) ile örneklendi, diğerleri yeniden koşturulmadı.
+
+## Revizyon 27: Riske göre şeritler, model seçimi, caveman (2026-11-10)
+- CEO: yapı güvenli ama çok token tüketiyor, bir iş saatler sürüyor; işin hacmine göre model seçilsin, caveman gibi araçlar dahil edilsin.
+- Tespit: her iş, küçük bug dahi, aynı hattan geçiyordu (spec, 4 paralel kapı, delivery-manager, engineer, qa, appsec, auditor, quality-office): yaklaşık 10 soğuk başlangıç. Altı birim varsayılan olarak opus idi.
+- Karar: dört şerit (`routing.md`): 0 sohbet/önemsiz (spec yok), 1 küçük iş (hızlı spec, sohbette imza, tek bağımsız inceleme), 2 orta iş (yalnız `spec-critic`; appsec ve kurul koşullu), 3 tam hat. Değişmezler her şeritte aynı: imza, yapan doğrulamaz, taze kanıt, onay zarfı.
+- Modeller: agent frontmatter varsayılanı ucuz (`spec-critic`, `appsec`, `internal-auditor`, `architecture-board`, `business-analyst` opus → sonnet; `talent-capacity` → haiku). Opus yalnız `software-architect` varsayılanı ve şerit 3 / auth-kripto-ödeme / 2 başarısız denemeden sonra, çağrıda `model` parametresiyle. Doğrulama zinciri iş sonunda bir kez koşar.
+- Caveman: birim brifleri "caveman raporu, en çok 25 satır" ile biter; inceleme `caveman-review`, commit `caveman-commit`. Spec, güvenlik, hukuk, müşteri metni ve diske yazılan dosyalarda kapalı.
+- **Ruling:** emin değilsem alt şerit, riski spec'in Assumptions bölümüne yazılır; kapılar yakalar, bulgu çıkarsa şerit yükselir. Yanlışsa maliyet: şerit 1'de kaçan bir güvenlik/veri sorunu geç bulunur.
+- Dürüst sınır: token tasarrufu ölçülmedi; ilk gerçek işlerde `scorecard` ile şerit başına token ve süre izlenecek. `appsec` ve denetçi sonnet'e inince bulgu kalitesi düşebilir, ölçülene kadar şerit 3'te opus kalıyor.
