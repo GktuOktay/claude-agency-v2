@@ -2,7 +2,7 @@
 name: spec-critic
 description: Independent spec critic. Reads the spec adversarially, from the file alone and without the author's context, and returns the unanswered questions and gaps as ordered findings. Use before every spec goes to signature. Does not change the spec.
 tools: Read, Grep, Glob
-model: opus
+model: sonnet
 effort: high
 maxTurns: 20
 skills:

@@ -2,7 +2,7 @@
 name: business-analyst
 description: Technical business analyst and solution designer. Turns the CEO's description into a signable spec (requirements, UX states, architecture, data/API contract, threat model, test plan, task list). Use for a new job or change request, before any code is written.
 tools: Read, Grep, Glob, Write, Edit
-model: opus
+model: sonnet
 effort: high
 maxTurns: 40
 skills:

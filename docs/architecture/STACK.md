@@ -20,3 +20,6 @@ Yeni teknoloji veya bağımlılık bu kayda ancak gerekçeyle ve CEO bilgisiyle 
 | OWASP ZAP baseline (DAST) | değerlendir | Test ortamına karşı pasif güvenlik taraması için aday; henüz kurulu veya denenmiş değil | 2026-11-04 | - |
 | Trivy (imaj ve bağımlılık tarama) | değerlendir | CI'da imaj taraması için aday; henüz kurulu veya denenmiş değil | 2026-11-04 | - |
 | Mesaj kuyruğu, ikinci veritabanı, mikroservis ayrımı | değerlendir | Kabul kriteri gerektirmedikçe eklenmez | 2026-11-02 | - |
+| SQLite (EF Core Sqlite sağlayıcısı) | değerlendir | Proje Masası Portalı: kullanıcı ve ekle-yalnız onay denetimi için gömülü depo (ek konteyner yok). Board koşullu onay; lisans/bakım Scout T-09, CEO bilgisi bekliyor. Docker Desktop'ta bind mount değil named volume | 2026-11-07 | ADR-P05 (taslak bekleniyor) |
+| HtmlSanitizer (mganss, NuGet) | değerlendir | Proje Masası Portalı: BookStack HTML'inin sunucuda allowlist temizliği (REQ-11). Tek bakımcı riski; geçmiş XSS advisory'leri var (AppSec/Scout doğrulasın); sürüm sabitlenir, zafiyet taraması CI'da | 2026-11-07 | - |
+| TanStack Query, React Router | değerlendir | React SPA veri önbelleği ve yönlendirme; SR.IMS ön yüzünde kullanılıyor (tasarım iddiası), kayda alınıyor; lisans MIT (Scout doğrulasın) | 2026-11-07 | - |

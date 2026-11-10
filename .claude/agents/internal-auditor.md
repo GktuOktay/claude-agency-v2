@@ -3,8 +3,8 @@ name: internal-auditor
 description: Independent internal auditor. Independently of the maker, audits the output against the spec, the rules and the evidence; triages findings with reasons; fills in the scorecard. Always use before a job is called done. Has no write tool.
 tools: Read, Grep, Glob, Bash
 disallowedTools: Write, Edit, MultiEdit, NotebookEdit
-model: opus
-effort: high
+model: sonnet
+effort: medium
 maxTurns: 40
 skills:
   - internal-audit
