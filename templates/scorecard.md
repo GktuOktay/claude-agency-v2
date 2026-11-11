@@ -11,10 +11,7 @@
 - findings_deferred: 0
 - regressions: 0
 - escaped_defects: 0
-- estimate_tokens: 0
-- actual_tokens: 0
-- estimate_minutes: 0
-- actual_minutes: 0
+- tokens_used: 0
 - stop_reason: none
 
 ## Notes

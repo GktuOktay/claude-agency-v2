@@ -41,7 +41,7 @@ const UNITS = {
   "internal-auditor":  ["u3", 0, "Internal audit", "İşi yapandan bağımsız denetler, bulguları gerekçeyle triyaj eder, scorecard doldurur. Yazma aracı yok."],
   "appsec":            ["u3", 1, "AppSec", "İmzadan önce tehdit modelini, teslimden önce kodu ve bağımlılıkları OWASP'a göre denetler. Yazma yok."],
   "architecture-board":["u3", 2, "Architecture board", "Mimariyi ve yeni teknoloji gerekçesini imzadan önce denetler; standart yığın kaydını tutar."],
-  "talent-capacity":   ["u3", 3, "Talent & capacity", "Scorecard verisinden darboğaz ve eksik uzmanlığı raporlar; kapasite tahminini yoklar. Rol eklemez."],
+  "talent-capacity":   ["u3", 3, "Talent & capacity", "Scorecard verisinden darboğaz, eksik uzmanlık ve en çok token harcayan birimleri raporlar. Rol eklemez."],
   "quality-office":    ["u3", 4, "Quality office", "Gereksinim → test → kanıt izlenebilirliğini ve uyum listesini (KVKK, lisans) tutar. Hukuki görüş vermez."],
 };
 
@@ -73,7 +73,7 @@ const EDGES = [
   ["cos", "business-analyst", "akis", "işi spec'e çevirtir"], ["business-analyst", "spec", "akis", "spec'i yazar"],
   ["scout", "business-analyst", "akis", "hazır çözüm raporu verir"], ["scout", "architecture-board", "akis", "teknoloji adayını gerekçelendirir"],
   ["spec-critic", "spec", "denetim", "okur, cevapsız soruları çıkarır"], ["spec-critic", "business-analyst", "denetim", "boşlukları geri bildirir"],
-  ["architecture-board", "spec", "denetim", "mimari görüşü verir (kapı)"], ["talent-capacity", "spec", "denetim", "kapasite tahminini yoklar (kapı)"],
+  ["architecture-board", "spec", "denetim", "mimari görüşü verir (kapı)"],
   ["appsec", "spec", "denetim", "tehdit modelini denetler (durak A)"], ["architecture-board", "stack", "akis", "yığın kaydını günceller"],
   ["ceo", "approval", "denetim", "imza penceresinde onaylar"], ["approval", "spec", "denetim", "özet üzerinden imza kaydı yazar"],
   ["gate", "spec", "denetim", "imzayı her yazımda doğrular"], ["runner", "approval", "denetim", "imzayı doğrulayıp kipi seçer"],
@@ -122,7 +122,6 @@ const HOOK_META = {
 const GATES = [
   ["G01", "Spec eleştirisi", "Plan", "spec-critic", "agent", "Documented", "Cevapsız soru sıfırlanmadan imzaya gidilmez.", [".claude/skills/spec-criticism/SKILL.md", "evals/spec-criticism.md"]],
   ["G02", "Mimari görüş", "Plan", "architecture-board", "agent", "Documented", "Gerekçesiz yeni teknoloji ve bağımlılık; kriteri olmayan katman.", [".claude/skills/architecture-review/SKILL.md", "docs/architecture/STACK.md"]],
-  ["G03", "Kapasite görüşü", "Plan", "talent-capacity", "agent", "Documented", "Tahminsiz veya gerçekçi olmayan token/süre/para tavanı.", [".claude/skills/talent-capacity/SKILL.md"]],
   ["G04", "Tehdit modeli (AppSec durak A)", "Plan", "appsec", "agent", "Documented", "Tehdit modeli olmayan veya kritik/yüksek açığı olan spec.", [".claude/skills/application-security/SKILL.md"]],
   ["G05", "Approver imzası", "İmza", "approval.js + company-run.sh", "araç", "Enforced", "İmzasız spec'ten kod üretimi (çalışma alanı salt-okunur kalır).", ["harness/approval.js", "harness/bin/company-run.sh", "harness/test/run.sh", "harness/test/e2e.sh"]],
   ["G06", "İmza spec özetine bağlı", "İmza", "approval.js", "araç", "Enforced", "İmzadan sonra değişen spec: imza düşer, kapı kapanır.", ["harness/approval.js", "harness/test/run.sh"]],

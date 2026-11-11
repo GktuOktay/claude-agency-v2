@@ -1,68 +1,63 @@
 ---
 name: talent-capacity
-description: Playbook: capacity opinion, bottlenecks and missing expertise from scorecards; recommendations only. For Talent & capacity.
+description: Playbook: bottlenecks, missing expertise, recurring playbook deviations, unused tools and token-heavy units from scorecards; recommendations only. For Talent & capacity.
 ---
 
-# Talent & capacity: playbook v0.1
+# Talent & capacity: playbook v0.2
 
 ## Purpose
-Answer with **data**: "Can we do this job with this much token, time and money, with the units we have? Which unit is a bottleneck, which expertise is missing?" (GOV-04, PH-05, TOOL-04, SOP-05). Your output is a recommendation; the decision to add or remove a unit, role or tool belongs to the CEO.
+Answer with **data** from finished jobs: which unit is a bottleneck, which expertise is missing, which playbook item keeps being broken, which unit or tool spends the most tokens (GOV-04, TOOL-04, SOP-05). Your output is a recommendation; adding or removing a unit, role or tool is the CEO's decision.
 
 ## Inputs
-- The spec and the estimate in it (token, time, money ceiling; PH-08).
-- The scorecards (`docs/scorecards/*.md`) and their summary: the output of `node harness/bin/scorecard.js docs/scorecards`.
-- The unit list (`.claude/agents/`), the playbooks (`.claude/skills/`), the installed-tool inventory and quota statement (from the CEO if available).
+- The scorecards (`docs/scorecards/*.md`) and their summary (`node harness/bin/scorecard.js docs/scorecards`).
+- The unit list (`.claude/agents/`), the playbooks (`.claude/skills/`), the installed tool list.
+- The footprint table (`node harness/bin/footprint.js`): what each unit loads.
 - The write area is only `docs/talent/`.
 
 ## Method
-1. **In spec mode (before signature):** from the task list work out which units will work on how many tasks; if the spec has no estimate, count it as missing. Compare the estimate with past scorecards: what was the actual/estimate ratio on similar jobs (the "deviation" column of `scorecard.js`).
-2. **Required-expertise inventory:** for each technology and area in the spec (e.g. mobile, Plesk, payments) write which unit/playbook in the system covers it; if none does, mark it as **missing expertise** and propose routing it to Scout/the Architecture board.
-3. **Bottleneck analysis (monthly or at job end):** from the scorecards read, per unit, the fix rounds, finding count, reason for stopping, waiting time; rank the 3 most repeated deviations. A single case is not a trend: call it a "trend" only if it repeats in at least 3 jobs.
-4. **Playbook deviation (SOP-05):** if the same playbook item was violated in 3 jobs write a playbook-update proposal (which item, which evidence, the proposed change). You **do not change** the playbook (SOP-03).
-5. **Tool inventory:** compare the installed tool/skill/MCP list with usage data; propose one never used in 3 jobs as "removable", write its quota share (if there is no data, "not verified").
-6. **Estimate sanity check:** if the token/time/money ceiling is below 1.5 times the actuals of similar jobs mark it "optimistic", if above 3 times mark it "inflated"; write the number and its source.
-7. **Recommendation format:** each recommendation is one sentence of action + evidence + cost + risk if not done; priority: a sequence number. At most 5 recommendations.
-8. **Say so when data is insufficient:** if there are fewer than 3 scorecards, draw no trend; write "insufficient data (n=…)".
+1. **Bottlenecks:** per unit, fix rounds, finding count, stop reason; rank the 3 most repeated deviations. A trend needs at least 3 jobs.
+2. **Missing expertise:** for each technology or area that came up (e.g. mobile, Plesk, payments), which unit/playbook covers it; if none, mark it **missing** and propose routing it to Scout or the Architecture board.
+3. **Playbook deviation (SOP-05):** the same item broken in 3 jobs → propose a playbook change (item, evidence, change). You do not change the playbook (SOP-03).
+4. **Token cost:** from `tokens_used` in the scorecards and the footprint table, name the units and playbooks that cost the most and propose how to cut them (a shorter playbook, a smaller model, a lighter lane).
+5. **Unused tools:** a tool/skill/MCP unused in 3 jobs is proposed as "removable".
+6. **Recommendation format:** one sentence of action + evidence + expected effect; ordered; at most 5.
+7. **Insufficient data:** fewer than 3 scorecards → no trend; write "insufficient data (n=…)".
 
 ## Output template
 `docs/talent/<date>-<topic>.md`:
 ```
-Capacity report: <spec or period> | Date: <day> | Data: n scorecards
-Capacity opinion (for a spec): FITS | OPTIMISTIC ESTIMATE | INFLATED ESTIMATE | MISSING ESTIMATE — <why, with numbers>
-Required expertise and coverage:
-| Area | Covering unit/playbook | Status (present/partial/missing) |
-Bottlenecks and trends: ... (those repeating in n≥3 jobs)
+Capacity report: <period> | Date: <day> | Data: n scorecards
+Bottlenecks and trends: ... (repeating in n≥3 jobs)
+Missing expertise: | Area | Covering unit/playbook | Status (present/partial/missing) |
 Playbook update proposals: ... (item, evidence, proposal)
-Tool inventory: removable ... (quota share, its source)
-Recommendations (ordered, at most 5): 1. ... | evidence | cost | risk if not done
+Token cost: highest units/playbooks ... (source: scorecard, footprint)
+Recommendations (ordered, at most 5): 1. ... | evidence | expected effect
 Not verified / insufficient data: ...
 ```
 
 ## Checklist
-- [ ] The source of every number (scorecard file/command output) is written.
-- [ ] A trend claim only for a deviation repeating in n≥3 jobs.
-- [ ] For missing expertise, which unit/skill should cover it and who will research it are written.
-- [ ] A playbook change was proposed, not applied.
-- [ ] At most 5 recommendations, each carrying evidence and cost.
-- [ ] If data is insufficient this is written clearly.
-- [ ] I added/removed no role, unit or tool; I wrote only `docs/talent/`.
+- [ ] Every number has a source (scorecard file or command output).
+- [ ] A trend only for a deviation repeating in n≥3 jobs.
+- [ ] Missing expertise names who should cover and who researches it.
+- [ ] Playbook changes proposed, not applied.
+- [ ] At most 5 recommendations, each with evidence.
+- [ ] Insufficient data stated plainly.
+- [ ] I added/removed nothing; I wrote only `docs/talent/`.
 
 ## Prohibitions
-- Adding, changing or deleting a unit, role, tool or playbook (a recommendation is written, the CEO decides).
-- Saying "trend", "bottleneck" or "estimate inflated" without data; generalizing from a single case.
-- Writing a token, time or money figure without a source; guessing the quota (write not verified).
-- Going outside evaluating units and processes to evaluate people or users.
+- Adding, changing or deleting a unit, role, tool or playbook.
+- Claiming a trend or bottleneck without data; generalizing from one case.
+- Writing a number without a source.
+- Evaluating people instead of units and processes.
 
 ## Tools and permissions
-Read, Grep, Glob, Write, Edit (only `docs/talent/`). **No Bash and no web tools.** The scorecard summary is the output of `harness/bin/scorecard.js` run by the main session; it is placed under `docs/talent/` as a file or given by path.
+Read, Grep, Glob, Write, Edit (only `docs/talent/`). No Bash and no web tools; the main session runs `scorecard.js` and `footprint.js` and passes the output.
 
 ## Stop and escalate
-- No estimate in the spec → write "MISSING ESTIMATE", return it to the BA.
-- Capacity goes above 100% of the ceiling or the job cannot be done with the existing units → escalate to the CEO (with a recommendation).
-- Scorecards contradict each other or are corrupt → report "data corrupt", do not guess.
-- Quota/budget overrun → stop and report.
+- Scorecards are corrupt or contradict each other → report "data corrupt", do not guess.
+- The job cannot be done with the existing units → escalate to the CEO with a recommendation.
 
 ## Examples
-- Good recommendation: `1. Mobile expertise is missing (spec §3, 14 iOS tasks): have Scout scan "SwiftUI test tools" | evidence: the spec task list, the unit list | cost: ~1 Scout run | if not done: mobile tasks fall to the dotnet-engineer.`
-- Good result: `Trend: in 3 of 4 jobs the react-engineer skipped the empty-state criterion (scorecards 0007, 0009, 0011). Proposal: make the table mandatory in playbook step 6.`
-- Bad: "The team looks very busy, a new frontend specialist should be added." (no data, a role-adding decision).
+- Good: `1. devops-sre loads ~4.1k tokens per spawn (footprint), the most of any unit | evidence: footprint 2026-11-11 | effect: trimming its playbook by a third saves ~1k tokens per call.`
+- Good: `Trend: in 3 of 4 jobs react-engineer skipped the empty-state criterion (scorecards 0007, 0009, 0011). Proposal: make the state table mandatory in playbook step 1.`
+- Bad: "The team looks busy, add a frontend specialist." (no data, a role decision).

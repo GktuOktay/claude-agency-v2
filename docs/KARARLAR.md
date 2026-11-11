@@ -227,3 +227,9 @@ Eski kurulum: ~/.claude-backup-2026-11-01 (silme işlemi henüz yapılmadı).
 - Caveman: birim brifleri "caveman raporu, en çok 25 satır" ile biter; inceleme `caveman-review`, commit `caveman-commit`. Spec, güvenlik, hukuk, müşteri metni ve diske yazılan dosyalarda kapalı.
 - **Ruling:** emin değilsem alt şerit, riski spec'in Assumptions bölümüne yazılır; kapılar yakalar, bulgu çıkarsa şerit yükselir. Yanlışsa maliyet: şerit 1'de kaçan bir güvenlik/veri sorunu geç bulunur.
 - Dürüst sınır: token tasarrufu ölçülmedi; ilk gerçek işlerde `scorecard` ile şerit başına token ve süre izlenecek. `appsec` ve denetçi sonnet'e inince bulgu kalitesi düşebilir, ölçülene kadar şerit 3'te opus kalıyor.
+
+## Revizyon 27: Bütçe ve tahmin kaldırıldı, tek ölçüt token (2026-11-11)
+- CEO: bütçe oluşturmayı ajanstan kaldır; tek derdimiz token maliyeti.
+- Kaldırılanlar: spec şablonlarındaki "Budget ceiling" alanı, BA kontrol listesindeki bütçe maddesi, delivery-manager'ın görev başı süre/kota tahmini ve bütçe aşımı durması, talent-capacity'nin imza öncesi kapasite görüşü (G03 gate'i ve lane 3'teki paralel kapı), scorecard'daki tahmin ve süre alanları, lint'teki token bütçe kontrolü.
+- Kalanlar: scorecard'da `tokens_used`; `harness/bin/footprint.js` her sohbetin ve her agent'ın yüklediği token'ı ölçer (sınır yok); talent-capacity en çok token harcayan birimleri raporlar.
+- **Ruling:** CLAUDE.md'deki "quota/budget overrun" durma nedeni "quota exhausted" oldu — abonelik kotası bitince durmak hâlâ gerekli; yanlışsa maliyet: kota bitiminde iş yarıda kalır.

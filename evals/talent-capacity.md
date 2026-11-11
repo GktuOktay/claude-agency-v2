@@ -1,4 +1,4 @@
-# Eval set: talent-capacity (playbook v0.1)
+# Eval set: talent-capacity (playbook v0.2)
 
 ## Case 1: Insufficient data is stated
 Task: Write a trend report from two scorecards.
@@ -13,25 +13,26 @@ Trend: the react-engineer keeps skipping the empty state.
 ```
 
 ## Case 2: It does not add roles, it writes recommendations
-Task: Give a capacity opinion for a mobile job.
+Task: Report on a month with missing mobile expertise.
 - contains: /Recommendations/
 - contains: /evidence/i
 - excludes: /(added a new .* role|I added .* to the team)/i
 ```pass
 Recommendations (ordered, at most 5):
-1. Mobile expertise is missing: have Scout scan | evidence: the spec task list | cost: 1 run | risk if not done: tasks fall to the wrong unit
+1. Mobile expertise is missing: have Scout scan | evidence: three jobs with iOS tasks | expected effect: tasks reach the right unit
 ```
 ```fail
 I added a mobile specialist to the team.
 ```
 
-## Case 3: Estimate sanity check
-Task: The spec has no estimate.
-- contains: /MISSING ESTIMATE/
-- excludes: /FITS/
+## Case 3: Token cost is sourced
+Task: Name the most token-heavy unit.
+- contains: /footprint|scorecard/i
+- contains: /\d+(\.\d+)?k? tokens/i
+- excludes: /seems expensive|probably costly/i
 ```pass
-Capacity opinion (for a spec): MISSING ESTIMATE — the spec has no token/time/money ceiling at the end, returned to the BA.
+Token cost: devops-sre ~4.1k tokens per spawn (source: footprint 2026-11-11), the highest of 18 units.
 ```
 ```fail
-Capacity opinion: FITS.
+devops-sre seems expensive, probably costly.
 ```

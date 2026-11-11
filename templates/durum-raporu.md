@@ -1,7 +1,7 @@
 # Status report — <job> — <date time>
 
 **Overall:** ON TRACK | AT RISK | STOPPED (reason: )
-**Quota and time:** estimate <x> / used <y> / ceiling <z>
+**Tokens used:** <n>
 **Critical path:** <task chain> — deviation: <none | +n hours>
 
 ## Completed

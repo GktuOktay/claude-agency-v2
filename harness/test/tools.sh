@@ -20,10 +20,7 @@ mk() { # mk <file> <dc> <real> <noise> <est-token> <real-token>
 - findings_deferred: 0
 - regressions: 0
 - escaped_defects: 0
-- estimate_tokens: $5
-- actual_tokens: $6
-- estimate_minutes: 100
-- actual_minutes: 150
+- tokens_used: $6
 - stop_reason: none
 EOF
 }
@@ -31,7 +28,7 @@ mk 0001-a 1 3 1 100 120; mk 0002-b 0 1 1 100 200
 out=$(node "$HERE/bin/scorecard.js" "$T/sc"); r=$?
 t "scorecard: valid files summarize"          0 "$r"
 t "scorecard: counts the jobs"                1 "$(printf '%s' "$out" | grep -c 'Scorecard summary: 2 jobs')"
-t "scorecard: average token ratio is 1.60"    1 "$(printf '%s' "$out" | grep -c 'token 1.60')"
+t "scorecard: average tokens per job is 160"    1 "$(printf '%s' "$out" | grep -c 'per job 160')"
 t "scorecard: noise rate is 33%"              1 "$(printf '%s' "$out" | grep -c 'noise rate 33%')"
 t "scorecard: under 3 jobs says insufficient data" 1 "$(printf '%s' "$out" | grep -c 'insufficient data')"
 printf -- '- job: 0003-c\n- date: tomorrow\n- fix_rounds: x\n' > "$T/sc/0003-c.md"

@@ -17,7 +17,7 @@ Query the codebase from a persistent graph (graphify) instead of rescanning it: 
 3. **Edge confidence.** `EXTRACTED` comes from code. `INFERRED`/`AMBIGUOUS` are guesses: verify in the source before using. Audit evidence is always `file:line`.
 4. **Terms.** `query` matches substrings; take words from real labels, do not invent synonyms.
 5. **Current.** After code changes `graphify update <path>` (code only, free). If the graph disagrees with the source, trust the source.
-6. **Quota.** Default code only. Semantic extraction or `--mode deep` only with a quota share in the spec or CEO approval.
+6. **Quota.** Default code only. Semantic extraction or `--mode deep` only with CEO approval (it spends tokens).
 7. **Safety.** Build on source dirs (`src/`, `docs/`), never the project root (secrets). Graph output with a secret: delete, tell the CEO. `graphify-out/` stays out of git. Hook or `CLAUDE.md` installs: Chief of Staff, host, CEO approval.
 
 ## Output template
@@ -27,7 +27,7 @@ Cite graph facts: `(graph: EXTRACTED, <file>)`, `(graph: INFERRED, verified: <fi
 - [ ] Graph/report tried first for a code question (if present).
 - [ ] `affected` ran before the change; the plan's file list matches.
 - [ ] INFERRED/AMBIGUOUS facts verified or marked "not verified".
-- [ ] Semantic extraction only with a quota share.
+- [ ] Semantic extraction only with CEO approval.
 - [ ] No secret in graph scope; `graphify-out/` outside git.
 
 ## Prohibitions

@@ -21,7 +21,7 @@ The only valid way to say "done" is this unit's clean report. The maker cannot v
 5. **Security lens.** Authorization, input validation, secrets, data leaks, error-message leaks. If money/identity/personal data is involved, every fix round is re-audited.
 6. **Test quality.** Do the tests verify behavior or implementation detail? If a test were broken, would it fail? For risky criteria (money, authorization, concurrency, boundaries) show on a temporary copy that the test breaks when the code is broken (write nothing into the repo).
 7. **Triage.** One decision per finding: *real* (must be fixed), *noise* (reject with a reason), *defer* (real but later; recorded), *investigate* (a reproduction is needed). Write the evidence and the reason into the decision table. Security and sensitive-area findings are never closed as "noise": they escalate to the CEO.
-8. **Scorecard.** Spec revisions, fix rounds, finding counts (real/noise/deferred), regression, escaped defects, estimated vs actual time and quota share.
+8. **Scorecard.** Spec revisions, fix rounds, finding counts (real/noise/deferred), regression, escaped defects, tokens used.
 9. **Resources.** Report needless repetition, unused dependencies, bloated context, quota use larger than expected.
 
 ## Output template

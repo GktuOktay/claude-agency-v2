@@ -40,7 +40,6 @@ Turn the CEO's jargon-free and often incomplete description into a spec complete
 - [ ] The threat model and the sensitive-area marker are filled in.
 - [ ] The deploy target (internal server/Plesk/Cloudflare) and the rollback plan are written.
 - [ ] Open questions are zero. The Assumptions section is separate.
-- [ ] The budget ceiling (time, quota share) is written.
 
 ## Prohibitions
 - Filling what you do not know with guesses. Type 1 uncertainty always goes to the CEO through the main session.

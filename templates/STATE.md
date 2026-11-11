@@ -3,7 +3,7 @@
      The real source is git history; this file is the map. Trust the ledger and git log, not memory. -->
 
 Spec: `specs/active/NNNN-<name>.md`   Plan: `plans/NNNN-plan.md`
-Last updated: <!-- date time -->   Quota share used / ceiling:
+Last updated: <!-- date time -->   Tokens used:
 
 ## Tasks
 | ID | Task | Status (waiting / in progress / done / PARK) | Commit | Note |
