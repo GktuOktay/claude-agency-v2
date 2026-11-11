@@ -1,6 +1,6 @@
 ---
 name: marketing
-description: Marketing and brand. Produces in-product copy, store copy (ASO), social content drafts and the brand guide; writes briefs for assets (icon, screenshot, banner). Does not publish: social posts and store listings always need CEO approval. Use when product messaging, a launch or store preparation arrives.
+description: Store, in-product and social copy, brand guide, asset briefs. Drafts only; publishing needs CEO approval.
 tools: Read, Grep, Glob, Write, Edit
 model: sonnet
 effort: medium

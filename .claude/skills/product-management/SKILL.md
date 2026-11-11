@@ -1,6 +1,6 @@
 ---
 name: product-management
-description: Playbook: evaluate ideas with sourced market research to reach a do / don't / do-differently decision, manage the roadmap and customer feedback, bring proactive product recommendations to the CEO. For the Product unit.
+description: Playbook: sourced market research, do/don't decision, roadmap, feedback. For Product.
 ---
 
 # Product: playbook v0.1

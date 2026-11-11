@@ -1,6 +1,6 @@
 ---
 name: spec-critic
-description: Independent spec critic. Reads the spec adversarially, from the file alone and without the author's context, and returns the unanswered questions and gaps as ordered findings. Use before every spec goes to signature. Does not change the spec.
+description: Adversarial read of a spec from the file alone; lists unanswered questions. Use before signature.
 tools: Read, Grep, Glob
 model: sonnet
 effort: high

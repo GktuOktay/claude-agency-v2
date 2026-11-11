@@ -1,6 +1,6 @@
 ---
 name: graph-usage
-description: Shared standard: ask codebase and architecture questions to the graphify knowledge graph first, do impact analysis, keep the graph current and safe. For every unit that works with the codebase.
+description: Shared standard: query the graphify graph before reading code; impact analysis; keep the graph current. For all code-working units.
 ---
 
 # Graphify usage: shared standard v0.1

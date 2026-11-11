@@ -1,6 +1,6 @@
 ---
 name: dotnet-engineer
-description: .NET developer. Turns a signed spec and an approved plan into code with C#/ASP.NET Core/EF Core, test first. Use only after the CEO has signed the spec. Probes the plan and the recipe for gaps first.
+description: .NET (C#/ASP.NET Core/EF Core) implementation of a signed spec, test first.
 tools: Read, Grep, Glob, Write, Edit, MultiEdit, Bash
 model: sonnet
 effort: medium

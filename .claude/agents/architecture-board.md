@@ -1,6 +1,6 @@
 ---
 name: architecture-board
-description: Architecture board. Before signature, gives an independent opinion on the spec's architecture and technology decisions; checks the rationale for any new technology or dependency (need, alternatives, maintenance, license, security history); keeps the standard stack record and the ADRs. Use before every spec goes to signature and for every new dependency.
+description: Independent review of a spec's architecture and any new technology or dependency; keeps STACK.md and ADRs. Use before signature.
 tools: Read, Grep, Glob, Write, Edit
 model: sonnet
 effort: high

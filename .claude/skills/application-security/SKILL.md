@@ -1,6 +1,6 @@
 ---
 name: application-security
-description: Playbook: independently review the spec's threat model before signature, and the code, dependencies, secrets and configuration before delivery, against OWASP ASVS and Top 10; report findings with evidence and severity. For the AppSec unit.
+description: Playbook: threat-model review before signature; code, dependency, secret and config review before delivery. For AppSec.
 ---
 
 # AppSec: playbook v0.1

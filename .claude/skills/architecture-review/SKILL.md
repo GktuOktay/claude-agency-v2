@@ -1,6 +1,6 @@
 ---
 name: architecture-review
-description: Playbook: review the spec's architecture before signature, evaluate the rationale for new technology and dependencies (need, alternatives, maintenance, license, security history), keep the standard stack record and the ADRs. For the Architecture board unit.
+description: Playbook: review architecture and new-technology rationale; keep STACK.md and ADRs. For the Architecture board.
 ---
 
 # Architecture board: playbook v0.1

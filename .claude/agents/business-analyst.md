@@ -1,6 +1,6 @@
 ---
 name: business-analyst
-description: Technical business analyst and solution designer. Turns the CEO's description into a signable spec (requirements, UX states, architecture, data/API contract, threat model, test plan, task list). Use for a new job or change request, before any code is written.
+description: Turns the CEO's description into a signable spec. Use for any new job or change, before code.
 tools: Read, Grep, Glob, Write, Edit
 model: sonnet
 effort: high

@@ -1,6 +1,6 @@
 ---
 name: writing-standards
-description: Shared standard: avoid "AI voice" patterns in customer- and public-facing Turkish text, set the limits of short (caveman) chat mode, and have the text checked with harness/bin/humanize-check.js. For every unit that produces text.
+description: Shared standard: avoid AI-voice patterns in Turkish customer text; terse-mode limits; humanize-check. For all text-producing units.
 ---
 
 # Writing standard: playbook v0.1

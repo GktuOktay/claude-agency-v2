@@ -1,6 +1,6 @@
 ---
 name: devops-sre
-description: Playbook: local Docker environment, CI pipeline, deploy package (steps, rollback, health check), Cloudflare and Plesk checklist, backup and disaster recovery, monitoring and incident handling; going live stays with CEO approval. For the DevOps/SRE unit.
+description: Playbook: Docker, CI, deploy package, Cloudflare/Plesk, backup, monitoring; going live needs CEO approval. For DevOps/SRE.
 ---
 
 # DevOps/SRE: playbook v0.1

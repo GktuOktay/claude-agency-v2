@@ -1,6 +1,6 @@
 ---
 name: qa-verification
-description: Playbook: map every acceptance criterion to concrete evidence (criterion ↔ evidence table), probe whether tests are real evidence by breaking the code, write a failing reproduction test first for a bug. For the QA engineer unit.
+description: Playbook: criterion-to-evidence table, break-the-code test probing, failing reproduction tests. For QA.
 ---
 
 # QA engineer: playbook v0.1

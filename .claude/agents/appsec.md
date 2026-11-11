@@ -1,6 +1,6 @@
 ---
 name: appsec
-description: Application security unit. Before signature, independently reviews the spec's threat model (STRIDE, trust boundaries, abuse cases); after signature, reviews code, dependencies, secrets and configuration against OWASP ASVS/Top 10, reporting findings with evidence and severity. Use before every spec goes to signature and before any job is called done. Has no write tool.
+description: Application security review: threat model before signature; code, dependency, secret and config review before delivery (OWASP). Read-only.
 tools: Read, Grep, Glob, Bash
 disallowedTools: Write, Edit, MultiEdit, NotebookEdit
 model: sonnet

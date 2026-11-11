@@ -1,6 +1,6 @@
 ---
 name: business-analysis
-description: Playbook and output standard: turn the CEO's description into a signable, word-for-word technical spec. For the Business analysis unit.
+description: Playbook: turn the CEO's description into a signable technical spec. For the Business analyst.
 ---
 
 # Business analysis: playbook v0.1

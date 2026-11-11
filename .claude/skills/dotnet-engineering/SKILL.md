@@ -1,6 +1,6 @@
 ---
 name: dotnet-engineering
-description: Playbook: turn a signed spec and an approved plan into code with .NET (C#, ASP.NET Core, EF Core), test first. For the Dotnet engineer unit.
+description: Playbook: implement a signed spec in .NET, test first. For the Dotnet engineer.
 ---
 
 # Dotnet engineer: playbook v0.1

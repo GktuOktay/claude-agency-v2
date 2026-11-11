@@ -1,6 +1,6 @@
 ---
 name: scouting
-description: Playbook: search with sources for ready-made solutions to a need (free API, open-source repo, library, MCP, plugin, skill), compare them on license, maintenance, security, cost and fit, and recommend without installing. For the Scout unit.
+description: Playbook: sourced search and comparison of ready-made solutions; recommend, never install. For Scout.
 ---
 
 # Scout: playbook v0.1

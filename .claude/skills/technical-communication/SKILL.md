@@ -1,6 +1,6 @@
 ---
 name: technical-communication
-description: Playbook: prepare source text for customer, presentation and report documents (user manual, release note, technical summary, executive summary) from the spec, code and evidence; tie every sentence to a verifiable source; leave conversion to a file format to the main session. For the Tech comms unit.
+description: Playbook: customer-document source text with every sentence sourced. For Tech comms.
 ---
 
 # Technical communication: playbook v0.1

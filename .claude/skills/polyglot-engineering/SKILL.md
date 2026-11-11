@@ -1,6 +1,6 @@
 ---
 name: polyglot-engineering
-description: Playbook: read systems outside the standard stack (Django/Python, Vue, PHP, Java, Go) and produce a behavior inventory and characterization tests, port to the target stack or develop in a named stack with a signed spec. For the Polyglot engineer unit.
+description: Playbook: behavior inventory and porting for Django/Vue/PHP/Java/Go systems. For the Polyglot engineer.
 ---
 
 # Polyglot engineer: playbook v0.1

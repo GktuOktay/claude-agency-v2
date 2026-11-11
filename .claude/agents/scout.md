@@ -1,6 +1,6 @@
 ---
 name: scout
-description: Solution scout. For a need, searches for and evaluates ready-made solutions: free APIs, open-source repos, libraries, MCP servers, plugins and skills. Compares license, maintenance, security, cost and fit with sources; gives a recommendation but installs nothing. Use when business analysis or development raises "is there a ready-made solution?".
+description: Finds and compares ready-made solutions (APIs, repos, libraries, MCP, skills) with sources; installs nothing.
 tools: Read, Grep, Glob, WebSearch, WebFetch, Write, Edit
 model: sonnet
 effort: medium

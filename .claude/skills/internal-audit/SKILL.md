@@ -1,6 +1,6 @@
 ---
 name: internal-audit
-description: Playbook: independently of the maker, audit the output against the spec, the rules and the evidence; triage findings with reasons; fill in the scorecard. For the Internal audit unit.
+description: Playbook: independent audit against spec, rules and evidence; triage; scorecard. For Internal audit.
 ---
 
 # Internal audit: playbook v0.1

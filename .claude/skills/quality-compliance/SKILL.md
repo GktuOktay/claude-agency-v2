@@ -1,6 +1,6 @@
 ---
 name: quality-compliance
-description: Playbook: keep a requirement, test and evidence traceability record and produce the compliance checklist for every job (privacy law/GDPR, dependency licenses, store rules); give no legal opinion and flag anything that needs a lawyer. For the Quality office unit.
+description: Playbook: traceability record and compliance checklist; no legal opinion. For the Quality office.
 ---
 
 # Quality office and compliance: playbook v0.1

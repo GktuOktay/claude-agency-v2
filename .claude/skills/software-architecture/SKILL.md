@@ -1,6 +1,6 @@
 ---
 name: software-architecture
-description: Playbook: design the solution architecture before the spec (context and component diagrams, module boundaries, data model, API style, quality attributes, deployment), compare options with their trade-offs, and produce a source-to-target transition design for migration from another stack. For the Software architect unit.
+description: Playbook: solution and migration design with options and trade-offs. For the Software architect.
 ---
 
 # Software architect: playbook v0.1

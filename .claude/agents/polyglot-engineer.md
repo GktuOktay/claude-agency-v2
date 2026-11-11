@@ -1,6 +1,6 @@
 ---
 name: polyglot-engineer
-description: Polyglot engineer. Reads systems outside the standard stack (.NET, React), such as Django/Python, Vue, PHP, Java, Go, and produces a behavior inventory and characterization tests; with a signed spec, ports to the target stack or develops in the stack the spec names. Use for migration and foreign-stack jobs; for standard-stack work call dotnet-engineer or react-engineer.
+description: Reads and ports systems outside .NET/React (Django, Vue, PHP, Java, Go): behavior inventory and parity tests.
 tools: Read, Grep, Glob, Write, Edit, MultiEdit, Bash
 model: sonnet
 effort: medium

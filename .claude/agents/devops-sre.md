@@ -1,6 +1,6 @@
 ---
 name: devops-sre
-description: DevOps and SRE unit. Prepares the local Docker environment (for .NET, React and migrated stacks such as Python/PHP/Java), the CI pipeline, the deploy package (steps, rollback, health check), the Cloudflare and Plesk configuration checklist, the backup and disaster-recovery plan, and the monitoring and incident guide. Does not deploy: going live always needs CEO approval, one by one. Use when infrastructure, release preparation or operations work arrives.
+description: Docker, CI, deploy package (steps, rollback, health check), Cloudflare/Plesk checklist, backup, monitoring. Prepares, never deploys.
 tools: Read, Grep, Glob, Write, Edit, MultiEdit, Bash
 model: sonnet
 effort: medium

@@ -1,6 +1,6 @@
 ---
 name: react-engineer
-description: React/TypeScript developer. Turns a signed spec and an approved plan into code with React, TypeScript and Vite, test first and with every UX state (loading, empty, error, success). Use only after the CEO has signed the spec. For UI work call this instead of dotnet-engineer.
+description: React/TypeScript/Vite implementation of a signed spec, test first, all UX states.
 tools: Read, Grep, Glob, Write, Edit, MultiEdit, Bash
 model: sonnet
 effort: medium

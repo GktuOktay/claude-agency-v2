@@ -10,3 +10,10 @@ Keep chat and status messages short. No needless preamble, repetition, apology, 
 **Off (write in full, plainly) for:** specs, security findings and warnings, legal and compliance text, customer-facing and public text, confirmation of an irreversible action, and whenever the user seems confused or says "explain".
 
 **Toggle:** "stop caveman" or "normal mode" turns it off; "caveman" or "be brief" turns it on. If a separate `caveman` skill exists for intensity levels, use it; otherwise this rule is enough.
+
+## Input discipline (what is read costs more than what is written)
+
+- Search before reading: grep or the graph first, then read only the hit with offset/limit. Never `cat` a large file or a whole log; cap command output (`| head -n 50`, `| tail -n 30`).
+- Do not re-read a file you just wrote. Do not poll. Put independent tool calls in one message.
+- Run noisy investigations in a subagent so only its short summary returns.
+- Start a fresh session (or compact) between unrelated jobs; long histories are re-read every turn.
