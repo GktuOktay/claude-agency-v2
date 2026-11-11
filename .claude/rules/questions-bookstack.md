@@ -1,6 +1,6 @@
 # CEO'ya sorular BookStack üzerinden (tüm projeler)
 
-CEO'ya her yeni karar sorusu, projenin BookStack rafındaki **"Sorular"** sayfasına (**Sorular** kitabı) yazılır. Sohbette tek başına sorulmaz; sohbette yalnız "Sorular sayfasına işledim" denir. Yeni bir onay sayfası açılmaz: onay, push izni, silme izni dahil her soru bu tabloya girer.
+CEO'ya her yeni karar sorusu, projenin BookStack rafındaki **"Sorular"** sayfasına (**Sorular** kitabı) yazılır. Sohbette tek başına sorulmaz; sohbette yalnız "Sorular sayfasına işledim" denir. Onay, push izni, silme izni dahil her soru **kendi sayfasını** alır (Sorular kitabında `S-n · kısa başlık`: soru, öneri, kaynak, "cevabı yorum olarak yaz"; CEO 2026-11-10: tek sayfada neyin cevaplandığı ayırt edilemiyordu) ve `Sorular` sayfasındaki tabloya dizin satırı (soru metni sayfaya `/link/<id>` bağlantısı) eklenir. Zil tabloyu okur; ayrı bir "Onay bekleyenler" gibi başka adlı dizin sayfası açılmaz. Soru sayfasındaki yorum o soruyu cevaplanmış sayar; işlenince satır `Cevaplananlar`a taşınır.
 
 ## Prensip: sorular ve kararlar ayrı kitaplarda (tüm projeler, CEO kararı 2026-11-09)
 

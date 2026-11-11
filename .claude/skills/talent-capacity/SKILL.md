@@ -1,6 +1,6 @@
 ---
 name: talent-capacity
-description: Playbook: probe the spec's capacity estimate before signature, report bottlenecks, missing expertise, recurring playbook deviations and unused tools from scorecard data; write recommendations without adding roles. For the Talent and capacity unit.
+description: Playbook: capacity opinion, bottlenecks and missing expertise from scorecards; recommendations only. For Talent & capacity.
 ---
 
 # Talent & capacity: playbook v0.1

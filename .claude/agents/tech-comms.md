@@ -1,6 +1,6 @@
 ---
 name: tech-comms
-description: Technical communication and documentation. Prepares customer, presentation and report documents (user manual, release note, technical summary, executive summary) as source text; leaves ready content for the main session to convert to docx/pptx/pdf. Use when a delivery package or an external document is needed.
+description: Source text for customer documents: manuals, release notes, summaries. Writes only to docs/dis/.
 tools: Read, Grep, Glob, Write, Edit
 model: sonnet
 effort: medium

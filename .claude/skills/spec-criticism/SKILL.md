@@ -1,6 +1,6 @@
 ---
 name: spec-criticism
-description: Playbook: read a spec adversarially as "the person who will write the code" and list the unanswered questions and gaps. For the Spec critic unit.
+description: Playbook: adversarial spec read; list unanswered questions and gaps. For the Spec critic.
 ---
 
 # Spec critic: playbook v0.1

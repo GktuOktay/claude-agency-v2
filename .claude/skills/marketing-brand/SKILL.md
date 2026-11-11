@@ -1,6 +1,6 @@
 ---
 name: marketing-brand
-description: Playbook: produce in-product copy, store copy (ASO), social content drafts and the brand guide; write asset briefs; tie claims to the spec and code; leave publishing to CEO approval. For the Marketing unit.
+description: Playbook: copy, store text, brand guide and asset briefs with sourced claims; publishing needs CEO approval. For Marketing.
 ---
 
 # Marketing and brand: playbook v0.1

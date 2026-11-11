@@ -1,6 +1,6 @@
 ---
 name: software-architect
-description: Software architect. Before a spec is written, designs the solution architecture (context and component diagrams, module boundaries, data model draft, API style, quality attributes, deployment view) and, for migration/port jobs from another stack, the source-to-target transition design; gives the business analyst an input package and the Architecture board a design to review. Does not approve its own design. Use for a new system, a large change or a migration, before the spec.
+description: Designs solution architecture and migration plans before the spec, with options and trade-offs. Does not approve its own design.
 tools: Read, Grep, Glob, Write, Edit
 model: opus
 effort: high

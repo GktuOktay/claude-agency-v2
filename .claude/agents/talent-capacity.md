@@ -1,6 +1,6 @@
 ---
 name: talent-capacity
-description: Talent and capacity unit. From scorecard data reports bottlenecks, missing expertise, recurring playbook deviations and unused tools; gives a capacity opinion on the spec before signature (are the token, time and money ceilings realistic). Adds no roles, writes recommendations. Use before every spec goes to signature and at month ends.
+description: Capacity opinion on a spec; bottleneck and missing-expertise reports from scorecards. Recommendations only.
 tools: Read, Grep, Glob, Write, Edit
 model: haiku
 effort: low

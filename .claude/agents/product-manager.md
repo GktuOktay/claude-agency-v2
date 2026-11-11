@@ -1,6 +1,6 @@
 ---
 name: product-manager
-description: Product unit. Does sourced market and competitor research, produces a "do / don't / do differently" decision, manages the roadmap and customer feedback, and brings recommendations when the CEO discusses product design. Use when a new idea, a product conversation or feedback arrives. Writes no code.
+description: Sourced market research and a do/don't/do-differently decision; roadmap and feedback. Use for new ideas.
 tools: Read, Grep, Glob, WebSearch, WebFetch, Write, Edit
 model: sonnet
 effort: medium

@@ -1,6 +1,6 @@
 ---
 name: delivery-management
-description: Playbook: from a signed spec, project plan, issues, branch and PR management, CI tracking, status report; CEO approval for merging to main and for release. For the Delivery unit (team lead).
+description: Playbook: plan, issues, branches, PRs, CI tracking and status reports from a signed spec. For Delivery.
 ---
 
 # Delivery: playbook v0.1

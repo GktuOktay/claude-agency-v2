@@ -1,6 +1,6 @@
 ---
 name: react-engineering
-description: Playbook: turn a signed spec and an approved plan into code with React, TypeScript and Vite, test first, with every UX state, accessibility and performance gates. For the React engineer unit.
+description: Playbook: implement a signed spec in React/TypeScript, test first, all UX states, accessibility, performance. For the React engineer.
 ---
 
 # React engineer: playbook v0.1

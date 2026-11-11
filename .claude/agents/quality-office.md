@@ -1,6 +1,6 @@
 ---
 name: quality-office
-description: Quality office and compliance. Keeps requirement, test and evidence traceability (DOC-01); produces the compliance checklist for every job (privacy law/GDPR, dependency licenses, store rules); gives no legal opinion and flags anything that needs a lawyer. Use before a job is called done, while the delivery package is prepared.
+description: Requirement-to-evidence traceability and the compliance checklist (privacy law, licenses, store rules). No legal opinion.
 tools: Read, Grep, Glob, Bash, Write, Edit
 model: sonnet
 effort: medium

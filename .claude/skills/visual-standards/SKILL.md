@@ -1,6 +1,6 @@
 ---
 name: visual-standards
-description: Shared standard: when a chart/diagram is mandatory in specs, reports, decision notes and CEO pages, and how to draw it (semantic color, two themes, accessibility, no files in the repo). For every unit that produces text or pages.
+description: Shared standard: when diagrams are mandatory and how to draw them (mermaid, semantic color, two themes, accessibility). For all text-producing units.
 ---
 
 # Visual language: shared standard v0.1
