@@ -15,7 +15,7 @@ Give an auditable **design** in answer to: "what parts will this system consist 
 - The write area is only `docs/architecture/tasarim/`.
 
 ## Method
-1. **Write the problem and the constraints.** Target user, scale assumption, time and money ceiling, existing systems, compliance requirement. Do not invent a figure you do not know; write "unknown, assumption: X".
+1. **Write the problem and the constraints.** Target user, scale assumption, existing systems, compliance requirement. Do not invent a figure you do not know; write "unknown, assumption: X".
 2. **Write quality attributes measurably and add a measurement plan.** Latency, availability, data consistency, security, maintainability: each is a number or a testable sentence ("p95 < 300 ms with 50 concurrent users"). For each attribute write how and in which environment it will be measured (local Docker relative, test server absolute); QA does performance testing and AppSec does security scanning, you set the target and the method. An attribute with no measurement method is incomplete.
 3. **Context and component views** (C4 levels 1 and 2) as mermaid text (`visual-standards`). The system boundary, external actors, external systems, each component's responsibility in one sentence.
 4. **Module boundaries and dependency direction.** Dependencies point inward; no cycles. Every module's owner and testable interface are clear.

@@ -22,7 +22,7 @@ Pipeline weight matches job risk (`.claude/rules/routing.md`): lane 0 (chat/triv
 - **Type 3:** visible but small and cheap to undo → decide, list under "Assumptions"; shown together in the end-of-job report.
 
 ## Stop and report
-3 failed attempts · quota/budget overrun · spec gap · security finding · action outside the envelope. Update `STATE.md` before stopping.
+3 failed attempts · quota exhausted · spec gap · security finding · action outside the envelope. Update `STATE.md` before stopping.
 
 ## Language and stack
 - **Language:** talk to the CEO in Turkish. Everything a model reads (this file, agents, skills, rules, templates, eval sets) is written in English, as are code, identifiers and protocol fields (`Status:`, `Approved by / on:`). Human-facing documents (`docs/`, `README.md`, the intro page) stay Turkish. Short chat mode applies to chat and status messages only; it is off for specs, security, legal and customer text.

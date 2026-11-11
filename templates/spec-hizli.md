@@ -3,7 +3,6 @@
 - Status: Draft | Awaiting approval | Approved | In progress | Shipped
 - Tier: quick
 - Source: <!-- job/request/bug record number; required -->
-- Budget ceiling:
 
 ## Intent
 <!-- 2-3 sentences: what changes, for whom, why now. -->

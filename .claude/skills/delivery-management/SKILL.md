@@ -9,13 +9,13 @@ description: Playbook: plan, issues, branches, PRs, CI tracking and status repor
 Turn the signed spec into a traceable job that can run in parallel, and manage the flow: plan, issues, PRs, CI, status. You write no code. You obey the envelope: task PRs merge into the integration branch autonomously, and everything bound for `main` is the CEO's approval.
 
 ## Inputs
-- The signed spec (§12 task list, §9 test plan, §10 deployment, budget ceiling), `STATE.md`.
+- The signed spec (§12 task list, §9 test plan, §10 deployment), `STATE.md`.
 - The GitHub repository (`gh` and `git`, on the host machine). CI status. The scorecards of earlier jobs.
 - `templates/plan.md`, `issue.md`, `pr.md`, `durum-raporu.md`.
 
 ## Method
 1. **Verify the signature first.** `node harness/approval.js verify <spec> approvals harness/keys/ceo.pub.pem`. If it is not valid, do not start; tell the CEO. If the spec has changed, stop (constitution rule 1).
-2. **Plan.** Split the task list into phases and epics; produce a dependency graph (visual standard: a diagram) and the critical path; an estimated time and quota share for every task; if the total exceeds the budget ceiling, stop. The plan is `plans/NNNN-plan.md`, the progress ledger is `STATE.md`.
+2. **Plan.** Split the task list into phases and epics; produce a dependency graph (visual standard: a diagram) and the critical path. The plan is `plans/NNNN-plan.md`, the progress ledger is `STATE.md`.
 3. **Prevent conflicts.** If two tasks touch the same file or the same node, sequence them; do not run them in parallel. For the impact area use the `affected` command from the `graph-usage` standard.
 4. **Open issues** (only in the CEO's own repositories; never open an issue, comment or PR in third-party repositories): `templates/issue.md` for every atomic task. Spec and criterion references, dependencies, file ownership, labels.
 5. **Branch layout.** The integration branch is `integration/NNNN-<name>` (from the default branch), task branches are `feat/NNNN-<task>`. A task PR's base is the integration branch. Creating branches and pushing to a feature branch are autonomous.
@@ -27,14 +27,14 @@ Turn the signed spec into a traceable job that can run in parallel, and manage t
 11. **Status report** (`templates/durum-raporu.md`): at the end of the job and whenever the CEO asks. Completed, in progress, PARK, assumptions, rulings, items waiting for CEO approval, risks, critical-path slip.
 12. **Classify incoming requests.** A new issue/bug report: bug, change or new feature; route it to the Business analyst for a quick spec; pass it to Product as feedback.
 13. **Release note.** Produce a change summary from meaningful commit messages; the tag and the release go with CEO approval.
-14. **Measure.** Write the gap between estimated and actual time/quota into the scorecard and give it to Internal audit.
+14. **Measure.** Write the tokens used into the scorecard and give it to Internal audit.
 
 ## Output template
 The plan, `STATE.md`, issues, PRs and the status report: in the format of the relevant `templates/` files.
 
 ## Checklist
 - [ ] The signature is valid and the spec has not changed (verified before starting).
-- [ ] The budget ceiling is not exceeded; the critical path is produced.
+- [ ] The critical path is produced.
 - [ ] File ownership of parallel tasks does not conflict.
 - [ ] Every task has an issue, with criterion references.
 - [ ] Every PR has an evidence marker and an audit result.
@@ -54,7 +54,7 @@ The plan, `STATE.md`, issues, PRs and the status report: in the format of the re
 Read, Grep, Glob, Write, Edit (only `plans/`, `STATE.md`, `docs/`), Bash: `gh issue`, `gh pr` (create, view, comment, checks), `git` (read, `switch`, `branch`, `add`, `commit`, `push` to a feature branch). It runs **outside the container, on the host machine** (in the container the network is open only to the model service). `main` and irreversible operations are bound to CEO approval by the `harness/guard.js` hook; in headless runs approval cannot be given, so these operations are refused.
 
 ## Stop and escalate
-- Invalid signature, budget overrun, a large critical-path slip → stop and tell the CEO.
+- Invalid signature, a large critical-path slip → stop and tell the CEO.
 - The same CI error 3 times → stop, ask for a root-cause analysis.
 - A merge conflict you cannot resolve → stop.
 - Security finding → stop, escalate to the CEO.

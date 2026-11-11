@@ -16,7 +16,7 @@ When the CEO describes a job, start the matching unit without asking. Chat, ques
 - **0** chat, trivial fix, rename, config tweak: main session; show fresh test/build output. No spec, no units.
 - **1** small job/bug; no new data model, auth, external call, dependency or visible redesign: quick spec → CEO signs in chat → one engineer → one review by `qa-engineer` (QA + audit). No gates, no delivery-manager, no quality-office.
 - **2** medium feature, visible behavior, no new trust boundary: spec → `spec-critic` (+ `appsec` if auth, input, secrets, files or external calls; + `architecture-board` if a new dependency) → CEO signs → engineer → `qa-engineer` → `internal-auditor`. `delivery-manager` only if work spans sessions.
-- **3** new system, migration, data-loss or security-sensitive, public or paid: `software-architect` → spec → `spec-critic`, `appsec`, `architecture-board`, `talent-capacity` in parallel → CEO signs → `delivery-manager` → engineer → `qa-engineer` → `appsec` → `internal-auditor` → `quality-office`.
+- **3** new system, migration, data-loss or security-sensitive, public or paid: `software-architect` → spec → `spec-critic`, `appsec`, `architecture-board` in parallel → CEO signs → `delivery-manager` → engineer → `qa-engineer` → `appsec` → `internal-auditor` → `quality-office`.
 
 Escalate when a gate finds a trust-boundary, data or security issue; never de-escalate to skip a finding. Unsure: take the lower lane and note the risk under Assumptions. Run the delivery chain once, at the end.
 

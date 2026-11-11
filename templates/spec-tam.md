@@ -5,7 +5,6 @@
 - Tier: full
 - Previous spec: <!-- if any: NNNN/AC-x -->
 - Self-critique: pending | done
-- Budget ceiling: <!-- time and subscription quota share; stop if exceeded -->
 
 ## 1. Intent
 <!-- Business language, 3-5 sentences: who, why, what success looks like, what is deliberately NOT done. Start with the CEO's own words, then clarify. -->
@@ -66,7 +65,7 @@ flowchart LR
 <!-- Privacy law/GDPR, licenses, store rules. A checklist, not a legal opinion. -->
 
 ## 12. Task list (atomic)
-<!-- Each task: id, acceptance-criterion reference, file/area ownership, dependency, estimated time. -->
+<!-- Each task: id, acceptance-criterion reference, file/area ownership, dependency. -->
 | ID | Task | AC | Owning unit | Dependency |
 |---|---|---|---|---|
 | T-1 | | | | |
@@ -92,4 +91,4 @@ Approved by / on: <!-- recorded under approvals/ by harness/approval.js; this li
 | Findings: real / noise / deferred | |
 | Regressions | |
 | Escaped defects | |
-| Estimated / actual time and quota | |
+| Tokens used | |
