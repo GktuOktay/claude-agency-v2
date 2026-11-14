@@ -6,6 +6,18 @@ export const WALK_SPEED = 1.2; // units per second
 const MAX_STEP_S = MAX_STEP_MS / 1000;
 
 export type ActivityKind = 'idle' | 'walk' | 'work' | 'coffee' | 'wave' | 'raise'; // raise: static wave (reduced motion)
+
+// ---- Directed states (spec 0002 §7.5): a robot reserved by a workflow step leaves the cycle above.
+export const DIRECTED_STATES = [
+  'step-walk', 'carry-walk', 'handover', 'wait', 'escort-wait', 'call-hold', 'room-wait', 'call', 'call-wait', 'ride',
+  'seat-wait', 'seated', 'present', 'pair', 'build', 'review', 'test', 'stamp-raise', 'stamp-press', 'step-work', 'called',
+] as const;
+export type DirectedKind = (typeof DIRECTED_STATES)[number];
+/** §7.5: the hourglass waiting marker is shown exactly in these states. */
+export const WAITING_STATES: ReadonlySet<DirectedKind> = new Set<DirectedKind>(['wait', 'escort-wait', 'call-hold', 'room-wait', 'call-wait', 'seat-wait']);
+export const isWaiting = (s: string): boolean => (WAITING_STATES as ReadonlySet<string>).has(s);
+/** Pose vocabulary: the ambient kinds plus the static step gestures (hand over, stamp press, sit still). */
+export type PoseKind = ActivityKind | 'reach' | 'press' | 'sit';
 type Stay = 'idle' | 'work' | 'coffee';
 type WalkTarget = 'desk' | 'coffee' | 'home';
 
@@ -59,6 +71,8 @@ interface Internal {
   walkLength: number;
   walkPhase: number;
   waving: boolean;
+  /** Reserved by a workflow step (spec 0002): the cycle holds until `resume`. */
+  reserved: boolean;
 }
 
 export interface ActivitySim {
@@ -71,6 +85,11 @@ export interface ActivitySim {
   faceToward(id: string, x: number, z: number): void;
   /** Reduced motion: walkers settle at their target, nothing moves, selection raises an arm (no wave). */
   setStatic(on: boolean): void;
+  /** §7.5 interrupt: a step reserved the robot; its cycle stops where it is (the director moves it). */
+  reserve(id: string): void;
+  /** §7.5 return: the robot is back at its home point; it idles there for a newly drawn idle duration. */
+  resume(id: string): void;
+  isReserved(id: string): boolean;
 }
 
 const dist = (a: Point, b: Point): number => Math.hypot(b.x - a.x, b.z - a.z);
@@ -97,6 +116,7 @@ export function createActivitySim(specs: readonly ActivitySpec[], seed: number):
       walkLength: 0,
       walkPhase: 0,
       waving: false,
+      reserved: false,
     });
   }
 
@@ -122,7 +142,7 @@ export function createActivitySim(specs: readonly ActivitySpec[], seed: number):
       const dt = Math.min(Math.max(dtMs, 0), MAX_STEP_MS) / 1000;
       sim.time += dt;
       for (const r of robots.values()) {
-        if (r.waving) continue;
+        if (r.waving || r.reserved) continue;
         r.elapsed += dt;
         if (r.kind === 'walk') {
           const remaining = dist(r.pos, r.targetPoint);
@@ -175,13 +195,33 @@ export function createActivitySim(specs: readonly ActivitySpec[], seed: number):
       frozen = on;
       if (!on) return;
       for (const r of robots.values()) {
-        if (r.kind !== 'walk') continue;
+        if (r.kind !== 'walk' || r.reserved) continue;
         r.pos = { ...r.targetPoint };
         const to = r.target === 'desk' ? 'work' : r.target === 'coffee' ? 'coffee' : 'idle';
         change(r, to, sim.time);
         r.limit = draw(to);
         r.facing = to === 'idle' ? 0 : Math.PI;
       }
+    },
+    reserve(id) {
+      const r = robots.get(id);
+      if (r) r.reserved = true;
+    },
+    resume(id) {
+      const r = robots.get(id);
+      if (!r || !r.reserved) return;
+      r.reserved = false;
+      r.pos = { ...r.spec.home };
+      r.kind = 'idle';
+      r.elapsed = 0;
+      r.limit = draw('idle');
+      r.target = 'home';
+      r.targetPoint = r.spec.home;
+      r.walkLength = 0;
+      r.facing = 0;
+    },
+    isReserved(id) {
+      return robots.get(id)?.reserved ?? false;
     },
     faceToward(id, x, z) {
       const r = robots.get(id);
