@@ -1,5 +1,6 @@
 import type { Unit } from '../data/types';
 import { tr } from '../i18n/tr';
+import { modelLabel, toolLabel } from '../data/toolsTr';
 import { el } from './dom';
 import type { CardLines } from './nowLine';
 
@@ -57,9 +58,13 @@ export function createCard(parent: HTMLElement, opts: CardOptions): CardControll
       }
       row(tr.card.tier, tr.tiers[unit.tier]);
       row(tr.card.role, unit.roleTr);
-      row(tr.card.description, unit.description);
-      row(tr.card.tools, unit.tools.length ? unit.tools.join(', ') : tr.card.none);
-      row(tr.card.model, unit.model ?? tr.card.none);
+      const descDd = el('dd', {}, unit.descriptionTr);
+      const orig = el('details', { class: 'card-original' });
+      orig.append(el('summary', {}, tr.card.original), el('p', {}, unit.description));
+      descDd.append(orig);
+      dl.append(el('dt', {}, tr.card.description), descDd);
+      row(tr.card.tools, unit.tools.length ? unit.tools.map(toolLabel).join(', ') : tr.card.none);
+      row(tr.card.model, unit.model ? modelLabel(unit.model) : tr.card.none);
       row(tr.card.reportsTo, unit.reportsTo ? opts.resolveName(unit.reportsTo) : tr.card.none);
       p.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {

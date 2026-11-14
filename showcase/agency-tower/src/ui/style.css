@@ -247,3 +247,8 @@ html.is-org .robot-label { box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.25), 0 4p
   button, html, body { transition: none; }
   .bubble { animation: none; }
 }
+
+/* Original English text under a disclosure on the robot card. */
+.card-original { margin-top: 6px; font-size: 0.8rem; color: var(--fg-muted); }
+.card-original summary { cursor: pointer; }
+.card-original p { margin: 4px 0 0; }

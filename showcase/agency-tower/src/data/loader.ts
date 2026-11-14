@@ -1,5 +1,6 @@
 // Validates the generated roster and the hand-authored overlay (REQ-6, REQ-7, AC-4).
 // Hand-written guards: the spec allows no schema-library dependency.
+import { TOOLS_TR } from './toolsTr';
 import { TIERS, type Floor, type LoadResult, type Tier, type Unit } from './types';
 
 const ID_RE = /^[a-z0-9-]+$/;
@@ -95,6 +96,7 @@ function validate(rosterIn: unknown, overlayIn: unknown) {
     if (reportsTo !== null && typeof reportsTo !== 'string') fail(`${w}.reportsTo`);
     if (typeof raw.independent !== 'boolean') fail(`${w}.independent`);
     const nameTr = codePointStr(raw.nameTr, `${w}.nameTr`, 1, 32);
+    const descriptionTr = codePointStr(raw.descriptionTr, `${w}.descriptionTr`, 1, 220);
     const roleTr = str(raw.roleTr, `${w}.roleTr`, 1, 60);
     if (!Array.isArray(raw.phrasesTr) || raw.phrasesTr.length < 2 || raw.phrasesTr.length > 6) fail(`${w}.phrasesTr: 2-6 entries`);
     const phrasesTr = (raw.phrasesTr as unknown[]).map((p, k) => str(p, `${w}.phrasesTr[${k}]`, 1, 48));
@@ -108,6 +110,7 @@ function validate(rosterIn: unknown, overlayIn: unknown) {
       if (!fromAgent) return fail(`overlay unit without roster agent: ${id}`);
       card = fromAgent;
     }
+    for (const t of card.tools) if (!Object.hasOwn(TOOLS_TR, t)) fail(`${w}: tool without Turkish gloss: ${t}`);
     units.push({
       id,
       name: id,
@@ -118,6 +121,7 @@ function validate(rosterIn: unknown, overlayIn: unknown) {
       nameTr,
       roleTr,
       phrasesTr,
+      descriptionTr,
       description: card.description,
       tools: card.tools,
       model: card.model,

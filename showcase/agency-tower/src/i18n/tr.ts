@@ -21,6 +21,7 @@ export const tr = {
     tier: 'Kademe',
     role: 'Rol',
     description: 'Açıklama',
+    original: 'Özgün metin',
     tools: 'Araçlar',
     model: 'Model',
     reportsTo: 'Bağlı olduğu',

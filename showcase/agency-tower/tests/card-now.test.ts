@@ -105,7 +105,7 @@ describe('card "Şu an" map (AC-11)', () => {
 
 const unit: Unit = {
   id: 'qa-engineer', name: 'qa-engineer', nameTr: 'Test Mühendisi', floor: 2, tier: 'specialist', reportsTo: null, independent: false,
-  roleTr: 'Rol', phrasesTr: ['a', 'b'], description: 'd', tools: [], model: null,
+  roleTr: 'Rol', phrasesTr: ['a', 'b'], description: 'd', descriptionTr: 'dt', tools: [], model: null,
 };
 
 describe('card DOM lines (AC-11)', () => {

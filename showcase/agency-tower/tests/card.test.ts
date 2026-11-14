@@ -13,6 +13,7 @@ const unit: Unit = {
   roleTr: 'Rol <b>kalın</b>',
   phrasesTr: ['a', 'b'],
   description: '<script>alert(1)</script> desc',
+  descriptionTr: '<b>Türkçe</b> açıklama',
   tools: ['Read', '<i>Write</i>'],
   model: 'sonnet',
 };
@@ -28,10 +29,33 @@ describe('card (AC-10, AC-13)', () => {
     const text = el?.textContent ?? '';
     for (const label of ['Ajan adı', 'Kademe', 'Rol', 'Açıklama', 'Araçlar', 'Model', 'Bağlı olduğu']) expect(text).toContain(label);
     expect(text).toContain('<img src=x onerror=alert(1)>');
+    expect(text).toContain('<b>Türkçe</b> açıklama');
     expect(text).toContain('<script>alert(1)</script> desc');
+    expect(text).toContain('Read · dosya okuma');
+    expect(text).toContain('sonnet · dengeli model');
     expect(text).toContain('Patron');
     expect(text).toContain('sonnet');
     expect(parent.querySelector('img, script, b, i')).toBeNull();
+  });
+
+  it('shows the Turkish description in the Açıklama row and the original English under a closed "Özgün metin" disclosure', () => {
+    const parent = document.createElement('div');
+    const card = createCard(parent, { resolveName: (id) => id });
+    card.open(unit, null);
+    const dd = [...parent.querySelectorAll('dt')].find((d) => d.textContent === 'Açıklama')?.nextElementSibling;
+    expect(dd?.firstChild?.textContent).toBe('<b>Türkçe</b> açıklama');
+    const details = dd?.querySelector('details');
+    expect(details).not.toBeNull();
+    expect(details?.open).toBe(false);
+    expect(details?.querySelector('summary')?.textContent).toBe('Özgün metin');
+    expect(details?.textContent).toContain('<script>alert(1)</script> desc');
+  });
+
+  it('shows an unglossed tool by its bare name', () => {
+    const parent = document.createElement('div');
+    const card = createCard(parent, { resolveName: (id) => id });
+    card.open({ ...unit, tools: ['Mystery'] }, null);
+    expect(parent.textContent).toContain('Mystery');
   });
 
   it('titles the card with nameTr and keeps the original id on a labelled "Ajan adı" line', () => {
