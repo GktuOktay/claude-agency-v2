@@ -56,6 +56,22 @@ describe('city plan', () => {
     expect(plan.lamps.length).toBeGreaterThanOrEqual(12);
   });
 
+  it('has prestige and green (rev 33): planted boulevard medians with trees, a big park with a pond and café terraces under the height cap', () => {
+    expect(plan.medians.length).toBeGreaterThanOrEqual(12);
+    const onMedian = plan.trees.filter((t) => plan.medians.some((m) => inRect(m, t)));
+    expect(onMedian.length, 'median trees').toBeGreaterThanOrEqual(8);
+    for (const m of plan.medians) for (const n of plan.intersections) expect(rectsOverlap(m, { x0: n.x - 3.2, x1: n.x + 3.2, z0: n.z - 3.2, z1: n.z + 3.2 })).toBe(false);
+    const p = plan.park;
+    expect((p.z1 - p.z0) / 15.5, 'bigger park (the old one was 15.5 m deep)').toBeGreaterThan(1.5);
+    expect(inRect(p, { x: plan.pond.x0, z: plan.pond.z0 }) && inRect(p, { x: plan.pond.x1, z: plan.pond.z1 })).toBe(true);
+    expect(plan.trees.length).toBeGreaterThanOrEqual(40);
+    for (const t of plan.tables) {
+      expect(inRect(plan.clear, t)).toBe(false);
+      expect(2.5, 'umbrella below the cap').toBeLessThanOrEqual(heightCap(rectDistance(CAMPUS_BOUNDS, { x0: t.x - 1.1, x1: t.x + 1.1, z0: t.z - 1.1, z1: t.z + 1.1 })));
+      for (const r of [...plan.roads, ...plan.sidewalks, ...plan.buildings]) expect(rectsOverlap({ x0: t.x - 0.9, x1: t.x + 0.9, z0: t.z - 0.9, z1: t.z + 0.9 }, r)).toBe(false);
+    }
+  });
+
   it('is deterministic per seed', () => {
     expect(JSON.stringify(cityPlan(CAMPUS_BOUNDS, 7))).toBe(JSON.stringify(plan));
     expect(JSON.stringify(cityPlan(CAMPUS_BOUNDS, 8).buildings)).not.toBe(JSON.stringify(plan.buildings));
@@ -176,6 +192,68 @@ describe('city sim', () => {
     expect(offWalk).toEqual([]);
     expect(waited).toBeGreaterThan(0);
     sim.pedestrians.forEach((p, k) => expect(p.s).not.toBe(start[k]));
+  });
+
+  it('is calm (rev 33): few, slow vehicles, at most two small shuttles, no big buses', () => {
+    const sim = createCitySim(plan, 7);
+    expect(sim.vehicles.length).toBeLessThanOrEqual(16);
+    const shuttles = sim.vehicles.filter((v) => v.kind === 'bus');
+    expect(shuttles.length).toBeGreaterThan(0);
+    expect(shuttles.length).toBeLessThanOrEqual(2);
+    for (const v of shuttles) expect(v.length).toBeLessThanOrEqual(7);
+    for (const v of sim.vehicles) expect(v.vmax, v.kind).toBeLessThanOrEqual(5.2);
+    expect(sim.vehicles.filter((v) => v.kind === 'car').length).toBeLessThanOrEqual(10);
+  });
+
+  it('cyclists ride the bike lanes, keep moving and stop for the lights', () => {
+    const sim = createCitySim(plan, 7);
+    expect(sim.cyclists.length).toBeGreaterThanOrEqual(6);
+    expect(plan.bikeLanes.length).toBeGreaterThanOrEqual(8);
+    const travelled = sim.cyclists.map(() => 0);
+    const off: string[] = [];
+    let violations = 0;
+    let crossings = 0;
+    for (let i = 0; i < 30 * 120; i++) {
+      const before = sim.cyclists.map((c) => c.s);
+      stepCitySim(sim, 1 / 30);
+      sim.cyclists.forEach((c, k) => {
+        travelled[k] = (travelled[k] ?? 0) + c.speed / 30;
+        // On a bike lane, or crossing an intersection box (the lanes are cut there).
+        if (!plan.bikeLanes.some((r) => inRect(r, c, 0.05)) && !plan.roads.some((r) => inRect(r, c, 0.05))) off.push(`${c.x.toFixed(1)},${c.z.toFixed(1)}`);
+        const path = plan.bikePaths[c.path];
+        const s0 = before[k] ?? 0;
+        if (!path || c.s < s0) return;
+        for (const st of path.stops) {
+          if (s0 + 0.9 < st.s && c.s + 0.9 >= st.s) {
+            crossings++;
+            if (signalState(sim, st.node, other(st.axis)) !== 'red') violations++;
+          }
+        }
+      });
+    }
+    expect(off).toEqual([]);
+    expect(crossings).toBeGreaterThan(4);
+    expect(violations).toBe(0);
+    for (const d of travelled) expect(d).toBeGreaterThan(100);
+  });
+
+  it('the park is lively and relaxed: strollers, a couple with a dog and joggers stay inside the park; people sit on benches and at café tables', () => {
+    const sim = createCitySim(plan, 7);
+    const goers = sim.parkGoers;
+    expect(goers.filter((p) => p.jog).length).toBeGreaterThanOrEqual(2);
+    expect(goers.some((p) => p.dog)).toBe(true);
+    expect(sim.pedestrians.some((p) => p.dog), 'a dog on the sidewalk too').toBe(true);
+    const sides = new Set(sim.pedestrians.filter((p) => p.side !== 0).map((p) => `${p.path}:${p.s.toFixed(3)}`));
+    expect(sides.size, 'couples walk side by side').toBeGreaterThan(0);
+    for (const p of sim.pedestrians.filter((q) => !q.jog)) expect(p.speed, 'strolling pace').toBeLessThanOrEqual(1.1);
+    for (let i = 0; i < 30 * 60; i++) {
+      stepCitySim(sim, 1 / 30);
+      for (const p of goers) expect(inRect(plan.park, p), `${p.x.toFixed(1)},${p.z.toFixed(1)}`).toBe(true);
+    }
+    expect(plan.sitters.length).toBeGreaterThanOrEqual(8);
+    expect(plan.tables.length).toBeGreaterThanOrEqual(6);
+    const seats = [...plan.benches, ...plan.tables];
+    for (const s of plan.sitters) expect(seats.some((b) => Math.hypot(b.x - s.x, b.z - s.z) < 0.8), `${s.x},${s.z}`).toBe(true);
   });
 
   it('path points follow the path heading', () => {
