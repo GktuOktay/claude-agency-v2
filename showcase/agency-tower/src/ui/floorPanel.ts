@@ -27,6 +27,8 @@ export function createFloorPanel(floors: readonly Floor[], onSelect: (v: number 
     nav.append(g);
     return g;
   };
+  // Rev 38: the grouped panel lays out in two rows on phones (style.css), so nothing hides in a sideways scroll.
+  if (campus) nav.classList.add('has-groups');
   const towerHost = campus ? group('floor-panel-tower', tr.panelGroups.tower) : nav;
 
   const make = (host: HTMLElement, key: string, num: string, label: string, onClick: () => void, accent?: number): void => {

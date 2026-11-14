@@ -294,7 +294,8 @@ html.is-org .robot-label { box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.25), 0 4p
   /* Floor panel: compact strip at the top, 44x44 targets, number only (name stays for screen readers). */
   /* Rail spans the screen: floor strip on top, legend and job strip at the bottom. */
   .hud-rail { left: 8px; right: 8px; top: 8px; bottom: 8px; width: auto; gap: 6px; }
-  .floor-panel { flex: none; flex-direction: row; overflow-x: auto; overflow-y: hidden; gap: 4px; padding: 4px; border-radius: var(--radius-pill); scrollbar-width: none; }
+  .floor-panel { flex: none; flex-direction: row; overflow: visible; gap: 4px; padding: 4px; border-radius: var(--radius-pill); }
+  .floor-panel:not(.has-groups) { flex-wrap: wrap; border-radius: 26px; }
   .floor-panel button { min-width: var(--touch); min-height: var(--touch); justify-content: center; padding: 4px 10px; flex: none; }
   .floor-panel .name { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   .floor-panel button[data-floor='all'] .name { position: static; width: auto; height: auto; clip-path: none; }
@@ -304,6 +305,15 @@ html.is-org .robot-label { box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.25), 0 4p
   .panel-group + .panel-group { margin-top: 0; padding-top: 0; border-top: 0; margin-left: 2px; padding-left: 4px; border-left: 1px solid var(--panel-border); }
   .panel-group-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   .floor-panel .is-campus .num { display: inline; }
+  /* Rev 38: two rows at 375 px, no hidden sideways scroll: floors 5..0 on top; "Tüm kule" wraps to the second
+     row, the campus areas share that row (same grid cell, bottom-aligned, offset past "Tüm kule"). */
+  .floor-panel.has-groups { display: grid; grid-template-columns: max-content; border-radius: 26px; }
+  .floor-panel.has-groups .panel-group:first-child { grid-area: 1 / 1; flex-wrap: wrap; width: calc(6 * var(--touch) + 5 * 4px + 2px); }
+  .floor-panel.has-groups .is-campus { grid-area: 1 / 1; align-self: end; margin-left: calc(4.5rem + 4px); }
+  .floor-panel.has-groups button[data-floor='all'] { width: 4.5rem; padding: 4px 6px; gap: 0; }
+  .floor-panel.has-groups button[data-floor='all'] .dot { display: none; }
+  .floor-panel.has-groups .is-campus button { padding: 4px 8px; gap: 0; }
+  .floor-panel.has-groups .is-campus .dot { display: none; }
   .settings { right: 8px; top: 8px; }
   /* Settings: bottom sheet, full width, at most 75 % of the height, internal scroll. */
   .settings-panel { left: 0; right: 0; top: auto; bottom: 0; width: auto; max-height: 75vh; border-radius: 18px 18px 0 0; padding-bottom: calc(var(--space-4) + env(safe-area-inset-bottom, 0px)); }
