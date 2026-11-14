@@ -306,3 +306,9 @@ Eski kurulum: ~/.claude-backup-2026-11-01 (silme işlemi henüz yapılmadı).
 - Paketler: A) doluluk yönetimi: mesai boyunca her sosyal alanda canlılık; Ar-Ge'de ambient derin çalışma, stand-up, prototip; asansör kapasitesi. B) oda yaşamı: odalara bağlı, tıklanamayan "ekip" figürleri (spor yapan, Ar-Ge'de çalışan, yemek yiyen, oynayan, dinlenen); birimler (robotlar) organizasyonu temsil etmeye devam eder. C) arayüz: "Tüm kule" → "Tüm şirket" ve şerit yerleşimi.
 - **Ruling (bütçe):** giriş dosyası sınırı 1 200 000 B. Gerekçe: 972 kB'de yer kalmadı; sayfa açıldıktan sonra yükleme yasak. Yanlışsa maliyet: ilk açılış biraz uzar (gzip ~300 kB).
 - Not: QA 2. tur bu değişikliklerden önceki ağaç üzerinde çalışıyor; bu paketlerden sonra QA fark turu yapılacak.
+
+## Revizyon 40: QA 2. tur kararları (2026-11-14)
+- CEO kararı (vertex bütçesi): "Kopyaları say, küçült". 700 000 sınırı, InstancedMesh kopyaları açılmış (çizilen) sayılarak uygulanır. `build-budget.test` buna göre sıkılaştırılır; ağaç, bitki ve araç ayrıntısı azaltılarak sınırın altına inilir. fps hedefi (≥ 30) korunur.
+- CEO kararı (gün döngüsü): "420 sn, gece %25". Otomatik mod ofis saatini izlemeye devam eder; gece döngünün yaklaşık %25'i olur (~105 s). İmzalı 0001 REQ-18'den (90 s, gece %50) kayıtlı sapma.
+- **Ruling (AC-1):** izin listesi dışındaki dosyalar (`docs/qa/*`, `specs/done/0001`, `specs/draft/0003`, `.claude/launch.json`, `.gitignore`) süreç ve araç dosyalarıdır; CEO'nun "mevcutları commitle" talimatıyla girdi. Kayıtlı sapma, temizlik yok.
+- Açık (Type 1, A paketi sonrası ölçülecek): molaların iş hızına etkisi (3'e karşı 5).
