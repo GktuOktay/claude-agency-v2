@@ -120,3 +120,76 @@ export const drawStay = (rng: Rng, venue: BreakVenue): number => range(rng, STAY
 
 /** The two ping-pong spots face each other across the table. */
 export const PING_PONG: readonly AmenitySpot[] = AMENITY_SPOTS.filter((s) => s.kind === 'ping-pong');
+
+// ---------------------------------------------------------------- occupancy director (KARARLAR rev 39)
+// "Alanları aktif kullanalım": during work hours every social and amenity zone keeps a target number of
+// robots (walking there or staying), filled from free ambient robots in rotation. Ar-Ge is the company's
+// brain: the engineers, the architect, product, scout, the CEO and the chief of staff hold their ambient
+// work sessions there (deep work at the workstations, stand-up at the video wall, prototyping at the bench,
+// device-lab testing).
+
+/** Units whose ambient work sessions happen in the R&D lab. */
+export const LAB_WORKERS: ReadonlySet<string> = new Set([
+  'react-engineer',
+  'dotnet-engineer',
+  'polyglot-engineer',
+  'software-architect',
+  'product-manager',
+  'scout',
+  'ceo',
+  'chief-of-staff',
+]);
+
+/** Robots committed (walking there or staying) per zone during work hours. */
+export const OCCUPANCY_WORK: Readonly<Partial<Record<AmenityZoneId, number>>> = {
+  'rnd-lab': 6,
+  gym: 2,
+  'game-room': 2,
+  'snack-bar': 1,
+  terrace: 1,
+  archive: 1,
+  'sleep-pods': 1,
+};
+/** At lunch the slot joins fill the cafeteria; the director tops the cafeteria, the terrace and the lab up. */
+export const OCCUPANCY_LUNCH: Readonly<Partial<Record<AmenityZoneId, number>>> = {
+  yemekhane: 4,
+  terrace: 1,
+  'rnd-lab': 3,
+};
+/** Shortly before the morning the lab crew heads in (the rest of the office stays home after hours). */
+export const OCCUPANCY_MORNING: Readonly<Partial<Record<AmenityZoneId, number>>> = {
+  'rnd-lab': 3,
+};
+/** In the coffee and tea slots the joins fill the social zones; the director keeps the lab staffed. */
+export const OCCUPANCY_SLOT: Readonly<Partial<Record<AmenityZoneId, number>>> = {
+  'rnd-lab': 5,
+};
+/**
+ * Director stay per zone, seconds [min, max). A trip to the wing takes 15–90 s (bridge or staff elevator),
+ * so a session stays long enough to outweigh its walk; lab sessions are the longest (deep work).
+ */
+export const ZONE_STAY_S: Readonly<Record<AmenityZoneId, readonly [number, number]>> = {
+  'rnd-lab': [70, 110],
+  gym: [45, 70],
+  'game-room': [45, 70],
+  'snack-bar': [30, 45],
+  terrace: [40, 60],
+  archive: [40, 60],
+  'sleep-pods': [40, 60],
+  yemekhane: [50, 70],
+  'roof-garden': [40, 60],
+};
+/** A robot back from a director session rests at least this long before the next one (rotation). */
+export const ROTATE_REST_S = 12;
+/** Nap pods are "occasional": a pods top-up is attempted on this share of director ticks only. */
+export const PODS_TICK_CHANCE = 0.25;
+
+/** Preference of a robot for a zone (lower is better): fans first, then robots that need no elevator. */
+export function zoneRank(unit: string, zone: AmenityZoneId, homeFloor: number, zoneFloor: number): number {
+  const fan = zone === 'rnd-lab' ? LAB_WORKERS.has(unit) : zone === 'archive' ? ARCHIVE_UNITS.has(unit) : false;
+  const near = homeFloor === zoneFloor;
+  if (fan) return near ? 0 : 1;
+  // Lab workers are kept for the lab while another zone has other candidates.
+  if (zone !== 'rnd-lab' && LAB_WORKERS.has(unit)) return near ? 3 : 5;
+  return near ? 2 : 4;
+}
