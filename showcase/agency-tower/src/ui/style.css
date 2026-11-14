@@ -224,7 +224,7 @@ button:hover { background: #fff; border-color: rgba(47, 102, 208, 0.35); }
   font-size: 11px;
   font-weight: 600;
   white-space: nowrap;
-  box-shadow: 0 1px 2px rgba(31, 35, 41, 0.08), 0 4px 12px rgba(31, 35, 41, 0.14);
+  box-shadow: 0 0 0 1px rgba(31, 35, 41, 0.12), 0 1px 2px rgba(31, 35, 41, 0.08), 0 4px 12px rgba(31, 35, 41, 0.14);
 }
 .robot-label.is-active { outline: 2px solid var(--accent); outline-offset: 1px; }
 /* Rev 38 de-clutter: a pill with no room near its robot fades (zone / floor labels keep priority). */
@@ -242,7 +242,7 @@ button:hover { background: #fff; border-color: rgba(47, 102, 208, 0.35); }
   width: max-content;
   white-space: normal;
   overflow-wrap: anywhere;
-  box-shadow: 0 1px 2px rgba(31, 35, 41, 0.08), 0 6px 16px rgba(31, 35, 41, 0.14);
+  box-shadow: 0 0 0 1px rgba(31, 35, 41, 0.12), 0 1px 2px rgba(31, 35, 41, 0.08), 0 6px 16px rgba(31, 35, 41, 0.14);
 }
 .fps { position: absolute; left: var(--space-4); bottom: var(--space-4); background: rgba(20, 22, 26, 0.8); color: #fff; padding: 2px var(--space-2); border-radius: 6px; font: 12px ui-monospace, monospace; }
 .fps[hidden] { display: none; }
