@@ -26,7 +26,7 @@ import { buildOrgLines, orgLines } from '../scene/org';
 import { createDayNightControl } from '../ui/dayNightControl';
 import { createOrgLegend } from '../ui/orgLegend';
 import { bindReducedMotion, type MediaQueryLike } from './motion';
-import { bubbleVisible, robotLabelVisible, roomLabelVisible } from '../scene/labels';
+import { bubbleCovers, bubbleSize, bubbleVisible, floorLabelColumn, robotLabelVisible, roomLabelVisible, type FloorColumnItem, type ScreenRect } from '../scene/labels';
 import { bubbleLift, createDeclutter, declutterDue } from '../scene/declutter';
 import { FLOOR_HEIGHT, FLOOR_TOP, accentCss, buildTower, floorAccent, type RobotEntry } from '../scene/model';
 import { ROBOT_BASE_SCALE, ROBOT_HEIGHT } from '../scene/robot';
@@ -60,7 +60,7 @@ import { syncStaffCabinFrom } from './elevatorView';
 import { createDirector, type Director, type RobotView } from '../scene/director';
 import { createProps, propRobotsOf } from '../scene/props';
 import { createWhiteboard, createWhiteboardTexture } from '../scene/whiteboard';
-import { whiteboardTextureSize } from '../sim/layout';
+import { HALF_DEPTH, SHAFT_X, STAFF_SHAFT, whiteboardTextureSize } from '../sim/layout';
 import { isNavMovement, type NavMovement } from '../sim/navMovement';
 import { createStaffRuntime, type StaffRuntime } from './staffRuntime';
 import { createStaff, type StaffModel } from '../scene/staff';
@@ -604,6 +604,11 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
 
   // ---- per-frame ----
   const bubbleEls: HTMLElement[] = [];
+  // Overview floor label column (rebuilt every frame) and the rects bubbles must keep clear of.
+  const floorCol: FloorColumnItem[] = [];
+  const floorColEls: HTMLElement[] = [];
+  let floorRects: ScreenRect[] = [];
+  const colAnchor = new Vector3();
   const fps = createFpsMeter();
   let last = 0;
   let wasBusy = false;
@@ -678,16 +683,40 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     // them or fade. A pass runs every DECLUTTER_EVERY frames; in between the pills reuse their lift / fade.
     const pass = declutterDue(frameNo++);
     if (pass) clutter.begin();
+    floorCol.length = 0;
+    floorColEls.length = 0;
+    const columnOn = model.view.mode === 'overview';
     for (const { room, e } of roomEls) {
       const on = !orgOn && roomLabelVisible(room, model.view) && !(selected && room.floor === model.view.focusFloor && !room.primary);
       if (!on) {
         show(e, false);
         continue;
       }
+      if (columnOn && room.primary) {
+        // Overview: the floor labels go to one column beside the tower (placed below), not over the facade.
+        const mid = room.floor * FLOOR_HEIGHT + FLOOR_HEIGHT / 2;
+        const pe = project(colAnchor.set(STAFF_SHAFT.x + 0.9, mid, HALF_DEPTH));
+        const pw = project(colAnchor.set(SHAFT_X - 0.9, mid, HALF_DEPTH));
+        if (!pe.visible || !pw.visible) {
+          show(e, false);
+          continue;
+        }
+        if (e.hidden) e.hidden = false; // measured shown (widthOf caches its first reading); placed below this frame
+        floorCol.push({ east: pe.x, west: pw.x, y: (pe.y + pw.y) / 2, w: widthOf(e), h: heightOf(e) });
+        floorColEls.push(e);
+        continue;
+      }
       const p = project(room.position);
       show(e, p.visible, p.x, p.y);
       if (pass && p.visible) clutter.addFixed(p.x, p.y, widthOf(e), heightOf(e));
     }
+    floorRects = floorLabelColumn(floorCol, canvas.getBoundingClientRect().width);
+    floorRects.forEach((r, k) => {
+      const e = floorColEls[k]!;
+      const x = (r.x0 + r.x1) / 2;
+      show(e, true, x, r.y1);
+      if (pass) clutter.addFixed(x, r.y1, r.x1 - r.x0, r.y1 - r.y0);
+    });
 
     // robot name pills: every robot of the focused floor in floor view; hovered / focused / selected otherwise
     highlighted.clear();
@@ -747,7 +776,9 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
       if (!r) return;
       const p = project(headPos(r));
       if (e.textContent !== b.text) e.textContent = b.text;
-      show(e, p.visible && !orgOn && bubbleVisible(floorOf(r), model.view), p.x, p.y, bubbleLift(labelShown.has(b.unitId), pillLift[robotIndex.get(b.unitId) ?? -1] ?? 0));
+      const lift = bubbleLift(labelShown.has(b.unitId), pillLift[robotIndex.get(b.unitId) ?? -1] ?? 0);
+      // A bubble never covers an overview floor label.
+      show(e, p.visible && !orgOn && bubbleVisible(floorOf(r), model.view) && !bubbleCovers(p.x, p.y - lift, bubbleSize(b.text), floorRects), p.x, p.y, lift);
     });
     const staffActive = staffRt?.bubbles(active.length) ?? [];
     staffActive.forEach((b, j) => {
@@ -763,7 +794,7 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
       if (!hp) return;
       const p = project(hp);
       if (e.textContent !== b.text) e.textContent = b.text;
-      show(e, p.visible && !orgOn && bubbleVisible(b.floor, model.view), p.x, p.y, 4);
+      show(e, p.visible && !orgOn && bubbleVisible(b.floor, model.view) && !bubbleCovers(p.x, p.y - 4, bubbleSize(b.text), floorRects), p.x, p.y, 4);
     });
     for (let i = active.length + staffActive.length; i < bubbleEls.length; i++) {
       const e = bubbleEls[i];

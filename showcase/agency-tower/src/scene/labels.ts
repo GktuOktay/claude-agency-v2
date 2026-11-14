@@ -47,3 +47,66 @@ export function stackLabels(items: readonly LabelBox[], h: number, gap = 2): num
   }
   return lifts;
 }
+
+/** Screen rectangle in CSS px. */
+export interface ScreenRect {
+  x0: number;
+  y0: number;
+  x1: number;
+  y1: number;
+}
+
+/** One overview floor label: the tower's east / west facade x and the floor's centre y on screen, label size. */
+export interface FloorColumnItem {
+  east: number;
+  west: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+/** Gap between floor labels in the overview column and between the column and the facade (px). */
+export const FLOOR_COLUMN_GAP = 4;
+export const FLOOR_COLUMN_OFFSET = 12;
+
+/**
+ * Overview floor labels in one column beside the tower (live preview: six department labels stacked over the
+ * facade). Right of the tower when the column fits the viewport, else left of it (right-aligned), else clamped
+ * inside. Each label sits at its floor's height, pushed down just enough to clear the one above, so the floor
+ * order reads top to bottom and no two labels overlap. Returns the label rect per input.
+ */
+export function floorLabelColumn(items: readonly FloorColumnItem[], viewW: number, gap = FLOOR_COLUMN_GAP, offset = FLOOR_COLUMN_OFFSET, margin = 8): ScreenRect[] {
+  if (!items.length) return [];
+  const maxW = Math.max(...items.map((i) => i.w));
+  const east = Math.max(...items.map((i) => i.east)) + offset;
+  const west = Math.min(...items.map((i) => i.west)) - offset - maxW;
+  const side: 'east' | 'west' | 'clamp' = east + maxW <= viewW - margin ? 'east' : west >= margin ? 'west' : 'clamp';
+  const colX = side === 'east' ? east : side === 'west' ? west : Math.max(margin, viewW - margin - maxW);
+  const order = items.map((_, i) => i).sort((a, b) => (items[a]?.y ?? 0) - (items[b]?.y ?? 0));
+  const out = new Array<ScreenRect>(items.length);
+  let prev: ScreenRect | null = null;
+  for (const i of order) {
+    const it = items[i]!;
+    const y0 = Math.max(it.y - it.h / 2, prev ? prev.y1 + gap : -Infinity);
+    const x0 = side === 'west' ? colX + maxW - it.w : colX;
+    const r = { x0, y0, x1: x0 + it.w, y1: y0 + it.h };
+    out[i] = r;
+    prev = r;
+  }
+  return out;
+}
+
+/** Conservative speech bubble size (px) for `text`: 11 px text, max 28ch per line, 4 / 8 px padding. */
+export function bubbleSize(text: string): { w: number; h: number } {
+  const GLYPH = 6.4;
+  const LINE = 28 * GLYPH;
+  const textW = [...text].length * GLYPH;
+  const lines = Math.max(1, Math.ceil(textW / LINE));
+  return { w: Math.min(textW, LINE) + 16, h: lines * 15 + 8 };
+}
+
+/** A bubble anchored bottom-centre at (x, y) covers one of `fixed` (with `pad` px of air). */
+export function bubbleCovers(x: number, y: number, size: { w: number; h: number }, fixed: readonly ScreenRect[], pad = 2): boolean {
+  const b = { x0: x - size.w / 2, x1: x + size.w / 2, y0: y - size.h, y1: y };
+  return fixed.some((r) => b.x0 < r.x1 + pad && r.x0 - pad < b.x1 && b.y0 < r.y1 + pad && r.y0 - pad < b.y1);
+}
