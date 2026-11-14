@@ -19,9 +19,9 @@ import {
 } from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { tr } from '../i18n/tr';
-import { createActivitySim, createBubbleScheduler, type ActivityView, type BreakMovement, type Bubble } from '../scene/activity';
+import { createActivitySim, BREAK_QUEUE_MAX, createBubbleScheduler, SOCIAL_MAX_AWAY, type ActivityView, type BreakMovement, type Bubble } from '../scene/activity';
 import { CAMERA_FOV, CameraRig, FLOOR_TARGET_Y, classifyPointer, configureOrbit, setFrameAspect, setFrameInsets, setOrgInsets } from '../scene/camera';
-import { createDayNight, lightingFor } from '../scene/daynight';
+import { createDayNight, isNightPhase, lightingFor, skyBrightness } from '../scene/daynight';
 import { buildOrgLines, orgLines } from '../scene/org';
 import { createDayNightControl } from '../ui/dayNightControl';
 import { createOrgLegend } from '../ui/orgLegend';
@@ -45,7 +45,8 @@ import { maxJobsFor, qualitySettings, resolveQuality, type Params } from './para
 import { createSettingsMenu } from '../ui/settingsMenu';
 import { createAppearanceSection, readStoredQuality, toLegacyQuality, type OnQuality, type QualityTier } from '../ui/settings/appearance';
 import { createActiveJobsSection } from '../ui/settings/activeJobs';
-import { createOfficeSection, PLACEHOLDER_SCHEDULE } from '../ui/settings/office';
+import { createOfficeSection } from '../ui/settings/office';
+import { createOfficeSchedule, type OfficeClock } from '../sim/schedule';
 import { createScenarioSection } from '../ui/settings/scenario';
 import { createAccessibilitySection } from '../ui/settings/accessibility';
 import { RENDERER_OPTIONS, applyQuality, createQualityContext, initialTier, roomEnvironment } from './quality';
@@ -171,6 +172,12 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     phase: (u) => breakNav?.phase(u) ?? 'still',
     renderPosition: (u, reduced) => breakNav?.renderPosition(u, reduced) ?? { x: 0, y: 0, z: 0 },
   };
+  // Rev 35 P3: the office day runs on the 0002 simulation clock (bound lazily: the runtime is created below).
+  const office: OfficeClock = createOfficeSchedule({
+    get time() {
+      return runtime.clock.time;
+    },
+  });
   const sim = createActivitySim(
     model.robots.map((r) => ({ id: r.unit.id, home: r.homePoint, work: r.workPoint, coffee: r.coffeePoint })),
     SEED,
@@ -178,12 +185,14 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
       campus: {
         movement: breakMovement,
         floors: new Map(data.units.map((u) => [u.id, u.floor])),
-        // Lunch: the noon part of the automatic day cycle (START_PHASE 0.25 = noon).
-        isLunch: () => dayNight.mode() === 'auto' && dayNight.phase() >= 0.2 && dayNight.phase() < 0.32,
+        // Rev 35 P3: breaks follow the office schedule (coffee, lunch, tea slots; rare in between, none after hours).
+        period: () => office.breakPeriod(),
         paused: () => runtime.clock.paused,
-        canRide: () => (breakNav?.elevator.queue().length ?? 1) === 0,
-        // Ruling: no off-floor breaks in the app until the director keeps its floor during a wing walk-back.
-        maxAway: 0,
+        canRide: () => (breakNav?.elevator.queue().length ?? BREAK_QUEUE_MAX) < BREAK_QUEUE_MAX,
+        // Rev 35: social areas for everyone (the CEO included); the director latches the current floor on an
+        // interrupt, so off-floor breaks are safe. The elevator gate (`canRide`) still spaces the trips.
+        exclude: new Set<string>(),
+        maxAway: SOCIAL_MAX_AWAY,
       },
     },
   );
@@ -412,11 +421,13 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     applyQuality(qualityCtx, tier);
     resize();
   };
+  // Rev 35 P3: live office clock on the simulation clock (src/sim/schedule.ts).
+  const officeSection = createOfficeSection({ controls: [runtime.pauseButton, orgBtn], schedule: office });
   const settings = createSettingsMenu({
     sections: [
       createAppearanceSection({ dayNight: dnControl.element, current: currentTier, onQuality }),
       createActiveJobsSection({ strip: runtime.strip.element }),
-      createOfficeSection({ controls: [runtime.pauseButton, orgBtn], schedule: PLACEHOLDER_SCHEDULE }),
+      officeSection,
       createScenarioSection({ seed: MASTER_SEED, laneWeights: scenarios.laneWeights, quality: quality.quality, maxJobs: { low: maxJobsFor('low'), high: maxJobsFor('high') } }),
       createAccessibilitySection({ keys }),
     ],
@@ -544,6 +555,7 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
   let clock = 0;
   let lightsOn = 0;
   let lastSky = '';
+  let officeTick = 0;
 
   const project = (pos: Vector3): { x: number; y: number; visible: boolean } => {
     const r = canvas.getBoundingClientRect();
@@ -686,9 +698,14 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     canvas.style.cursor = hoverId ? 'pointer' : '';
     // day / night: sky, sun, fill, window and floor-light glow (lights fade on over ~0.7 s, cut if reduced)
     dayNight.step(dt);
-    const lightsGoal = dayNight.night() ? 1 : 0;
+    // Rev 35 P3: in Otomatik the light follows the office clock (dark after hours); Gündüz / Gece hold.
+    const autoLight = dayNight.mode() === 'auto';
+    const lightPhase = office.lightPhase();
+    const isNight = autoLight ? isNightPhase(lightPhase) : dayNight.night();
+    const brightness = autoLight ? skyBrightness(lightPhase) : dayNight.brightness();
+    const lightsGoal = isNight ? 1 : 0;
     lightsOn = still ? lightsGoal : lightsOn + (lightsGoal - lightsOn) * Math.min(1, dt * 1.5);
-    const L = lightingFor(dayNight.brightness(), lightsOn);
+    const L = lightingFor(brightness, lightsOn);
     sun.intensity = L.sun;
     sun.color.setHex(L.sunColor);
     hemi.intensity = L.hemi;
@@ -705,10 +722,17 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
       st.setProperty('--bg-1', L.skyTop);
       st.setProperty('--bg-2', L.skyMid);
       st.setProperty('--bg-3', L.skyBottom);
-      document.documentElement.classList.toggle('is-night', dayNight.brightness() < 0.35);
+      document.documentElement.classList.toggle('is-night', brightness < 0.35);
     }
     interior.intensity = model.view.mode === 'floor' && !orgOn ? L.interior * 6 : 0;
     if (interior.intensity > 0) interior.position.set(0, model.view.focusFloor * FLOOR_HEIGHT + 2.2, -0.5);
+
+    // Live office clock in the settings "Ofis" tab (4 refreshes per second of wall time).
+    officeTick += dt;
+    if (officeTick >= 0.25) {
+      officeTick = 0;
+      officeSection.refresh();
+    }
 
     placeSun();
     renderer.render(scene, camera);

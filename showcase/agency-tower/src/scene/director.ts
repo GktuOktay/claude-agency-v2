@@ -544,7 +544,9 @@ export function createDirector(o: DirectorOptions): Director {
           o.ambient.reserve(b.id);
           b.pos = { x: amb.x, y: amb.y, z: amb.z };
           b.facing = amb.facing;
-          b.floor = b.homeFloor;
+          // Floor latch (Rev 35): a robot interrupted on a wing break keeps its current floor and walks back
+          // (no jump into the cabin); the engine port's movement knows where it is.
+          b.floor = eng.movement.floorOf(b.id);
           b.state = amb.kind === 'wave' || amb.kind === 'raise' ? 'idle' : amb.kind;
         }
         b.mode = 'directed';
@@ -563,7 +565,8 @@ export function createDirector(o: DirectorOptions): Director {
       if (b.mode === 'ambient') {
         b.pos = { x: amb.x, y: amb.y, z: amb.z };
         b.facing = amb.facing;
-        b.floor = b.homeFloor;
+        // A break walk changes floor through the same movement: the view (visibility, picking) follows it (R-5).
+        b.floor = eng.movement.floorOf(b.id);
         b.state = amb.kind === 'wave' || amb.kind === 'raise' ? b.state : amb.kind;
         b.moving = amb.kind === 'walk';
         continue;

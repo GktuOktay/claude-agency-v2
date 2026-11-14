@@ -2,7 +2,8 @@
 import { createRng, range, type Rng } from './rng';
 import { AMENITY_SPOTS, type AmenitySpot } from '../sim/layout';
 import type { MovePhase, Target } from '../sim/movement';
-import { NO_CAMPUS_BREAK, PING_PONG, POSE_OF, VENUE_KINDS, drawStay, pickWeighted, venueOf, venueWeights } from './breaks';
+import type { OfficePeriod } from '../sim/schedule';
+import { NO_CAMPUS_BREAK, PING_PONG, POSE_OF, drawStay, inVenue, pickWeighted, slotVenueWeights, venueOfSpot, venueWeights, type SlotKind } from './breaks';
 
 export const MAX_STEP_MS = 100;
 export const WALK_SPEED = 1.2; // units per second
@@ -84,10 +85,14 @@ interface Internal {
   reserved: boolean;
   /** Campus break in progress (walk there, stay, walk back), driven through the nav movement. */
   brk: Break | null;
+  /** Joins the current schedule slot's break (Rev 35): drawn once at the slot start. */
+  join: boolean;
 }
 
 interface Break {
   spot: AmenitySpot;
+  /** Schedule slot the break was taken in (Rev 35), if any. */
+  slot: SlotKind | null;
   phase: 'go' | 'stay' | 'back';
   /** Ping-pong mate (both play only while both stand at the table). */
   partner: string | null;
@@ -116,8 +121,16 @@ export interface CampusBreakOptions {
   canRide?: () => boolean;
   /** Most robots away from their home floor on a break at once (default MAX_AWAY_BREAKS). */
   maxAway?: number;
-  /** Chance that a coffee break goes to the campus instead (default 0.4). */
+  /** Chance that a coffee break goes to the campus instead (default 0.4; with `period`, outside slots OFF_SLOT_CHANCE). */
   chance?: number;
+  /**
+   * Office schedule period (Rev 35, src/sim/schedule.ts). When given, breaks follow it: at a coffee / tea / lunch
+   * slot start each free robot joins the break with JOIN_CHANCE; outside the slots breaks stay rare; after hours
+   * no campus break starts and most robots stay idle at home. Absent: the Rev 31 behaviour.
+   */
+  period?: () => OfficePeriod;
+  /** Units that never take campus breaks (default NO_CAMPUS_BREAK, the CEO). Rev 35 app: none. */
+  exclude?: ReadonlySet<string>;
 }
 
 export interface ActivityOptions {
@@ -127,6 +140,18 @@ export interface ActivityOptions {
 
 /** Most robots away from their home floor on a campus break at once (elevator and job latency). */
 export const MAX_AWAY_BREAKS = 1;
+/** Rev 35 app: social areas for everyone, many robots away at once (the elevator gate still spaces trips). */
+export const SOCIAL_MAX_AWAY = 14;
+/** Rev 35 app elevator gate: a new off-floor break trip starts only while fewer calls than this wait (job calls queue behind at most this many). */
+export const BREAK_QUEUE_MAX = 2;
+/** Chance a free robot joins a schedule slot's break, drawn once per robot at the slot start. */
+export const JOIN_CHANCE: Readonly<Record<SlotKind, number>> = { coffee: 0.7, tea: 0.7, lunch: 0.85 };
+/** Outside the slots (work hours) a coffee choice goes to the campus this rarely. */
+export const OFF_SLOT_CHANCE = 0.05;
+/** After hours an idle robot stays idle at home this often instead of walking to its desk or the coffee. */
+export const AFTER_HOURS_STAY = 0.9;
+/** A meal at the cafeteria or on the terrace during the lunch slot lasts longer, seconds [min, max). */
+export const LUNCH_STAY_S: readonly [number, number] = [50, 75];
 /** Longest wait at the ping-pong table for the mate. */
 export const MATE_WAIT_S = 90;
 const CAMPUS_SEED_SALT = 0x5eed;
@@ -164,6 +189,8 @@ export function createActivitySim(specs: readonly ActivitySpec[], seed: number, 
   const robots = new Map<string, Internal>();
   /** Reduced motion is a render flag only: `step` never reads it (trace identical, AC-16). */
   let reduced = false;
+  /** Office period seen in the previous step (slot start / end detection). */
+  let lastPeriod: OfficePeriod | undefined;
 
   // Upper bound is reduced by one maximal step so an elapsed period never exceeds its range.
   const draw = (kind: Stay): number => range(rng, DURATIONS[kind][0], DURATIONS[kind][1] - MAX_STEP_S);
@@ -184,6 +211,7 @@ export function createActivitySim(specs: readonly ActivitySpec[], seed: number, 
       waving: false,
       reserved: false,
       brk: null,
+      join: false,
     });
   }
 
@@ -213,8 +241,9 @@ export function createActivitySim(specs: readonly ActivitySpec[], seed: number, 
     return out;
   };
   /** Free, at home and idle: can start a campus break now. */
+  const excluded = campus?.exclude ?? NO_CAMPUS_BREAK;
   const breakable = (r: Internal, mv: BreakMovement): boolean =>
-    !r.reserved && !r.waving && !r.brk && r.kind === 'idle' && !NO_CAMPUS_BREAK.has(r.spec.id) && campus?.floors.has(r.spec.id) === true && mv.isAt(r.spec.id, homeTarget(r.spec.id));
+    !r.reserved && !r.waving && !r.brk && r.kind === 'idle' && !excluded.has(r.spec.id) && campus?.floors.has(r.spec.id) === true && mv.isAt(r.spec.id, homeTarget(r.spec.id));
   /** A trip off the home floor needs room under MAX_AWAY_BREAKS (`extra` already planned) and the cabin. */
   const awayOk = (r: Internal, s: AmenitySpot, extra = 0): boolean => {
     if (s.floor === campus?.floors.get(r.spec.id)) return true;
@@ -223,9 +252,10 @@ export function createActivitySim(specs: readonly ActivitySpec[], seed: number, 
     return away < (campus?.maxAway ?? MAX_AWAY_BREAKS) && (campus?.canRide?.() ?? true);
   };
 
-  function beginBreak(r: Internal, s: AmenitySpot, partner: string | null, mv: BreakMovement, time: number): void {
+  function beginBreak(r: Internal, s: AmenitySpot, partner: string | null, mv: BreakMovement, time: number, slot: SlotKind | null = null): void {
     const p = mv.renderPosition(r.spec.id, false);
-    r.brk = { spot: s, phase: 'go', partner, last: { ...p } };
+    r.brk = { spot: s, slot, phase: 'go', partner, last: { ...p } };
+    r.join = false;
     mv.moveTo(r.spec.id, spotTarget(s));
     r.target = 'home';
     r.targetPoint = r.spec.home;
@@ -233,16 +263,33 @@ export function createActivitySim(specs: readonly ActivitySpec[], seed: number, 
     change(r, 'walk', time);
   }
 
-  /** Tries a campus break for a robot whose idle period ended with a coffee choice; true if one started. */
-  function tryBreak(r: Internal, time: number): boolean {
+  /**
+   * Tries a campus break; true if one started. Without `slot`: a robot whose idle period ended with a coffee
+   * choice, gated by the campus chance. With `slot` (Rev 35): a robot joining a schedule slot's break (no chance
+   * gate); the `station` choice sends it to the floor coffee station instead.
+   */
+  function tryBreak(r: Internal, time: number, slot?: SlotKind): boolean {
     if (!campus) return false;
     const mv = campus.movement;
     if (!breakable(r, mv)) return false;
-    if (!(brng() < (campus.chance ?? 0.4))) return false;
-    const venue = pickWeighted(brng, venueWeights(r.spec.id, campus.isLunch?.() ?? false));
+    let venue: ReturnType<typeof slotVenueWeights>[number][0] | null;
+    if (slot) {
+      venue = pickWeighted(brng, slotVenueWeights(r.spec.id, slot));
+      if (venue === 'station') {
+        r.join = false;
+        startWalk(r, 'coffee', time);
+        return true;
+      }
+    } else {
+      const p = campus.period?.();
+      const chance = p === undefined ? (campus.chance ?? 0.4) : p === 'after' ? 0 : (campus.chance ?? OFF_SLOT_CHANCE);
+      if (!(brng() < chance)) return false;
+      venue = pickWeighted(brng, venueWeights(r.spec.id, p === undefined ? (campus.isLunch?.() ?? false) : p === 'lunch'));
+    }
     if (!venue) return false;
+    const v = venue;
     const taken = held();
-    const free = AMENITY_SPOTS.filter((s) => VENUE_KINDS[venue].includes(s.kind) && !taken.has(s.id) && awayOk(r, s));
+    const free = AMENITY_SPOTS.filter((s) => inVenue(s, v) && !taken.has(s.id) && awayOk(r, s));
     // Ping-pong needs a second free robot and both table ends.
     const pp = PING_PONG.filter((s) => !taken.has(s.id));
     const mates = [...robots.values()].filter((v) => v !== r && breakable(v, mv));
@@ -257,11 +304,11 @@ export function createActivitySim(specs: readonly ActivitySpec[], seed: number, 
       const okMates = near.length ? near : okAll;
       const mate = okMates[Math.floor(brng() * okMates.length)];
       if (!other || !mate) return false;
-      beginBreak(r, spot, mate.spec.id, mv, time);
-      beginBreak(mate, other, r.spec.id, mv, time);
+      beginBreak(r, spot, mate.spec.id, mv, time, slot ?? null);
+      beginBreak(mate, other, r.spec.id, mv, time, slot ?? null);
       return true;
     }
-    beginBreak(r, spot, null, mv, time);
+    beginBreak(r, spot, null, mv, time, slot ?? null);
     return true;
   }
 
@@ -298,10 +345,11 @@ export function createActivitySim(specs: readonly ActivitySpec[], seed: number, 
     if (b.phase === 'go') {
       if (mv.isAt(id, spotTarget(b.spot))) {
         change(r, 'coffee', sim.time);
-        const venue = venueOf(b.spot.kind) ?? 'snack';
+        const venue = venueOfSpot(b.spot) ?? 'snack';
         const mate = mateOf(r);
         // Ping-pong mates share one game length.
-        r.limit = mate && mate.brk?.phase === 'stay' ? mate.limit : drawStay(brng, venue);
+        const meal = b.slot === 'lunch' && (venue === 'cafeteria' || venue === 'terrace');
+        r.limit = mate && mate.brk?.phase === 'stay' ? mate.limit : meal ? range(brng, LUNCH_STAY_S[0], LUNCH_STAY_S[1]) : drawStay(brng, venue);
         if (mate && mate.brk?.phase === 'go') mate.limit = r.limit;
         b.phase = 'stay';
         r.facing = b.spot.facing;
@@ -344,11 +392,31 @@ export function createActivitySim(specs: readonly ActivitySpec[], seed: number, 
       const dt = Math.min(Math.max(dtMs, 0), MAX_STEP_MS) / 1000;
       const paused = campus?.paused?.() ?? false;
       sim.time += dt;
+      const period = campus?.period?.();
+      const slot: SlotKind | null = period === 'coffee' || period === 'tea' || period === 'lunch' ? period : null;
+      if (period !== lastPeriod) {
+        // Slot start (Rev 35): one join draw per free robot, in roster order; a slot end clears the joins.
+        lastPeriod = period;
+        for (const r of robots.values()) {
+          r.join = slot !== null && !r.reserved && !r.brk && !excluded.has(r.spec.id) && campus?.floors.has(r.spec.id) === true && brng() < JOIN_CHANCE[slot];
+          // Mesai biter: robots at their desk or the coffee station head home (no draw).
+          if (period === 'after' && !r.reserved && !r.brk && (r.kind === 'work' || r.kind === 'coffee')) r.limit = Math.min(r.limit, r.elapsed);
+        }
+      }
       for (const r of robots.values()) {
         if (r.waving || r.reserved) continue;
         if (r.brk) {
           if (!paused) stepBreak(r, dt);
           continue;
+        }
+        if (r.join && slot && !paused) {
+          // Joining the slot's break: from idle at home start it now; a robot at its desk or coffee leaves early.
+          if (r.kind === 'idle') {
+            if (tryBreak(r, sim.time, slot)) continue;
+            r.elapsed += dt; // waits at home for a free spot or the elevator gate
+            continue;
+          }
+          if (r.kind === 'work' || r.kind === 'coffee') r.limit = Math.min(r.limit, r.elapsed);
         }
         r.elapsed += dt;
         if (r.kind === 'walk') {
@@ -377,7 +445,11 @@ export function createActivitySim(specs: readonly ActivitySpec[], seed: number, 
             r.pos = { x: r.pos.x + ((r.targetPoint.x - r.pos.x) / remaining) * move, y: r.pos.y, z: r.pos.z + ((r.targetPoint.z - r.pos.z) / remaining) * move };
           }
         } else if (r.elapsed >= r.limit) {
-          if (r.kind === 'idle') {
+          if (r.kind === 'idle' && period === 'after' && rng() < AFTER_HOURS_STAY) {
+            // After hours (Rev 35): most robots stay idle at home.
+            r.elapsed = 0;
+            r.limit = draw('idle');
+          } else if (r.kind === 'idle') {
             const to: WalkTarget = rng() < 0.5 ? 'desk' : 'coffee';
             if (!(to === 'coffee' && !paused && tryBreak(r, sim.time))) startWalk(r, to, sim.time);
           } else startWalk(r, 'home', sim.time);
