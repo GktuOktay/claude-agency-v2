@@ -380,24 +380,36 @@ export function glassPartition(k: Kit, x0: number, z0: number, x1: number, z1: n
 }
 
 /** Exterior shell of one floor as one merged mesh: skirting, top rail and window mullions. */
-export function shellGeometry(halfW: number, halfD: number, height: number, mullionStep = 1.3): BufferGeometry {
+export function shellGeometry(halfW: number, halfD: number, height: number, mullionStep = 1.3, eastDoor?: { z0: number; z1: number }): BufferGeometry {
   const parts: BufferGeometry[] = [];
   const t = 0.07;
-  const side = (len: number, cx: number, cz: number, alongX: boolean): void => {
+  const side = (len: number, cx: number, cz: number, alongX: boolean, gap?: { z0: number; z1: number }): void => {
     const add = (w: number, h: number, y: number, offset: number): void => {
       const geo = alongX ? new BoxGeometry(w, h, t) : new BoxGeometry(t, h, w);
       geo.translate(alongX ? cx + offset : cx, y + h / 2, alongX ? cz : cz + offset);
       parts.push(geo);
     };
-    add(len, 0.14, 0, 0);
-    add(len, 0.08, height - 0.08, 0);
-    add(len, 0.04, height * 0.42, 0);
+    // A rail along the side, split around the door gap (offsets along the side).
+    const rail = (h: number, y: number): void => {
+      if (!gap) return add(len, h, y, 0);
+      const a = -len / 2;
+      const b = len / 2;
+      add(gap.z0 - a, h, y, (a + gap.z0) / 2);
+      add(b - gap.z1, h, y, (gap.z1 + b) / 2);
+    };
+    rail(0.14, 0);
+    rail(0.08, height - 0.08);
+    rail(0.04, height * 0.42);
     const n = Math.max(1, Math.round(len / mullionStep));
-    for (let i = 0; i <= n; i++) add(0.06, height, 0, -len / 2 + (i * len) / n);
+    for (let i = 0; i <= n; i++) {
+      const o = -len / 2 + (i * len) / n;
+      if (!gap || o < gap.z0 - 0.03 || o > gap.z1 + 0.03) add(0.06, height, 0, o);
+    }
+    if (gap) for (const o of [gap.z0 - 0.03, gap.z1 + 0.03]) add(0.06, height, 0, o); // door frame posts
   };
   side(halfW * 2, 0, halfD, true);
   side(halfW * 2, 0, -halfD, true);
-  side(halfD * 2, halfW, 0, false);
+  side(halfD * 2, halfW, 0, false, eastDoor);
   side(halfD * 2, -halfW, 0, false);
   const merged = mergeGeometries(parts);
   for (const p of parts) p.dispose();

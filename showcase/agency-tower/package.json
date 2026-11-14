@@ -13,7 +13,8 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "roster:check": "node scripts/build-roster.mjs --check",
-    "isolation:check": "node scripts/check-isolation.mjs"
+    "isolation:check": "node scripts/check-isolation.mjs",
+    "budget:check": "node scripts/budget-check.mjs"
   },
   "dependencies": {
     "three": "0.187.0"
