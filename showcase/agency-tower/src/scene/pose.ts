@@ -8,6 +8,7 @@ export function applyPose(p: RobotParts, kind: PoseKind, walkPhase: number, time
   p.legL.rotation.set(0, 0, 0);
   p.legR.rotation.set(0, 0, 0);
   p.body.position.y = 0;
+  p.body.rotation.set(0, 0, 0);
   p.head.rotation.set(0, 0, 0);
 
   switch (kind) {
@@ -47,6 +48,68 @@ export function applyPose(p: RobotParts, kind: PoseKind, walkPhase: number, time
       break;
     case 'wave':
       p.armR.rotation.z = -2.7 + Math.sin(timeSec * 10) * 0.35;
+      break;
+    // ---- campus break poses (KARARLAR rev 31); motion comes from timeSec (0 under reduced motion)
+    case 'run': {
+      // Running in place on the treadmill belt: quick, wide leg swing, pumping bent arms, forward lean.
+      const s = Math.sin(timeSec * 14);
+      p.legL.rotation.x = s * 0.9;
+      p.legR.rotation.x = -s * 0.9;
+      p.armL.rotation.x = -0.9 - s * 0.6;
+      p.armR.rotation.x = -0.9 + s * 0.6;
+      p.body.rotation.x = 0.18;
+      p.body.position.y = Math.abs(s) * 0.04;
+      break;
+    }
+    case 'lift': {
+      // Overhead press: both arms go up together and down to the shoulders.
+      const up = 0.5 + 0.5 * Math.sin(timeSec * 3);
+      p.armL.rotation.z = 1.0 + up * 1.6;
+      p.armR.rotation.z = -(1.0 + up * 1.6);
+      p.head.rotation.x = -0.15;
+      break;
+    }
+    case 'paddle': {
+      // Ping-pong: paddle arm forward, swinging across the body; ready stance.
+      const s = Math.sin(timeSec * 4);
+      p.armR.rotation.x = -1.1;
+      p.armR.rotation.y = s * 0.9;
+      p.armL.rotation.x = -0.4;
+      p.body.rotation.y = s * 0.15;
+      p.body.position.y = -0.015;
+      break;
+    }
+    case 'sleep': {
+      // Reclined in the nap pod: torso back, legs stretched out, head to one side, slow breathing.
+      p.body.position.y = 0.07 + Math.sin(timeSec * 0.9) * 0.006;
+      p.body.rotation.x = -1.1;
+      p.legL.rotation.x = -1.45;
+      p.legR.rotation.x = -1.45;
+      p.armL.rotation.z = 0.25;
+      p.armR.rotation.z = -0.25;
+      p.head.rotation.z = 0.35;
+      break;
+    }
+    case 'eat':
+      // Seated at a table or stool: right hand up to the mouth and back, left hand on the table.
+      p.body.position.y = 0.07;
+      p.armR.rotation.x = -1.9 + Math.max(0, Math.sin(timeSec * 2.2)) * -0.5;
+      p.armL.rotation.x = -1.0;
+      p.head.rotation.x = 0.1;
+      break;
+    case 'play': {
+      // Foosball rods or arcade controls: both hands forward, quick jiggle.
+      const s = Math.sin(timeSec * 11);
+      p.armL.rotation.x = -1.2 + s * 0.12;
+      p.armR.rotation.x = -1.2 - s * 0.12;
+      p.head.rotation.x = 0.12;
+      break;
+    }
+    case 'read':
+      // Lab or archive: a folder held in both hands, head down, an occasional page turn.
+      p.armL.rotation.x = -1.0;
+      p.armR.rotation.x = -1.0 + Math.max(0, Math.sin(timeSec * 0.8)) * -0.3;
+      p.head.rotation.x = 0.35;
       break;
     case 'idle':
       p.body.position.y = Math.sin(timeSec * 2) * 0.008;

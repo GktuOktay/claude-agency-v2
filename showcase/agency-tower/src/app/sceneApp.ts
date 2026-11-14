@@ -21,7 +21,7 @@ import {
 } from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { tr } from '../i18n/tr';
-import { createActivitySim, createBubbleScheduler, type ActivityView, type Bubble } from '../scene/activity';
+import { createActivitySim, createBubbleScheduler, type ActivityView, type BreakMovement, type Bubble } from '../scene/activity';
 import { CAMERA_FOV, CameraRig, FLOOR_TARGET_Y, classifyPointer, configureOrbit, setFrameAspect, setFrameInsets, setOrgInsets } from '../scene/camera';
 import { createDayNight, lightingFor } from '../scene/daynight';
 import { buildOrgLines, orgLines } from '../scene/org';
@@ -54,7 +54,7 @@ import { createDirector, type Director, type RobotView } from '../scene/director
 import { createProps, propRobotsOf } from '../scene/props';
 import { createWhiteboard, createWhiteboardTexture } from '../scene/whiteboard';
 import { whiteboardTextureSize } from '../sim/layout';
-import { isNavMovement } from '../sim/navMovement';
+import { isNavMovement, type NavMovement } from '../sim/navMovement';
 import { createStaffRuntime, type StaffRuntime } from './staffRuntime';
 import { createStaff, type StaffModel } from '../scene/staff';
 import { rideToFloor } from './stripActivation';
@@ -153,9 +153,29 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
   configureOrbit(controls);
   applyInitialCamera(rig, camera, controls);
 
+  // Campus breaks (KARARLAR rev 31) walk through the engine's nav movement, bound once the runtime exists.
+  let breakNav: NavMovement | null = null;
+  const breakMovement: BreakMovement = {
+    moveTo: (u, t) => breakNav?.moveTo(u, t),
+    isAt: (u, t) => breakNav?.isAt(u, t) ?? false,
+    phase: (u) => breakNav?.phase(u) ?? 'still',
+    renderPosition: (u, reduced) => breakNav?.renderPosition(u, reduced) ?? { x: 0, y: 0, z: 0 },
+  };
   const sim = createActivitySim(
     model.robots.map((r) => ({ id: r.unit.id, home: r.homePoint, work: r.workPoint, coffee: r.coffeePoint })),
     SEED,
+    {
+      campus: {
+        movement: breakMovement,
+        floors: new Map(data.units.map((u) => [u.id, u.floor])),
+        // Lunch: the noon part of the automatic day cycle (START_PHASE 0.25 = noon).
+        isLunch: () => dayNight.mode() === 'auto' && dayNight.phase() >= 0.2 && dayNight.phase() < 0.32,
+        paused: () => runtime.clock.paused,
+        canRide: () => (breakNav?.elevator.queue().length ?? 1) === 0,
+        // Ruling: no off-floor breaks in the app until the director keeps its floor during a wing walk-back.
+        maxAway: 0,
+      },
+    },
   );
   const bubbles = createBubbleScheduler(
     data.units.map((u) => ({ id: u.id, phrases: u.phrasesTr })),
@@ -193,6 +213,7 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
   {
     // T-6: robots reserved by a job step leave the ambient cycle and follow the engine's movement.
     const mv = runtime.workflow.movement;
+    if (isNavMovement(mv)) breakNav = mv;
     director = createDirector({
       scenarios,
       layouts: model.layouts,
@@ -531,7 +552,9 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
       const v = dv ?? ambientView(sim.get(r.unit.id));
       r.group.position.set(v.x, v.y, v.z);
       r.group.rotation.y = v.facing;
-      const fp = framePose(orgOn, v.pose, v.walkPhase, clock, still, r.unit.id.length);
+      // A robot on a campus break shows its amenity pose (the director reports the ambient kind).
+      const breakPose = sim.isReserved(r.unit.id) ? undefined : sim.get(r.unit.id).pose;
+      const fp = framePose(orgOn, breakPose ?? v.pose, v.walkPhase, clock, still, r.unit.id.length);
       applyPose(r.parts, fp.kind, fp.walkPhase, fp.timeSec);
       r.screen.scrolling = v.screenScroll;
       r.screen.update(dt);
