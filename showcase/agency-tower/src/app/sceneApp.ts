@@ -10,6 +10,8 @@ import {
   HemisphereLight,
   PCFSoftShadowMap,
   PerspectiveCamera,
+  MeshBasicMaterial,
+  Mesh,
   Ray,
   Scene,
   Vector2,
@@ -49,6 +51,7 @@ import { createSelectionFlow } from './selection';
 import { createSimRuntime } from './simRuntime';
 import { syncStaffCabinFrom } from './elevatorView';
 import { createDirector, type Director, type RobotView } from '../scene/director';
+import { createProps, propRobotsOf } from '../scene/props';
 import { isNavMovement } from '../sim/navMovement';
 import { createStaffRuntime, type StaffRuntime } from './staffRuntime';
 import { createStaff, type StaffModel } from '../scene/staff';
@@ -192,6 +195,21 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
       still: () => reducedMq?.matches ?? false,
     });
   }
+  // T-6 visible layer: markers, carried copies, stamp, QA lamps, screen overlays (src/scene/props.ts).
+  {
+    const faceOf = new Map<unknown, MeshBasicMaterial>();
+    model.root.traverse((o) => {
+      if (o instanceof Mesh && o.material instanceof MeshBasicMaterial && o.material.map) faceOf.set(o.material.map, o.material);
+    });
+    for (const r of model.robots) {
+      const face = r.screen.texture ? faceOf.get(r.screen.texture) : undefined;
+      if (face) r.screen.bind(face);
+    }
+  }
+  const props = createProps({ robots: propRobotsOf(model), model });
+  /** R-5: the floor each robot is on now (labels, bubbles, picking), refreshed every frame. */
+  const floorNow = new Map<string, number>(model.robots.map((r) => [r.unit.id, r.floor]));
+  const floorOf = (r: RobotEntry): number => floorNow.get(r.unit.id) ?? r.floor;
   document.addEventListener('visibilitychange', () => runtime.setHidden(document.hidden));
   runtime.setHidden(document.hidden);
 
@@ -283,6 +301,10 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     linesFor: (id) => runtime.cardLinesFor(id, sim.get(id).kind),
     onSelect: (id) => runtime.select(id),
     onRelease: (id) => runtime.release(id),
+    renderPosition: (id) => {
+      const v = director?.view(id);
+      return v ? { x: v.x, y: v.y, z: v.z, floor: v.floor } : null;
+    },
   });
   ctx.hooks.onCardClosed = () => flow.onCardClosed();
   const closeCard = (): void => {
@@ -416,7 +438,7 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     const origin = new Vector3().setFromMatrixPosition(camera.matrixWorld);
     const dir = new Vector3(ndc.x, ndc.y, 0.5).unproject(camera).sub(origin).normalize();
     model.root.updateMatrixWorld(true);
-    return pickRobot(model, new Ray(origin, dir));
+    return pickRobot(model, new Ray(origin, dir), floorOf);
   };
   canvas.addEventListener('pointerdown', (e) => {
     down = { x: e.clientX, y: e.clientY };
@@ -497,14 +519,20 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     const still = motion.active();
     for (const r of model.robots) {
       if (r.unit.id === selected) sim.faceToward(r.unit.id, camera.position.x, camera.position.z);
-      const v = director ? director.view(r.unit.id) : ambientView(sim.get(r.unit.id));
+      const dv = director ? director.view(r.unit.id) : null;
+      const v = dv ?? ambientView(sim.get(r.unit.id));
       r.group.position.set(v.x, v.y, v.z);
       r.group.rotation.y = v.facing;
       const fp = framePose(orgOn, v.pose, v.walkPhase, clock, still, r.unit.id.length);
       applyPose(r.parts, fp.kind, fp.walkPhase, fp.timeSec);
       r.screen.scrolling = v.screenScroll;
       r.screen.update(dt);
+      if (dv) {
+        floorNow.set(r.unit.id, dv.floor);
+        props.robot(r.unit.id, dv, model.view, orgOn); // marker, stamp, current-floor visibility (R-5)
+      }
     }
+    if (director) props.frame(director, model.view, orgOn);
 
     rig.update(dt);
     if (Math.abs(camera.fov - rig.fov) > 1e-3) {
@@ -533,7 +561,7 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     for (const r of model.robots) {
       const e = robotEls.get(r.unit.id);
       if (!e) continue;
-      const on = orgOn || robotLabelVisible({ id: r.unit.id, floor: r.floor }, model.view, highlighted);
+      const on = orgOn || robotLabelVisible({ id: r.unit.id, floor: floorOf(r) }, model.view, highlighted);
       const p = on ? project(headPos(r)) : null;
       if (!p?.visible) {
         show(e, false);
@@ -578,7 +606,7 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
       if (!r) return;
       const p = project(headPos(r));
       if (e.textContent !== b.text) e.textContent = b.text;
-      show(e, p.visible && !orgOn && bubbleVisible(r.floor, model.view), p.x, p.y, labelShown.has(b.unitId) ? 30 : 4);
+      show(e, p.visible && !orgOn && bubbleVisible(floorOf(r), model.view), p.x, p.y, labelShown.has(b.unitId) ? 30 : 4);
     });
     const staffActive = staffRt?.bubbles(active.length) ?? [];
     staffActive.forEach((b, j) => {
