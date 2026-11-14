@@ -54,12 +54,15 @@ button:hover { background: #fff; border-color: rgba(47, 102, 208, 0.35); }
 .fallback .unit-list button { width: 100%; text-align: left; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 
+/* HUD rail: floor panel, org legend and job strip in one flex column, so they never overlap. */
+.hud-rail { position: absolute; z-index: 10; left: var(--space-4); top: var(--space-4); bottom: var(--space-4); width: min(16rem, calc(100vw - 2rem)); display: flex; flex-direction: column; align-items: stretch; gap: var(--space-2); pointer-events: none; }
+.hud-rail > * { pointer-events: auto; }
+
 /* Floor panel: light card, accent dot per floor, current floor marked by text marker + weight + bar. */
 .floor-panel {
-  position: absolute;
-  left: var(--space-4);
-  top: 50%;
-  transform: translateY(-50%);
+  flex: 0 1 auto;
+  min-height: 0;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -68,7 +71,6 @@ button:hover { background: #fff; border-color: rgba(47, 102, 208, 0.35); }
   border-radius: var(--radius);
   box-shadow: var(--panel-shadow);
   padding: 6px;
-  max-width: 12.5rem;
   backdrop-filter: blur(8px);
 }
 .floor-panel button {
@@ -83,6 +85,12 @@ button:hover { background: #fff; border-color: rgba(47, 102, 208, 0.35); }
   padding: 6px 8px;
   position: relative;
 }
+/* Groups "Kule" / "Kampüs" (Rev 31 UI pass); campus areas get a square marker (shape, not colour). */
+.panel-group { display: flex; flex-direction: column; gap: 2px; }
+.panel-group + .panel-group { margin-top: var(--space-1); padding-top: var(--space-1); border-top: 1px solid var(--panel-border); }
+.panel-group-label { margin: 2px 8px; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--fg-muted); }
+.floor-panel .is-campus .dot { border-radius: 2px; background: #7c8a6a; }
+.floor-panel .is-campus .num { display: none; }
 .floor-panel .num { font-variant-numeric: tabular-nums; font-weight: 700; }
 .floor-panel button:hover { background: rgba(31, 35, 41, 0.04); border-color: transparent; }
 .floor-panel button[aria-current='true'] { background: var(--accent-soft); font-weight: 700; color: #173a7a; }
@@ -99,9 +107,28 @@ button:hover { background: #fff; border-color: rgba(47, 102, 208, 0.35); }
 .floor-panel .dot { width: 8px; height: 8px; border-radius: 50%; flex: none; background: var(--floor-accent, #9aa1ab); }
 .floor-panel button[data-floor='all'] .dot { background: transparent; border: 2px solid #9aa1ab; }
 .floor-panel .marker { display: inline-block; min-width: 0.9em; color: var(--accent); font-size: 0.7rem; }
-.toolbar { position: absolute; right: var(--space-4); top: var(--space-4); display: flex; gap: var(--space-2); flex-wrap: wrap; justify-content: flex-end; max-width: calc(100vw - 15rem); }
-.toolbar > button { box-shadow: var(--panel-shadow); border-radius: var(--radius-pill); padding: 6px var(--space-4); font-size: 0.85rem; }
-.toolbar > button[aria-pressed='true'].org-toggle { background: var(--pill-dark); color: #fff; }
+/* Corner settings menu (replaces the toolbar): icon button + non-modal popover. */
+.settings { position: absolute; z-index: 14; right: var(--space-4); top: var(--space-4); }
+.settings-button { display: grid; place-items: center; min-height: var(--touch); min-width: var(--touch); padding: 0; border-radius: var(--radius-pill); box-shadow: var(--panel-shadow); }
+.settings-button[aria-expanded='true'] { background: var(--pill-dark); color: #fff; }
+.settings-button .knob { fill: var(--bg-1); }
+.settings-panel { position: absolute; right: 0; top: calc(var(--touch) + var(--space-2)); width: min(20rem, calc(100vw - 16px)); max-height: calc(100vh - var(--touch) - 3 * var(--space-4)); overflow-y: auto; background: var(--panel); border: 1px solid var(--panel-border); border-radius: var(--radius); box-shadow: var(--panel-shadow); padding: var(--space-3); backdrop-filter: blur(8px); }
+.settings-panel[hidden] { display: none; }
+.settings-title { margin: 0 0 var(--space-2); font-size: 0.95rem; }
+.settings-controls { display: grid; gap: var(--space-2); }
+.settings-controls > button { min-height: var(--touch); border-radius: var(--radius-pill); text-align: left; padding: 6px var(--space-4); font-size: 0.85rem; }
+.settings-controls > button[aria-pressed='true'] { background: var(--pill-dark); color: #fff; }
+.settings-controls > button[aria-pressed='true']::before { content: '✓ '; }
+.settings-controls .segmented { box-shadow: none; justify-content: space-between; }
+.settings-controls .segmented button { min-height: var(--touch); flex: 1; }
+.settings-scenario { margin-top: var(--space-3); padding-top: var(--space-3); border-top: 1px solid var(--panel-border); font-size: 0.82rem; }
+.settings-scenario h3 { margin: 0; font-size: 0.85rem; }
+.settings-note { margin: 2px 0 var(--space-2); color: var(--fg-muted); font-size: 0.75rem; }
+.settings-scenario dl { margin: 0; display: grid; grid-template-columns: 1fr; gap: 2px; }
+.settings-scenario dt { font-weight: 600; color: var(--fg-muted); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; margin-top: var(--space-1); }
+.settings-scenario dd { margin: 0; overflow-wrap: anywhere; }
+.settings-scenario ul { margin: 0; padding-left: 1.1em; }
+.settings-seed { font-variant-numeric: tabular-nums; font-family: ui-monospace, monospace; }
 .segmented { display: inline-flex; padding: 3px; gap: 2px; background: var(--panel); border: 1px solid var(--panel-border); border-radius: var(--radius-pill); box-shadow: var(--panel-shadow); }
 .segmented button { border: 0; background: transparent; border-radius: var(--radius-pill); padding: 4px 12px; min-height: 30px; font-size: 0.82rem; }
 .segmented button[aria-pressed='true'] { background: var(--pill-dark); color: #fff; font-weight: 600; }
@@ -109,7 +136,7 @@ button:hover { background: #fff; border-color: rgba(47, 102, 208, 0.35); }
 .segmented button:disabled { opacity: 0.45; cursor: not-allowed; }
 
 /* Org-mode legend: text names both line styles; swatches are decorative. */
-.org-legend { position: absolute; left: 50%; bottom: var(--space-4); transform: translateX(-50%); background: var(--panel); border: 1px solid var(--panel-border); border-radius: var(--radius); box-shadow: var(--panel-shadow); padding: 10px 16px; font-size: 0.82rem; display: flex; gap: 18px; align-items: center; flex-wrap: wrap; max-width: calc(100vw - 2rem); }
+.org-legend { position: absolute; left: calc(100% + var(--space-4)); bottom: 0; width: max-content; max-width: calc(100vw - 16rem - 3 * var(--space-4)); background: var(--panel); border: 1px solid var(--panel-border); border-radius: var(--radius); box-shadow: var(--panel-shadow); padding: 10px 16px; font-size: 0.82rem; display: flex; gap: 18px; align-items: center; flex-wrap: wrap; }
 .org-legend[hidden] { display: none; }
 .org-legend p { margin: 0; display: inline-flex; align-items: center; gap: 8px; }
 .org-legend-title { font-weight: 700; }
@@ -140,7 +167,7 @@ button:hover { background: #fff; border-color: rgba(47, 102, 208, 0.35); }
 /* DOM labels over the canvas (aria-hidden; text via textContent). */
 .overlay { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 1; }
 .overlay * { pointer-events: none; }
-.floor-panel, .toolbar, .org-legend, .fps { z-index: 10; }
+.fps { z-index: 10; }
 .overlay > * { position: absolute; left: 0; top: 0; will-change: transform; }
 .overlay > [hidden] { display: none; }
 .room-label {
@@ -192,7 +219,16 @@ button:hover { background: #fff; border-color: rgba(47, 102, 208, 0.35); }
 @keyframes bubble-in { from { opacity: 0; } to { opacity: 1; } }
 
 /* Job strip (0002 REQ-11): bottom-left card on desktop; state shown in words and symbols, never colour alone. */
-.job-strip { position: absolute; z-index: 10; left: var(--space-4); bottom: var(--space-4); width: min(22rem, calc(100vw - 2rem)); max-height: 40vh; overflow-y: auto; background: var(--panel); border: 1px solid var(--panel-border); border-radius: var(--radius); box-shadow: var(--panel-shadow); padding: var(--space-2) var(--space-3); font-size: 0.82rem; }
+.job-strip { flex: 0 0 auto; margin-top: auto; max-height: 40vh; overflow-y: auto; background: var(--panel); border: 1px solid var(--panel-border); border-radius: var(--radius); box-shadow: var(--panel-shadow); padding: var(--space-2) var(--space-3); font-size: 0.82rem; }
+.job-top { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
+.job-collapse { min-height: var(--touch); min-width: var(--touch); font-size: 0.78rem; flex: none; }
+.job-collapse[aria-expanded='false']::before { content: '▸ '; }
+.job-collapse[aria-expanded='true']::before { content: '▾ '; }
+.job-body[hidden] { display: none; }
+/* Collapsed: a compact pill (heading + "Göster · n iş"), no longer a panel over the scene. */
+.job-strip.is-collapsed { align-self: flex-start; max-width: 100%; border-radius: var(--radius-pill); padding: 2px 4px 2px var(--space-3); overflow: hidden; }
+.job-strip.is-collapsed h2 { margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.job-strip.is-collapsed .job-collapse { border-radius: var(--radius-pill); }
 .job-strip h2 { margin: 0 0 var(--space-1); font-size: 0.78rem; font-weight: 700; letter-spacing: 0.04em; color: var(--fg-muted); }
 .job-strip h2:focus { outline: none; }
 .job-strip h2:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
@@ -210,7 +246,6 @@ button:hover { background: #fff; border-color: rgba(47, 102, 208, 0.35); }
 .job-steps { grid-column: 1 / -1; margin: 0; padding: 0 0 0 var(--space-2); list-style: none; display: grid; gap: 2px; color: var(--fg-muted); }
 .job-steps .mark-now { color: var(--fg); font-weight: 600; }
 .job-more { margin-top: var(--space-1); }
-.toolbar > button[aria-pressed='true'].motion-toggle { background: var(--pill-dark); color: #fff; }
 .is-night .job-strip { box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.18), 0 2px 10px rgba(0, 0, 0, 0.4); }
 html.is-org .job-strip { opacity: 0.92; }
 
@@ -229,18 +264,26 @@ html.is-org .robot-label { box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.25), 0 4p
   .card dl { grid-template-columns: 1fr; gap: 2px; }
   .card dd { margin-bottom: 8px; }
   /* Floor panel: compact strip at the top, 44x44 targets, number only (name stays for screen readers). */
-  .floor-panel { left: 8px; right: 8px; top: 8px; transform: none; max-width: none; flex-direction: row; overflow-x: auto; gap: 4px; padding: 4px; border-radius: var(--radius-pill); scrollbar-width: none; }
+  /* Rail spans the screen: floor strip on top, legend and job strip at the bottom. */
+  .hud-rail { left: 8px; right: 8px; top: 8px; bottom: 8px; width: auto; gap: 6px; }
+  .floor-panel { flex: none; flex-direction: row; overflow-x: auto; overflow-y: hidden; gap: 4px; padding: 4px; border-radius: var(--radius-pill); scrollbar-width: none; }
   .floor-panel button { min-width: var(--touch); min-height: var(--touch); justify-content: center; padding: 4px 10px; flex: none; }
   .floor-panel .name { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   .floor-panel button[data-floor='all'] .name { position: static; width: auto; height: auto; clip-path: none; }
   .floor-panel button[aria-current='true']::before { left: 10px; right: 10px; top: auto; bottom: 3px; width: auto; height: 3px; }
   .floor-panel .marker { display: none; }
-  .toolbar { left: 8px; right: 8px; top: auto; bottom: 8px; max-width: none; justify-content: center; }
-  .toolbar > button, .segmented button { min-height: var(--touch); }
+  .panel-group { flex-direction: row; align-items: center; gap: 4px; flex: none; }
+  .panel-group + .panel-group { margin-top: 0; padding-top: 0; border-top: 0; margin-left: 2px; padding-left: 4px; border-left: 1px solid var(--panel-border); }
+  .panel-group-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .floor-panel .is-campus .num { display: inline; }
+  .settings { right: 8px; top: 8px; }
+  /* Floor strip leaves the top-right corner to the settings button. */
+  .floor-panel { margin-right: calc(var(--touch) + 8px); }
   .segmented button { min-width: var(--touch); padding: 4px 10px; }
-  .org-legend { bottom: 72px; }
-  /* Strip under the floor strip, above the card sheet and the toolbar; internal scroll. */
-  .job-strip { left: 8px; right: 8px; top: 64px; bottom: auto; width: auto; max-height: 28vh; }
+  .org-legend { position: static; align-self: center; margin-top: auto; max-width: 100%; }
+  .org-legend:not([hidden]) + .job-strip { margin-top: 0; }
+  /* Strip at the bottom (the top floors and their labels stay clear); the card sheet opens above it. */
+  .job-strip { max-height: 28vh; }
 }
 
 @media (prefers-reduced-motion: reduce) {

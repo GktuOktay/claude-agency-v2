@@ -105,7 +105,7 @@ describe('key map (AC-11)', () => {
     expect(s.log).toEqual([]);
   });
 
-  it('the toolbar toggle turns shortcuts off and on again', () => {
+  it('the settings-menu toggle turns shortcuts off and on again', () => {
     const s = setup();
     s.h.setEnabled(false);
     s.key('2');

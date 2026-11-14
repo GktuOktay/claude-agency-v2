@@ -24,6 +24,25 @@ export interface JobStripOptions {
   expandByDefault(): boolean;
 }
 
+/** localStorage key of the collapsed pill state ('1' collapsed, '0' expanded). */
+export const STRIP_COLLAPSED_KEY = 'agency-tower:job-strip-collapsed';
+
+function readCollapsed(): boolean {
+  try {
+    return globalThis.localStorage?.getItem(STRIP_COLLAPSED_KEY) === '1';
+  } catch {
+    return false; // storage blocked (privacy mode): start expanded
+  }
+}
+
+function writeCollapsed(on: boolean): void {
+  try {
+    globalThis.localStorage?.setItem(STRIP_COLLAPSED_KEY, on ? '1' : '0');
+  } catch {
+    // storage blocked: the state lasts for this page only
+  }
+}
+
 export interface JobStrip {
   element: HTMLElement;
   header: HTMLElement;
@@ -62,7 +81,28 @@ export function createJobStrip(opts: JobStripOptions): JobStrip {
   const empty = el('p', { class: 'job-empty' }, tr.strip.empty);
   const list = el('ul', { class: 'job-list' });
   const more = el('button', { type: 'button', class: 'job-more', 'aria-expanded': 'false' });
-  section.append(header, empty, list, more);
+  const body = el('div', { class: 'job-body', id: 'job-strip-body' });
+  const collapse = el('button', { type: 'button', class: 'job-collapse', 'aria-controls': 'job-strip-body' });
+  const top = el('div', { class: 'job-top' });
+  top.append(header, collapse);
+  body.append(empty, list, more);
+  section.append(top, body);
+
+  // Compact pill: heading + "Göster · n iş"; state by aria-expanded and text, not colour.
+  let collapsed = readCollapsed();
+  let count = 0;
+  const applyCollapsed = (): void => {
+    body.hidden = collapsed;
+    section.classList.toggle('is-collapsed', collapsed);
+    collapse.setAttribute('aria-expanded', String(!collapsed));
+    setText(collapse, collapsed ? tr.strip.expand(count) : tr.strip.collapse);
+  };
+  collapse.addEventListener('click', () => {
+    collapsed = !collapsed;
+    writeCollapsed(collapsed);
+    applyCollapsed();
+  });
+  applyCollapsed();
 
   const rows = new Map<number, Row>();
   const expanded = new Map<number, boolean>();
@@ -181,9 +221,13 @@ export function createJobStrip(opts: JobStripOptions): JobStrip {
         if (list.children[i] !== li) list.insertBefore(li, list.children[i] ?? null);
       });
       // The empty text is in the DOM only when no job is shown (its text must not linger for readers).
-      if (entries.length === 0 && !empty.isConnected) section.insertBefore(empty, list);
+      if (entries.length === 0 && !empty.isConnected) body.insertBefore(empty, list);
       else if (entries.length > 0 && empty.isConnected) empty.remove();
       applyNarrow();
+      if (count !== entries.length) {
+        count = entries.length;
+        applyCollapsed();
+      }
       if (hadFocus && (!active.isConnected || active.closest('[hidden]'))) header.focus();
     },
   };

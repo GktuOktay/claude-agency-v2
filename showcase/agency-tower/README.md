@@ -15,7 +15,7 @@ npm test           # yalnızca commit edilmiş JSON ve fixture'larla çalışır
 npm run roster:check
 ```
 
-WebGL2 gerekir. URL parametreleri: `?quality=low|high`, `?debug=1` (fps göstergesi). Kısayollar: `0`–`5` kat, `O` organizasyon şeması, `Esc` kartı kapat (kart yoksa org modundan çık); araç çubuğundan kapatılabilir.
+WebGL2 gerekir. URL parametreleri: `?quality=low|high`, `?debug=1` (fps göstergesi). Kısayollar: `0`–`5` kat, `O` organizasyon şeması, `Esc` kartı kapat (kart yoksa org modundan çık); sağ üst köşedeki Ayarlar menüsünden (kaydırıcı simgesi) kapatılabilir. Ayarlar menüsü: Gündüz/Gece/Otomatik, Organizasyon şeması, Hareketi durdur, Kısayollar ve salt okunur Senaryo bilgisi (seed, hat ağırlıkları, kaliteye göre aktif iş sınırı); `Esc` menüyü kapatır. "Aktif işler" şeridi küçültülebilir; durum tarayıcıda hatırlanır.
 
 ## Kullanım
 

@@ -14,6 +14,7 @@ export const tr = {
   shortcutsOff: 'Kısayollar: kapalı',
   close: 'Kapat',
   floorPanel: 'Kat seçimi',
+  panelGroups: { tower: 'Kule', campus: 'Kampüs' },
   unitList: 'Birim listesi',
   currentMarker: '● ',
   card: {
@@ -67,12 +68,27 @@ export const tr = {
     evidence: 'Kanıt: test çıktısı',
     loops: '↺',
     more: (n: number): string => `+${n} diğer`,
+    collapse: 'Küçült',
+    expand: (n: number): string => `Göster · ${n} iş`,
     marks: {
       done: { symbol: '✓', word: 'bitti' },
       now: { symbol: '▶', word: 'şimdi' },
       next: { symbol: '○', word: 'sırada' },
       returned: { symbol: '↺', word: 'geri döndü' },
     },
+  },
+  // Corner settings menu (Rev 31 UI pass).
+  settings: {
+    title: 'Ayarlar',
+    view: 'Görünüm',
+    scenario: 'Senaryo',
+    readOnly: 'Salt okunur · simülasyon verisi',
+    seed: 'Tohum (seed)',
+    laneWeights: 'Hat ağırlıkları',
+    limit: 'Aktif iş sınırı',
+    tiers: { low: 'Düşük kalite', high: 'Yüksek kalite' },
+    maxJobs: (n: number): string => `en çok ${n} aktif iş`,
+    current: '(şu an)',
   },
   // REQ-18 toolbar toggle.
   motionPause: 'Hareketi durdur',

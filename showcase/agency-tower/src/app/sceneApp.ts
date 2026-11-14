@@ -34,12 +34,16 @@ import { pickRobot } from '../scene/picking';
 import { applyPose } from '../scene/pose';
 import { createRng } from '../scene/rng';
 import { createFloorPanel } from '../ui/floorPanel';
+import { CAMPUS_ITEMS, campusItem, nextCampus, type CampusKey } from '../ui/campusNav';
 import { createKeyHandler } from '../ui/keymap';
 import { el } from '../ui/dom';
+import { mountHud } from '../ui/hudLayout';
 import { createUnitList } from '../ui/unitList';
 import { applyInitialCamera, projectToScreen } from './initialCamera';
 import { createFpsMeter, createLoop } from './loop';
-import { qualitySettings, resolveQuality, type Params } from './params';
+import { maxJobsFor, qualitySettings, resolveQuality, type Params } from './params';
+import { createScenarioInfo, createSettingsMenu, createShortcutToggle } from '../ui/settingsMenu';
+import { MASTER_SEED } from '../sim/workflow';
 import { framePose, shouldStepSim } from './frameUpdate';
 import { createSelectionFlow } from './selection';
 import { createSimRuntime } from './simRuntime';
@@ -162,7 +166,7 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     scenarios,
     units: new Map(data.units.map((u) => [u.id, u.floor])),
     titles,
-    maxJobs: quality.quality === 'low' ? 2 : 3,
+    maxJobs: maxJobsFor(quality.quality),
     unitName: ctx.nameOf,
     onStep: (dt, events) => {
       director?.ingest(events);
@@ -266,7 +270,7 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     model.setOrg(false);
     syncStaff();
     rig.exitOrg();
-    panel.setCurrent(model.view.mode === 'floor' ? model.view.focusFloor : 'all');
+    panel.setCurrent(campusAt ?? (model.view.mode === 'floor' ? model.view.focusFloor : 'all'));
   }
   orgBtn.addEventListener('click', () => (orgOn ? exitOrg() : enterOrg()));
 
@@ -293,16 +297,33 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     dropOrg();
     if (v === 'all') goOverview();
     else goFloor(v);
+  }, {
+    items: CAMPUS_ITEMS,
+    onSelect: (k) => {
+      closeCard();
+      dropOrg();
+      goCampus(k);
+    },
   });
   panel.setCurrent('all');
 
+  let campusAt: CampusKey | null = null;
+  function goCampus(k: CampusKey): void {
+    const c = campusItem(k);
+    model.setView({ mode: 'floor', focusFloor: c.focusFloor }); // ghosting follows the same tower floor
+    syncStaff();
+    rig.goToWing(c.level, c.focusFloor);
+    panel.setCurrent((campusAt = k));
+  }
   function goFloor(n: number): void {
+    campusAt = null;
     model.setView({ mode: 'floor', focusFloor: n });
     syncStaff();
     rig.goToFloor(n);
     panel.setCurrent(n);
   }
   function goOverview(): void {
+    campusAt = null;
     model.setView({ mode: 'overview', focusFloor: 0 });
     syncStaff();
     rig.goOverview();
@@ -318,22 +339,17 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     toggleOrg: () => (orgOn ? exitOrg() : enterOrg()),
     exitOrg,
     closeCard,
+    cycleCampus: () => goCampus(nextCampus(campusAt)),
     orgEnabled: true,
   });
   window.addEventListener('keydown', (e) => keys.handle(e));
 
-  const toolbar = el('div', { class: 'toolbar', role: 'toolbar', 'aria-label': tr.title });
-  const shortcutBtn = el('button', { type: 'button', 'aria-pressed': 'true' }, tr.shortcutsOn);
-  shortcutBtn.addEventListener('click', () => {
-    const on = !keys.isEnabled();
-    keys.setEnabled(on);
-    shortcutBtn.setAttribute('aria-pressed', String(on));
-    shortcutBtn.textContent = on ? tr.shortcutsOn : tr.shortcutsOff;
-  });
-  // ---- day / night (REQ-18) ----
+  // ---- day / night (REQ-18); the former toolbar lives in the corner settings menu ----
   const dayNight = createDayNight();
   const dnControl = createDayNightControl(dayNight);
-  toolbar.append(dnControl.element, orgBtn, runtime.pauseButton, shortcutBtn);
+  const scenarioInfo = createScenarioInfo({ seed: MASTER_SEED, laneWeights: scenarios.laneWeights, quality: quality.quality, maxJobs: { low: maxJobsFor('low'), high: maxJobsFor('high') } });
+  const settings = createSettingsMenu({ controls: [dnControl.element, orgBtn, runtime.pauseButton, createShortcutToggle(keys)], scenario: scenarioInfo });
+  const toolbar = settings.element; // org framing keeps the name pills clear of the corner button
 
   // ---- reduced motion (REQ-20), on load and on live change ----
   const rmq = typeof matchMedia === 'function' ? matchMedia('(prefers-reduced-motion: reduce)') : null;
@@ -376,8 +392,9 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
   );
   const fpsEl = el('div', { class: 'fps' }, '');
   fpsEl.hidden = !params.debug;
-  // Tab order: floor panel, then the strip (§4), then the rest.
-  root.append(toolbar, panel.element, runtime.strip.element, unitList.element, labels, legend, fpsEl);
+  // Tab order: floor panel, then the strip (§4), then the rest. The rail keeps panel and strip apart.
+  mountHud(root, { menu: toolbar, panel: panel.element, legend, strip: runtime.strip.element });
+  root.append(unitList.element, labels, fpsEl);
 
   let hoverId: string | null = null;
   let focusId: string | null = null;
