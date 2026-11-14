@@ -21,7 +21,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { tr } from '../i18n/tr';
 import { createActivitySim, BREAK_QUEUE_MAX, createBubbleScheduler, SOCIAL_MAX_AWAY, type ActivityView, type BreakMovement, type Bubble } from '../scene/activity';
 import { CAMERA_FOV, CameraRig, FLOOR_TARGET_Y, classifyPointer, configureOrbit, setFrameAspect, setFrameInsets, setOrgInsets, setSheetInset, setZoomSheetInset } from '../scene/camera';
-import { createDayNight, isNightPhase, lightingFor, skyBrightness } from '../scene/daynight';
+import { createDayNight, lightingFor } from '../scene/daynight';
 import { buildOrgLines, orgLines } from '../scene/org';
 import { createDayNightControl } from '../ui/dayNightControl';
 import { createOrgLegend } from '../ui/orgLegend';
@@ -54,6 +54,7 @@ import { RENDERER_OPTIONS, applyQuality, createQualityContext, initialTier, room
 import { MASTER_SEED } from '../sim/workflow';
 import { framePose, shouldStepSim } from './frameUpdate';
 import { createSelectionFlow } from './selection';
+import { sceneLight } from './sceneLight';
 import { createSimRuntime } from './simRuntime';
 import { breakKeyOf } from '../ui/nowLine';
 import { syncStaffCabinFrom } from './elevatorView';
@@ -814,10 +815,7 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     // day / night: sky, sun, fill, window and floor-light glow (lights fade on over ~0.7 s, cut if reduced)
     dayNight.step(dt);
     // Rev 35 P3: in Otomatik the light follows the office clock (dark after hours); Gündüz / Gece hold.
-    const autoLight = dayNight.mode() === 'auto';
-    const lightPhase = office.lightPhase();
-    const isNight = autoLight ? isNightPhase(lightPhase) : dayNight.night();
-    const brightness = autoLight ? skyBrightness(lightPhase) : dayNight.brightness();
+    const { isNight, brightness } = sceneLight(dayNight, office);
     const lightsGoal = isNight ? 1 : 0;
     lightsOn = still ? lightsGoal : lightsOn + (lightsGoal - lightsOn) * Math.min(1, dt * 1.5);
     const L = lightingFor(brightness, lightsOn);
