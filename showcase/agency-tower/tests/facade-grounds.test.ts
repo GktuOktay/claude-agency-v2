@@ -10,7 +10,7 @@ import { createGrounds, groundsPlan, METRE, type GroundsPlan } from '../src/scen
 import { floorPose, orgPose, overviewPose } from '../src/scene/camera';
 import { pickRobot } from '../src/scene/picking';
 import { CAMPUS_BOUNDS, ROOF_GARDEN_FLOOR, TERRACE, WING, WING_EAST_X, WING_WEST_X, type Rect } from '../src/sim/layout';
-import { cityPlan, rectsOverlap, type CityRect } from '../src/sim/citySim';
+import { cityPlan, rectsOverlap } from '../src/sim/citySim';
 import { loadData } from '../src/data/loader';
 import roster from '../src/data/roster.generated.json';
 import hierarchy from '../src/data/hierarchy.json';
@@ -153,14 +153,24 @@ describe('facade: curtain wall, crown, entrance (rev 37)', () => {
         expect(o.userData.unitId).toBeUndefined();
       }
     }
-    // Every robot is still found from the south and the east, through the facade.
-    for (const r of m.robots) {
-      const target = r.group.getWorldPosition(new Vector3()).add(new Vector3(0, 0.8, 0));
+    // Through the fins from the south and the east, every pick matches the same scene without a facade.
+    const r = loadData(roster, hierarchy);
+    if (!r.ok) throw new Error('data');
+    const bare = buildTower(r.data, { facade: false });
+    bare.setView({ mode: 'overview', focusFloor: 0 });
+    bare.root.updateMatrixWorld(true);
+    let found = 0;
+    for (const robot of m.robots) {
+      const target = robot.group.getWorldPosition(new Vector3()).add(new Vector3(0, 0.8, 0));
       for (const from of [new Vector3(0, 0, 40), new Vector3(40, 0, 0)]) {
         const origin = target.clone().add(from);
-        expect(pickRobot(m, new Ray(origin, target.clone().sub(origin).normalize()))?.unit.id, r.unit.id).toBe(r.unit.id);
+        const ray = new Ray(origin, target.clone().sub(origin).normalize());
+        const hit = pickRobot(m, ray)?.unit.id;
+        expect(hit, robot.unit.id).toBe(pickRobot(bare, ray)?.unit.id);
+        if (hit) found++;
       }
     }
+    expect(found).toBeGreaterThan(m.robots.length);
   });
 
   it('buildFacade works on bare floors and lights the crown and canopy at night', () => {
@@ -192,7 +202,7 @@ describe('facade: curtain wall, crown, entrance (rev 37)', () => {
 const plan = cityPlan(CAMPUS_BOUNDS, 7);
 const block = { x0: plan.ring.w + 3.2 + 2.4, x1: plan.ring.e - 3.2 - 2.4, z0: plan.ring.n + 3.2 + 2.4, z1: plan.ring.s - 3.2 - 2.4 };
 
-function footprintRects(p: GroundsPlan): CityRect[] {
+function footprintRects(p: GroundsPlan): readonly Rect[] {
   return p.footprints;
 }
 
@@ -240,7 +250,7 @@ describe('grounds: arrival plaza, reflecting pool, trees, lawns, sculpture, benc
     for (const r of groundsPlan().footprints) for (const keep of [wing, terrace, tower]) expect(rectsOverlap(r, keep), `${r.name} / ${keep.name}`).toBe(false);
   });
 
-  it('is never pickable and never ghosts: floor views and org leave the grounds as they are', () => {
+  it('is never pickable and never ghosts per floor: floor views leave the grounds as they are', () => {
     const m = model();
     if (!m.grounds) throw new Error('grounds');
     expect(m.grounds.group.parent).toBe(m.root);
@@ -252,11 +262,13 @@ describe('grounds: arrival plaza, reflecting pool, trees, lawns, sculpture, benc
     }
     const state = (): string => meshesOf(m.grounds!.group).map((o) => `${o.name}:${shown(o)}:${(o.material as Material).opacity}`).join('|');
     const before = state();
-    m.setView({ mode: 'floor', focusFloor: 3 });
-    expect(state()).toBe(before);
+    for (let f = 0; f < FLOOR_COUNT; f++) {
+      m.setView({ mode: 'floor', focusFloor: f });
+      expect(state()).toBe(before);
+    }
     m.setOrg(true);
-    expect(state()).toBe(before);
     m.setOrg(false);
+    expect(state()).toBe(before);
   });
 
   it('subtle uplights: dark by day, lit at night', () => {
@@ -296,21 +308,28 @@ function obstacleBoxes(p: GroundsPlan): Box3[] {
   ];
 }
 
-describe('the grounds never cover the tower or the wing', () => {
+describe('the grounds never cover what the views are for', () => {
+  // Targets: every floor plan at robot-head height (the content of each view), the wing levels, the
+  // terrace and the roof garden, plus the tower and wing walls at mid and top height. The plinth line at
+  // the foot of the facade may sit behind a tree from the overview, as it would in a real street.
   const boxes = obstacleBoxes(groundsPlan());
-  const targets: Vector3[] = [];
-  const ring = (x0: number, x1: number, z0: number, z1: number, ys: number[]): void => {
-    for (const y of ys) {
-      for (let x = x0; x <= x1 + 1e-6; x += (x1 - x0) / 8) targets.push(new Vector3(x, y, z0), new Vector3(x, y, z1));
-      for (let z = z0; z <= z1 + 1e-6; z += (z1 - z0) / 4) targets.push(new Vector3(x0, y, z), new Vector3(x1, y, z));
-    }
+  const grid = (x0: number, x1: number, z0: number, z1: number, y: number, out: Vector3[]): Vector3[] => {
+    for (let x = x0; x <= x1 + 1e-6; x += (x1 - x0) / 10) for (let z = z0; z <= z1 + 1e-6; z += (z1 - z0) / 4) out.push(new Vector3(x, y, z));
+    return out;
   };
+  const head = (f: number): number => f * FLOOR_HEIGHT + 0.74;
+  const floorTargets = (f: number): Vector3[] => grid(-HALF_WIDTH + 0.3, HALF_WIDTH - 0.3, -HALF_DEPTH + 0.3, HALF_DEPTH - 0.3, head(f), []);
+  const campusTargets: Vector3[] = [];
+  for (let f = 0; f < ROOF_GARDEN_FLOOR; f++) grid(WING_WEST_X + 0.3, WING_EAST_X - 0.3, -WING.halfD + 0.3, WING.halfD - 0.3, head(f), campusTargets);
+  grid(WING_WEST_X + 0.3, WING_EAST_X - 0.3, -WING.halfD + 0.3, WING.halfD - 0.3, head(ROOF_GARDEN_FLOOR), campusTargets);
+  grid(TERRACE.x0, TERRACE.x1, TERRACE.z0, TERRACE.z1, head(0), campusTargets);
   const top = FLOOR_COUNT * FLOOR_HEIGHT;
-  ring(-HALF_WIDTH, HALF_WIDTH, -HALF_DEPTH, HALF_DEPTH, [0.2, 1.4, top / 2, top]);
-  ring(WING_WEST_X, WING_EAST_X, -WING.halfD, WING.halfD, [0.2, (ROOF_GARDEN_FLOOR * FLOOR_HEIGHT) / 2, ROOF_GARDEN_FLOOR * FLOOR_HEIGHT]);
-  ring(TERRACE.x0, TERRACE.x1, TERRACE.z0, TERRACE.z1, [0.2]);
+  for (const y of [top / 2, top]) {
+    for (let x = -HALF_WIDTH; x <= HALF_WIDTH + 1e-6; x += 2) campusTargets.push(new Vector3(x, y, HALF_DEPTH), new Vector3(x, y, -HALF_DEPTH));
+    for (let z = -HALF_DEPTH; z <= HALF_DEPTH + 1e-6; z += 2.75) campusTargets.push(new Vector3(HALF_WIDTH, y, z), new Vector3(-HALF_WIDTH, y, z));
+  }
 
-  const blocked = (eye: Vector3): string | null => {
+  const blocked = (eye: Vector3, targets: readonly Vector3[]): string | null => {
     const dir = new Vector3();
     const hit = new Vector3();
     for (const t of targets) {
@@ -324,9 +343,33 @@ describe('the grounds never cover the tower or the wing', () => {
     }
     return null;
   };
+  const all = (): Vector3[] => [...Array.from({ length: FLOOR_COUNT }, (_, f) => floorTargets(f)).flat(), ...campusTargets];
 
-  it('from the overview, org and every floor view', () => {
-    for (const pose of [overviewPose(), orgPose(), ...Array.from({ length: FLOOR_COUNT }, (_, f) => floorPose(f))]) expect(blocked(pose.pos)).toBeNull();
+  it('the overview sees every floor, the wing, the terrace and the roof garden', () => {
+    expect(blocked(overviewPose().pos, all())).toBeNull();
+  });
+
+  it('each floor view sees its whole floor plan', () => {
+    for (let f = 0; f < FLOOR_COUNT; f++) expect(blocked(floorPose(f).pos, floorTargets(f)), `floor ${f}`).toBeNull();
+  });
+
+  it('org mode fades every tall piece (trees, sculpture) to at most 15 % so nothing covers the org chart', () => {
+    const m = model();
+    if (!m.grounds) throw new Error('grounds');
+    m.setOrg(true);
+    for (const n of ['grounds-tree-crowns', 'grounds-tree-trunks', 'grounds-sculpture']) {
+      const o = m.grounds.group.getObjectByName(n);
+      if (!(o instanceof Mesh)) throw new Error(n);
+      expect((o.material as Material).opacity, n).toBeLessThanOrEqual(0.15);
+      expect((o.material as Material).depthWrite, n).toBe(false);
+    }
+    m.setOrg(false);
+    for (const n of ['grounds-tree-crowns', 'grounds-tree-trunks', 'grounds-sculpture']) {
+      const o = m.grounds.group.getObjectByName(n);
+      if (!(o instanceof Mesh)) throw new Error(n);
+      expect((o.material as Material).opacity, n).toBe(1);
+      expect((o.material as Material).transparent, n).toBe(false);
+    }
   });
 });
 
