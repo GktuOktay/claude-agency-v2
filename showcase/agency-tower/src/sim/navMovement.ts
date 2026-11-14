@@ -224,7 +224,8 @@ export function createNavMovement(opts: NavMovementOptions): NavMovement {
       case 'signing-desk':
         return u.id === deskOwner(t.floor) ? pick(t.floor, u, [`seat:${u.id}`]) : pick(t.floor, u, range('signing:', 2));
       case 'meeting-room':
-        return pick(t.floor, u, [...range('mseat:', 6), 'mlead', 'msign']);
+        // `meeting-room:lead` (REQ-15): the meeting lead stands at the whiteboard; the others sit.
+        return owner === 'lead' ? pick(t.floor, u, ['mlead']) : pick(t.floor, u, [...range('mseat:', 6), 'msign']);
       case 'landing':
         return pick(t.floor, u, range('wait:', 3));
       default:

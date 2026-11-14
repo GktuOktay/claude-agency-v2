@@ -279,12 +279,14 @@ export function createWorkflow(opts: WorkflowOptions): Workflow {
   const ROOM: Target = { floor: ROOM_FLOOR, spot: 'meeting-room' };
   const SIGNING: Target = { floor: SIGNING_FLOOR, spot: 'signing-desk' };
 
-  const targetFor = (s: Step): Target => {
+  /** Meeting lead (REQ-15): actors[0] of a meeting step stands at the whiteboard, the rest sit. */
+  const ROOM_LEAD: Target = { floor: ROOM_FLOOR, spot: 'meeting-room:lead' };
+  const targetFor = (s: Step, actor?: string): Target => {
     switch (s.place) {
       case 'signing-desk':
         return SIGNING;
       case 'meeting-room':
-        return ROOM;
+        return s.kind === 'meeting' && actor !== undefined && actor === s.actors[0] ? ROOM_LEAD : ROOM;
       case 'pair-desk':
         return desk(s.actors[1]!);
       default:
@@ -526,7 +528,7 @@ export function createWorkflow(opts: WorkflowOptions): Workflow {
       run.carry = { idx: 0, phase: 'walk', t: 0, inPlace: false };
       beginCarryStop(run);
     } else {
-      for (const a of s.actors) movement.moveTo(a, targetFor(s));
+      for (const a of s.actors) movement.moveTo(a, targetFor(s, a));
       if (s.escort) movement.moveTo(s.escort, handoverSpot(s.actors[0]!));
     }
     return run;
@@ -641,7 +643,7 @@ export function createWorkflow(opts: WorkflowOptions): Workflow {
   const callPaused = (c: CallRun): boolean => isSelected(c.caller);
 
   function allArrived(r: Run): boolean {
-    return r.step.actors.every((a) => movement.isAt(a, targetFor(r.step)));
+    return r.step.actors.every((a) => movement.isAt(a, targetFor(r.step, a)));
   }
 
   function advanceRun(r: Run, dt: number): void {
