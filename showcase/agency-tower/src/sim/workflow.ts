@@ -164,6 +164,8 @@ export interface Workflow {
   /** Units holding an extended escort reservation (R-11), with the job. */
   extended(): [string, number][];
   roomHolder(): number | null;
+  /** Elapsed fraction 0-1 of job n's running step (0 while it gathers); null when not running. */
+  stepProgress(n: number, step: string): number | null;
   draws(): Record<DrawPurpose, number>;
   /** Floor for the strip entry of job n (§7.6b); null when the job is done or unknown. */
   stripFloor(n: number): number | null;
@@ -925,6 +927,12 @@ export function createWorkflow(opts: WorkflowOptions): Workflow {
     ],
     extended: () => [...extendedEscort],
     roomHolder: () => roomHolder()?.n ?? null,
+    stepProgress(n, step) {
+      const r = runs.find((x) => x.job.n === n && x.step.id === step);
+      if (!r) return null;
+      if (r.phase !== 'active') return 0;
+      return r.duration > 0 ? Math.min(1, r.elapsed / r.duration) : 1;
+    },
     draws: () => ({ ...drawCounts }),
     stripFloor,
     snapshot() {
