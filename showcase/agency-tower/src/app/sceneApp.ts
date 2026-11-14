@@ -598,6 +598,9 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
   };
   window.addEventListener('resize', resize);
   resize();
+  // The overview fits the campus right of the measured floor panel (or below the phone strip): re-frame the boot
+  // camera now that the panel has been measured.
+  applyInitialCamera(rig, camera, controls);
 
   // ---- per-frame ----
   const bubbleEls: HTMLElement[] = [];
