@@ -328,15 +328,19 @@ describe('campus budgets', () => {
   it('the whole scene stays under 700k vertices and 1000 meshes with the campus', () => {
     const m = buildTower(data());
     let verts = 0;
+    let expanded = 0;
     let meshes = 0;
     m.root.traverse((o) => {
       if (o instanceof Mesh) {
         meshes++;
-        verts += o.geometry.attributes.position?.count ?? 0;
+        const n = o.geometry.attributes.position?.count ?? 0;
+        verts += n;
+        expanded += n * (o instanceof InstancedMesh ? o.count : 1);
       }
     });
-    console.info(`[budget] total vertices=${verts} meshes=${meshes}`);
+    console.info(`[budget] total vertices=${verts} expanded=${expanded} meshes=${meshes}`);
     expect(verts).toBeLessThan(700_000);
+    expect(expanded, 'Rev 40: every instance counts').toBeLessThan(700_000);
     expect(meshes).toBeLessThan(1000);
   });
 });

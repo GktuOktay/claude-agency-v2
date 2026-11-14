@@ -1,7 +1,7 @@
 // Staff NPC meshes (KARARLAR rev 31): budgets, not pickable, no unit ids, floor-view visibility, org freeze,
 // reduced-motion static poses, lobby props on floor 0 inside their footprints.
 import { describe, it, expect } from 'vitest';
-import { Box3, Mesh, Raycaster, Vector3, type Object3D } from 'three';
+import { Box3, InstancedMesh, Mesh, Raycaster, Vector3, type Object3D } from 'three';
 import { buildTower } from '../src/scene/model';
 import { createStaff } from '../src/scene/staff';
 import { FLOOR_HEIGHT, LOBBY_FLOOR, lobbyPropFootprints } from '../src/sim/layout';
@@ -16,16 +16,19 @@ function tower() {
   return buildTower(r.data);
 }
 
-function count(root: Object3D): { meshes: number; verts: number } {
+function count(root: Object3D): { meshes: number; verts: number; expanded: number } {
   let meshes = 0;
   let verts = 0;
+  let expanded = 0;
   root.traverse((o) => {
     if (o instanceof Mesh) {
       meshes++;
-      verts += o.geometry.attributes.position?.count ?? 0;
+      const n = o.geometry.attributes.position?.count ?? 0;
+      verts += n;
+      expanded += n * (o instanceof InstancedMesh ? o.count : 1);
     }
   });
-  return { meshes, verts };
+  return { meshes, verts, expanded };
 }
 
 describe('staff meshes', () => {
@@ -39,6 +42,7 @@ describe('staff meshes', () => {
     expect(s.meshes).toBeLessThanOrEqual(30);
     expect(s.verts).toBeLessThanOrEqual(25_000);
     expect(s.verts + t.verts).toBeLessThan(700_000);
+    expect(s.expanded + t.expanded, 'Rev 40: every instance counts').toBeLessThan(700_000);
     expect(s.meshes + t.meshes).toBeLessThan(1000);
   });
 

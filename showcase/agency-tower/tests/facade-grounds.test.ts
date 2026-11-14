@@ -3,7 +3,7 @@
 // the grounds stay inside the campus block, clear of roads, sidewalks, the wing and the terrace, and
 // never cover the tower or the wing from the preset camera views.
 import { describe, it, expect } from 'vitest';
-import { Box3, Group, Mesh, MeshStandardMaterial, Ray, Raycaster, Vector3, type Material, type Object3D } from 'three';
+import { Box3, Group, InstancedMesh, Mesh, MeshStandardMaterial, Ray, Raycaster, Vector3, type Material, type Object3D } from 'three';
 import { buildTower, FLOOR_COUNT, FLOOR_HEIGHT, HALF_DEPTH, HALF_WIDTH, type TowerModel } from '../src/scene/model';
 import { buildFacade, ENTRANCE, FACADE_WEST_LIMIT } from '../src/scene/facade';
 import { createGrounds, groundsPlan, METRE, type GroundsPlan } from '../src/scene/grounds';
@@ -387,15 +387,19 @@ describe('exterior budget', () => {
       }
     }
     let total = 0;
+    let totalExpanded = 0;
     let totalMeshes = 0;
     for (const o of meshesOf(m.root)) {
       totalMeshes++;
-      total += o.geometry.attributes.position?.count ?? 0;
+      const n = o.geometry.attributes.position?.count ?? 0;
+      total += n;
+      totalExpanded += n * (o instanceof InstancedMesh ? o.count : 1);
     }
     console.info(`[budget] exterior vertices=${verts} meshes=${meshes}; scene vertices=${total} meshes=${totalMeshes}`);
     expect(verts).toBeLessThanOrEqual(20_000); // Rev 40: was 40 000
     expect(meshes).toBeLessThanOrEqual(30);
     expect(total).toBeLessThan(700_000);
+    expect(totalExpanded, 'Rev 40: every instance counts').toBeLessThan(700_000);
     expect(totalMeshes).toBeLessThan(1000);
   });
 

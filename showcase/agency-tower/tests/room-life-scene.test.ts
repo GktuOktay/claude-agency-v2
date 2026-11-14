@@ -43,7 +43,7 @@ describe('room life: budget (Rev 40: expanded vertices)', () => {
     expect(ms.some((m) => m instanceof InstancedMesh && m.count >= LIFE_ANCHORS.length)).toBe(true);
   });
 
-  it('the whole tower plus room life stays under 700k vertices (counted once) and 1000 meshes', () => {
+  it('the whole tower plus room life stays under 700k vertices (counted once and expanded) and 1000 meshes', () => {
     const model = buildTower(data());
     model.root.add(createRoomLife({ seed: 1 }).group);
     const ms = meshesOf(model.root);
@@ -51,6 +51,7 @@ describe('room life: budget (Rev 40: expanded vertices)', () => {
     const exp = ms.reduce((s, m) => s + expanded(m), 0);
     console.info(`[budget] tower+room life meshes=${ms.length} vertices(once)=${once} vertices(expanded)=${exp}`);
     expect(once).toBeLessThan(700_000);
+    expect(exp, 'Rev 40: every instance counts').toBeLessThan(700_000);
     expect(ms.length).toBeLessThan(1000);
   });
 });
