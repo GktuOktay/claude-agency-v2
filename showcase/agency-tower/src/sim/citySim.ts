@@ -598,12 +598,14 @@ const SAMPLES = Math.ceil(LOOKAHEAD / SAMPLE_STEP);
 function leaderAhead(sim: CitySim, v: Vehicle, path: CityPath): { gap: number; speed: number } {
   let gap = Infinity;
   let speed = 0;
+  // Only vehicles within reach can be on the path ahead.
+  const near = sim.vehicles.filter((u) => u !== v && Math.abs(u.x - v.x) < LOOKAHEAD + 2 && Math.abs(u.z - v.z) < LOOKAHEAD + 2);
+  if (!near.length) return { gap, speed };
   for (let k = 1; k <= SAMPLES; k++) {
     const ds = k * SAMPLE_STEP;
     if (!path.closed && v.s + ds > path.length) break;
     const q = pathPoint(path, v.s + ds);
-    for (const u of sim.vehicles) {
-      if (u === v) continue;
+    for (const u of near) {
       if (Math.abs(u.x - q.x) > 1.3 || Math.abs(u.z - q.z) > 1.3) continue;
       if (Math.cos(u.yaw) * q.dx - Math.sin(u.yaw) * q.dz < 0.6) continue;
       const g = ds - (u.length + v.length) / 2;

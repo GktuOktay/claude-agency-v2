@@ -137,11 +137,12 @@ describe('city sim', () => {
   it('keeps flowing (no gridlock), vehicles stay on the road and never overlap in a lane', () => {
     const sim = createCitySim(plan, 7);
     const travelled = sim.vehicles.map(() => 0);
+    const offRoad: string[] = [];
     for (let i = 0; i < 30 * 180; i++) {
       stepCitySim(sim, 1 / 30);
       sim.vehicles.forEach((v, k) => {
         travelled[k] = (travelled[k] ?? 0) + v.speed / 30;
-        expect(plan.roads.some((r) => inRect(r, v, 0.05)), `${v.kind} at ${v.x.toFixed(1)},${v.z.toFixed(1)}`).toBe(true);
+        if (!plan.roads.some((r) => inRect(r, v, 0.05))) offRoad.push(`${v.kind} at ${v.x.toFixed(1)},${v.z.toFixed(1)}`);
       });
       if (i % 15 === 0) {
         for (const a of sim.vehicles) for (const b of sim.vehicles) {
@@ -155,20 +156,24 @@ describe('city sim', () => {
         }
       }
     }
+    expect(offRoad).toEqual([]);
     for (const d of travelled) expect(d).toBeGreaterThan(150);
   });
 
   it('pedestrians walk on sidewalks and crosswalks, and wait at the kerb for their light', () => {
     const sim = createCitySim(plan, 7);
     const start = sim.pedestrians.map((p) => p.s);
+    const walkable = [...plan.sidewalks, ...plan.crosswalks];
+    const offWalk: string[] = [];
     let waited = 0;
     for (let i = 0; i < 30 * 120; i++) {
       stepCitySim(sim, 1 / 30);
       for (const p of sim.pedestrians) {
-        expect([...plan.sidewalks, ...plan.crosswalks].some((r) => inRect(r, p, 0.05)), `ped at ${p.x.toFixed(1)},${p.z.toFixed(1)}`).toBe(true);
+        if (!walkable.some((r) => inRect(r, p, 0.05))) offWalk.push(`ped at ${p.x.toFixed(1)},${p.z.toFixed(1)}`);
         if (!p.walking) waited++;
       }
     }
+    expect(offWalk).toEqual([]);
     expect(waited).toBeGreaterThan(0);
     sim.pedestrians.forEach((p, k) => expect(p.s).not.toBe(start[k]));
   });
