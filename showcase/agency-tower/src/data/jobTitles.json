@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "titlesTr": [
+    "Fatura ekranına PDF indirme",
+    "Yeni müşteri portalı",
+    "Fatura ekranında tarih hatası",
+    "Sipariş listesinde sayfalama",
+    "Stok raporu Excel çıktısı",
+    "Giriş ekranı parola sıfırlama",
+    "Mobil menüde taşan metin",
+    "Kargo takip adımı eklenmesi",
+    "Bildirim e-postası şablonu",
+    "Ödeme sayfası yükleme yavaş",
+    "Randevu takvimi saat dilimi",
+    "Arama kutusunda boş sonuç hatası",
+    "Raporlarda toplam tutar farkı",
+    "Profil fotoğrafı yükleme sınırı",
+    "Koyu tema renk düzeltmesi",
+    "Kampanya kodu doğrulaması",
+    "Dashboard grafik tooltip kayması",
+    "Müşteri listesi CSV aktarımı",
+    "Rol bazlı yetki ekranı",
+    "Sepet toplamı yuvarlama hatası"
+  ]
+}

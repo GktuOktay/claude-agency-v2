@@ -1,12 +1,19 @@
 import { describe, it, expect } from 'vitest';
 import { loadJobTitles, createTitleSequence, SCRIPTED_TITLES } from '../src/data/jobTitles';
 import { createRng } from '../src/scene/rng';
+import committed from '../src/data/jobTitles.json';
 
 // Fixtures only: the real src/data/jobTitles.json is owned by tech-comms (spec 0002 T-3).
 const titles = (n: number): string[] => Array.from({ length: n }, (_, i) => `Kurgusal iş ${i + 1}`);
 const doc = (t: unknown): unknown => ({ schemaVersion: 1, titlesTr: t });
 
 describe('jobTitles validator (AC-3, REQ-3)', () => {
+  it('the committed jobTitles.json validates', () => {
+    const r = loadJobTitles(committed);
+    if (!r.ok) throw new Error(r.error);
+    expect(r.data.length).toBeGreaterThanOrEqual(12);
+  });
+
   it('accepts 12 and 40 valid titles', () => {
     expect(loadJobTitles(doc(titles(12))).ok).toBe(true);
     expect(loadJobTitles(doc(titles(40))).ok).toBe(true);
