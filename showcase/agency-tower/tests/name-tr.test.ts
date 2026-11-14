@@ -32,8 +32,8 @@ describe('unit list shows nameTr (Rev 31)', () => {
 describe('speech bubble size (Rev 31)', () => {
   const css = readFileSync(resolve(appRoot, 'src/ui/style.css'), 'utf8');
   const rule = /\n\.bubble \{([^}]*)\}/.exec(css)?.[1] ?? '';
-  it('uses about 80 % of the former 12px font and scaled padding', () => {
-    expect(rule).toMatch(/font-size:\s*9\.6px/);
+  it('is smaller than the former 12px font, at the 11px legibility minimum, with scaled padding', () => {
+    expect(rule).toMatch(/font-size:\s*11px/);
     expect(rule).toMatch(/padding:\s*4px 8px/);
   });
   it('wraps long lines at a max-width so 48 characters take at most 2 lines', () => {
