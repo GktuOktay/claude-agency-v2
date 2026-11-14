@@ -283,12 +283,15 @@ export function createWorkflow(opts: WorkflowOptions): Workflow {
 
   /** Meeting lead (REQ-15): actors[0] of a meeting step stands at the whiteboard, the rest sit. */
   const ROOM_LEAD: Target = { floor: ROOM_FLOOR, spot: 'meeting-room:lead' };
+  /** Lane-3 sign (AC-7, AC-14): the signer (actors[0]) stamps at the meeting-room sign table. */
+  const ROOM_SIGN: Target = { floor: ROOM_FLOOR, spot: 'meeting-room:sign' };
   const targetFor = (s: Step, actor?: string): Target => {
     switch (s.place) {
       case 'signing-desk':
         return SIGNING;
       case 'meeting-room':
-        return s.kind === 'meeting' && actor !== undefined && actor === s.actors[0] ? ROOM_LEAD : ROOM;
+        if (actor === undefined || actor !== s.actors[0]) return ROOM;
+        return s.kind === 'meeting' ? ROOM_LEAD : s.kind === 'sign' ? ROOM_SIGN : ROOM;
       case 'pair-desk':
         return desk(s.actors[1]!);
       default:
