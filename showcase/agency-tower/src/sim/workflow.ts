@@ -575,14 +575,33 @@ export function createWorkflow(opts: WorkflowOptions): Workflow {
     c.inPlace = prev !== undefined && prev.escort === to && prev.actors[0] === run.step.actors[0] && extendedEscort.get(to) === run.job.n;
     c.phase = 'walk';
     c.t = 0;
-    if (!c.inPlace) movement.moveTo(run.step.actors[0]!, handoverSpot(to));
+    const carrier = run.step.actors[0]!;
+    if (!c.inPlace) {
+      movement.moveTo(carrier, handoverSpot(to));
+      return;
+    }
+    // Where both stand: the carrier stays at (or returns to) the review place instead of walking home
+    // on release, and the escort comes to (or stays at) the carrier's hand-over spot.
+    movement.moveTo(carrier, inPlaceSpot(run));
+    if (!isSelected(to)) movement.moveTo(to, handoverSpot(carrier));
+  }
+
+  /** The carrier's spot for an in-place hand-over: where it stood in the step it comes from. */
+  function inPlaceSpot(run: Run): Target {
+    return targetFor(run.job.prevStep!, run.step.actors[0]);
+  }
+
+  /** Escort exception: carrier at its review place and escort at the carrier's hand-over spot. */
+  function coLocated(run: Run, to: string): boolean {
+    const carrier = run.step.actors[0]!;
+    return movement.isAt(carrier, inPlaceSpot(run)) && movement.isAt(to, handoverSpot(carrier));
   }
 
   function recipientReady(run: Run, to: string): boolean {
     if (isSelected(to)) return false; // a selected robot counts as busy (REQ-17)
     const freeHere = isFree(to) || extendedEscort.get(to) === run.job.n;
     if (!freeHere) return false;
-    if (run.carry!.inPlace) return true;
+    if (run.carry!.inPlace) return coLocated(run, to);
     return movement.isAt(to, desk(to));
   }
 
@@ -602,7 +621,7 @@ export function createWorkflow(opts: WorkflowOptions): Workflow {
     const carrier = run.step.actors[0]!;
     const to = run.step.to![c.idx]!;
     if (c.phase === 'walk') {
-      if (!c.inPlace && !movement.isAt(carrier, handoverSpot(to))) return;
+      if (!movement.isAt(carrier, c.inPlace ? inPlaceSpot(run) : handoverSpot(to))) return;
       if (recipientReady(run, to)) {
         c.phase = 'handover';
         c.t = 0;
@@ -643,7 +662,9 @@ export function createWorkflow(opts: WorkflowOptions): Workflow {
   const callPaused = (c: CallRun): boolean => isSelected(c.caller);
 
   function allArrived(r: Run): boolean {
-    return r.step.actors.every((a) => movement.isAt(a, targetFor(r.step, a)));
+    // A review's escort waits beside the reviewer (R-11): its clock runs once the escort is there too.
+    const escort = r.step.escort;
+    return r.step.actors.every((a) => movement.isAt(a, targetFor(r.step, a))) && (escort === undefined || movement.isAt(escort, handoverSpot(r.step.actors[0]!)));
   }
 
   function advanceRun(r: Run, dt: number): void {
