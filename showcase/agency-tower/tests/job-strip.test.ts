@@ -220,7 +220,8 @@ describe('§7.6b floor rule fixtures (AC-10)', () => {
   });
 
   it('a rider counts on its destination floor', () => {
-    const wf = makeWorkflow({ scripted: false, autoStart: false });
+    // Reads the timed stand-in's snapshot legs (Rev 32: engine logic, movement injected).
+    const wf = makeWorkflow({ scripted: false, autoStart: false, movement: createTimedMovement(unitFloors()) });
     const n = wf.startJob('l2-base');
     let checked = false;
     run(wf, 300, () => {

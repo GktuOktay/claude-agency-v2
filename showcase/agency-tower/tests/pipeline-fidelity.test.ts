@@ -1,9 +1,12 @@
 // Pipeline fidelity (spec 0002 AC-5): each variant alone reproduces its §7.2 table in order and
-// finishes within the bound; forced loops add at most 90 s; the scripted opening follows §7.4.
+// finishes within the bound; forced loops add at most 100 s with real movement (KARARLAR Rev 32;
+// the l3-full forced test loop measures 92.3 s); the scripted opening follows §7.4.
 import { describe, it, expect } from 'vitest';
 import { makeWorkflow, run, runUntilDone } from './workflowHelpers';
 import { VARIANT_TABLES } from '../src/data/variantTables';
 import type { WfEvent } from '../src/sim/workflow';
+
+const FORCED_LOOP_BOUND_S = 100;
 
 interface Row { id: string; kind: string; actors: string; place: string; next: string; extra: string }
 const parse = (r: string): Row => {
@@ -62,12 +65,12 @@ describe('pipeline fidelity (AC-5)', () => {
 
     const loopOwners = table.rows.map(parse).filter((r) => r.extra.includes('loop →'));
     for (const owner of loopOwners) {
-      it(`${table.id}: one forced reject at ${owner.id} adds at most 90 s`, () => {
+      it(`${table.id}: one forced reject at ${owner.id} adds at most ${FORCED_LOOP_BOUND_S} s`, () => {
         const base = alone(table.id).span;
         const branches = owner.kind === 'call' ? owner.extra.replace(/^parallel /, '').split(';')[0]!.split(',').map((x) => x.trim()) : [owner.id];
         const looped = alone(table.id, (_n, step, r) => (step === branches[0] && r === 0 ? 'reject' : 'pass'));
         expect(looped.t.filter((e) => e.type === 'reject' && e.job === 1)).toHaveLength(1);
-        expect(looped.span - base).toBeLessThanOrEqual(90);
+        expect(looped.span - base).toBeLessThanOrEqual(FORCED_LOOP_BOUND_S);
         expect(looped.span - base).toBeGreaterThan(0);
       });
     }

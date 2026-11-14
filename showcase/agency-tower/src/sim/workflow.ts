@@ -1,11 +1,12 @@
 // Workflow engine (spec 0002 REQ-4..10, R-3, R-11, §7.4, §7.5). Pure and seedable like
 // scene/activity.ts: no three.js, no DOM, no timers. It replays jobs through the validated
 // scenarios on the simulation clock, reserves units and places all-or-nothing in the R-3 order and
-// drives robots through a Movement port (timed stand-in until T-5). Random numbers come only from
+// drives robots through a Movement port (default: nav movement + staff elevator, Rev 32). Random numbers come only from
 // the `engine` stream and only on events (job start, step start, slot free), never per frame.
 import { createRng, type Rng } from '../scene/rng';
 import { indexScenario, roomAhead, usesRoom, type Scenario, type ScenarioIndex, type ScenarioSet, type Step, type UnitFloors } from '../data/scenarios';
-import { createTimedMovement, type Movement, type Target } from './movement';
+import type { Movement, Target } from './movement';
+import { createNavMovement } from './navMovement';
 
 export const MASTER_SEED = 0x2002;
 export const HANDOVER_S = 1.2;
@@ -239,7 +240,7 @@ interface Pending {
 export function createWorkflow(opts: WorkflowOptions): Workflow {
   const maxJobs = opts.maxJobs ?? 3;
   const rng: Rng = opts.rng ?? createRng(streamSeed(opts.seed ?? MASTER_SEED, 'engine'));
-  const movement = opts.movement ?? createTimedMovement(opts.units);
+  const movement = opts.movement ?? createNavMovement({ units: opts.units });
   const isSelected = opts.isSelected ?? (() => false);
   const record = opts.record ?? false;
   const scenarioIx = new Map(opts.scenarios.scenarios.map((s) => [s.id, indexScenario(s)]));
@@ -278,12 +279,14 @@ export function createWorkflow(opts: WorkflowOptions): Workflow {
   const ROOM: Target = { floor: ROOM_FLOOR, spot: 'meeting-room' };
   const SIGNING: Target = { floor: SIGNING_FLOOR, spot: 'signing-desk' };
 
-  const targetFor = (s: Step): Target => {
+  /** Meeting lead (REQ-15): actors[0] of a meeting step stands at the whiteboard, the rest sit. */
+  const ROOM_LEAD: Target = { floor: ROOM_FLOOR, spot: 'meeting-room:lead' };
+  const targetFor = (s: Step, actor?: string): Target => {
     switch (s.place) {
       case 'signing-desk':
         return SIGNING;
       case 'meeting-room':
-        return ROOM;
+        return s.kind === 'meeting' && actor !== undefined && actor === s.actors[0] ? ROOM_LEAD : ROOM;
       case 'pair-desk':
         return desk(s.actors[1]!);
       default:
@@ -525,7 +528,7 @@ export function createWorkflow(opts: WorkflowOptions): Workflow {
       run.carry = { idx: 0, phase: 'walk', t: 0, inPlace: false };
       beginCarryStop(run);
     } else {
-      for (const a of s.actors) movement.moveTo(a, targetFor(s));
+      for (const a of s.actors) movement.moveTo(a, targetFor(s, a));
       if (s.escort) movement.moveTo(s.escort, handoverSpot(s.actors[0]!));
     }
     return run;
@@ -640,7 +643,7 @@ export function createWorkflow(opts: WorkflowOptions): Workflow {
   const callPaused = (c: CallRun): boolean => isSelected(c.caller);
 
   function allArrived(r: Run): boolean {
-    return r.step.actors.every((a) => movement.isAt(a, targetFor(r.step)));
+    return r.step.actors.every((a) => movement.isAt(a, targetFor(r.step, a)));
   }
 
   function advanceRun(r: Run, dt: number): void {

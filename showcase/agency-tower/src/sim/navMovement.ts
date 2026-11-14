@@ -147,6 +147,10 @@ const EPS = 1e-9;
 const d2 = (a: XZ, b: XZ): number => Math.hypot(a.x - b.x, a.z - b.z);
 const sameTarget = (a: Target, b: Target): boolean => a.floor === b.floor && a.spot === b.spot;
 
+const NAV_INSTANCES = new WeakSet<Movement>();
+/** True for a Movement made by createNavMovement (render hooks: elevator, positions). */
+export const isNavMovement = (m: Movement): m is NavMovement => NAV_INSTANCES.has(m);
+
 export function createNavMovement(opts: NavMovementOptions): NavMovement {
   const record = opts.record ?? false;
   const layouts = opts.layouts ? [...opts.layouts] : layoutsFromUnits(opts.units);
@@ -224,7 +228,8 @@ export function createNavMovement(opts: NavMovementOptions): NavMovement {
       case 'signing-desk':
         return u.id === deskOwner(t.floor) ? pick(t.floor, u, [`seat:${u.id}`]) : pick(t.floor, u, range('signing:', 2));
       case 'meeting-room':
-        return pick(t.floor, u, [...range('mseat:', 6), 'mlead', 'msign']);
+        // `meeting-room:lead` (REQ-15): the meeting lead stands at the whiteboard; the others sit.
+        return owner === 'lead' ? pick(t.floor, u, ['mlead']) : pick(t.floor, u, [...range('mseat:', 6), 'msign']);
       case 'landing':
         return pick(t.floor, u, range('wait:', 3));
       default:
@@ -508,6 +513,7 @@ export function createNavMovement(opts: NavMovementOptions): NavMovement {
       ];
     },
   };
+  NAV_INSTANCES.add(mv);
   return mv;
 }
 
