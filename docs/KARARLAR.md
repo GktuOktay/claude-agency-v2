@@ -244,3 +244,4 @@ Eski kurulum: ~/.claude-backup-2026-11-01 (silme işlemi henüz yapılmadı).
 - Bölme (spec-critic önerisi): 0002 = iş akışı motoru, yürüme/asansör, beraber çalışma, toplantı odası; 0003 = yardımcı robotlar (sub-agent), diyaloglar, pozlar; 0004 = görsel cila ve sinematik tur.
 - Q-1 (CEO, sohbette): "Yalnız chief-of-staff". Yardımcı robotları yalnız ana oturum çıkarır (4. kat); etiket hizmet ettiği birimi gösterir. Gerçek ajans yapısıyla tutarlı.
 - **İtiraz (kural 6):** genel amaçlı kaynak planlayıcısı her spec-critic turunda yeni kilitlenme/sıra bulgusu üretiyor. Alternatif: elle yazılmış sabit zaman çizelgeleri. 3. tur toparlanmazsa CEO'ya sorulacak.
+- Q-2 (CEO, sohbette): "Ayrı personel asansörü". Robotlar doğu tarafında ayrı bir personel kuyusu kullanır; ziyaretçi kabini kamerayla kalır, 0001 REQ-10/AC-8 değişmez.
