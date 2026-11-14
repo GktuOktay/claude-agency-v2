@@ -233,3 +233,14 @@ Eski kurulum: ~/.claude-backup-2026-11-01 (silme işlemi henüz yapılmadı).
 - Kaldırılanlar: spec şablonlarındaki "Budget ceiling" alanı, BA kontrol listesindeki bütçe maddesi, delivery-manager'ın görev başı süre/kota tahmini ve bütçe aşımı durması, talent-capacity'nin imza öncesi kapasite görüşü (G03 gate'i ve lane 3'teki paralel kapı), scorecard'daki tahmin ve süre alanları, lint'teki token bütçe kontrolü.
 - Kalanlar: scorecard'da `tokens_used`; `harness/bin/footprint.js` her sohbetin ve her agent'ın yüklediği token'ı ölçer (sınır yok); talent-capacity en çok token harcayan birimleri raporlar.
 - **Ruling:** CLAUDE.md'deki "quota/budget overrun" durma nedeni "quota exhausted" oldu — abonelik kotası bitince durmak hâlâ gerekli; yanlışsa maliyet: kota bitiminde iş yarıda kalır.
+
+## Revizyon 28: Ajans Kulesi sanat yönü sapmaları (2026-11-14)
+- Bağlam: spec 0001 (imzalı) "doku yok" (R-1) ve "flat shaded" diyor. CEO 2026-11-13'te örnek bir izometrik ofis görseli gösterip tasarımın o kalitede olmasını istedi; görsel yenileme bu yönle yapıldı ve CEO beğendi.
+- Sapmalar (Type 3, davranış değişmedi): (1) dokular kodla çizilen `CanvasTexture`; görsel dosya ve ağ isteği yok. (2) Yumuşak gölgelendirme, flat değil. (3) Şehir silueti soluk bir ufuk çizgisine indi. (4) Robot zoom'unda FOV geçici 50'ye açılıyor. (5) Test zaman aşımı 5 s → 15 s (yük altında zamanlama; assertion değişmedi).
+- **Ruling:** spec metni değiştirilmedi (imza düşmesin); sapmalar burada kayıtlı. Yanlışsa maliyet: Faz 2 spec'inde R-1 ve shading satırları güncellenmeli.
+
+## Revizyon 29: Ajans Kulesi "yaşayan ofis" spec'leri 0002/0003 (2026-11-14)
+- CEO: kuleyi bir üst seviyeye taşı; iş akışları, diyaloglar, sub-agent'lar, beraber çalışma, spec yazılırken toplantı odası. Model: opus, high (şerit 2 varsayılanı sonnet'ten sapma, CEO tercihi).
+- Bölme (spec-critic önerisi): 0002 = iş akışı motoru, yürüme/asansör, beraber çalışma, toplantı odası; 0003 = yardımcı robotlar (sub-agent), diyaloglar, pozlar; 0004 = görsel cila ve sinematik tur.
+- Q-1 (CEO, sohbette): "Yalnız chief-of-staff". Yardımcı robotları yalnız ana oturum çıkarır (4. kat); etiket hizmet ettiği birimi gösterir. Gerçek ajans yapısıyla tutarlı.
+- **İtiraz (kural 6):** genel amaçlı kaynak planlayıcısı her spec-critic turunda yeni kilitlenme/sıra bulgusu üretiyor. Alternatif: elle yazılmış sabit zaman çizelgeleri. 3. tur toparlanmazsa CEO'ya sorulacak.

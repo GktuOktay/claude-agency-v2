@@ -1,0 +1,301 @@
+{
+  "schemaVersion": 1,
+  "floors": [
+    {
+      "id": 0,
+      "nameTr": "Lobi"
+    },
+    {
+      "id": 1,
+      "nameTr": "Mühendislik"
+    },
+    {
+      "id": 2,
+      "nameTr": "Kalite ve Güvenlik"
+    },
+    {
+      "id": 3,
+      "nameTr": "Strateji ve Mimari"
+    },
+    {
+      "id": 4,
+      "nameTr": "Yönetim"
+    },
+    {
+      "id": 5,
+      "nameTr": "Penthouse — CEO Ofisi"
+    }
+  ],
+  "units": [
+    {
+      "id": "ceo",
+      "floor": 5,
+      "tier": "ceo",
+      "reportsTo": null,
+      "independent": false,
+      "roleTr": "Patron ve imzacı",
+      "phrasesTr": [
+        "Spec'i ben imzalarım.",
+        "Zarf eylemleri bende.",
+        "Sonuçları göster."
+      ],
+      "manual": {
+        "description": "The CEO: signs specs, approves envelope actions, sets direction.",
+        "tools": [],
+        "model": null
+      }
+    },
+    {
+      "id": "chief-of-staff",
+      "floor": 4,
+      "tier": "management",
+      "reportsTo": "ceo",
+      "independent": false,
+      "roleTr": "Genel koordinatör",
+      "phrasesTr": [
+        "İşi doğru birime yönlendirdim.",
+        "Hat seçildi, devam.",
+        "Sohbet bende, iş ekipte."
+      ],
+      "manual": {
+        "description": "The main session: routes jobs to units, keeps state and reports to the CEO.",
+        "tools": [],
+        "model": null
+      }
+    },
+    {
+      "id": "delivery-manager",
+      "floor": 4,
+      "tier": "management",
+      "reportsTo": "chief-of-staff",
+      "independent": false,
+      "roleTr": "Teslimat yöneticisi",
+      "phrasesTr": [
+        "Görevleri sıraya dizdim.",
+        "Bağımlılıklar çözüldü.",
+        "Teslimat zinciri hazır."
+      ]
+    },
+    {
+      "id": "talent-capacity",
+      "floor": 4,
+      "tier": "management",
+      "reportsTo": "chief-of-staff",
+      "independent": false,
+      "roleTr": "Kapasite ve yetenek",
+      "phrasesTr": [
+        "Kapasite yeterli görünüyor.",
+        "Doğru model, doğru iş.",
+        "Kota durumu yeşil."
+      ]
+    },
+    {
+      "id": "product-manager",
+      "floor": 3,
+      "tier": "lead",
+      "reportsTo": "chief-of-staff",
+      "independent": false,
+      "roleTr": "Ürün yöneticisi",
+      "phrasesTr": [
+        "Pazar ne diyor?",
+        "Rakipleri taradım.",
+        "Önce fikri doğrulayalım."
+      ]
+    },
+    {
+      "id": "software-architect",
+      "floor": 3,
+      "tier": "lead",
+      "reportsTo": "chief-of-staff",
+      "independent": false,
+      "roleTr": "Yazılım mimarı",
+      "phrasesTr": [
+        "Bileşenleri çizdim.",
+        "Bu bir ADR konusu.",
+        "Tasarım önce, kod sonra."
+      ]
+    },
+    {
+      "id": "scout",
+      "floor": 3,
+      "tier": "specialist",
+      "reportsTo": "product-manager",
+      "independent": false,
+      "roleTr": "Hazır çözüm izcisi",
+      "phrasesTr": [
+        "Hazır bir çözüm var mı?",
+        "Lisansı kontrol ettim.",
+        "Tekerleği yeniden icat etmeyelim."
+      ]
+    },
+    {
+      "id": "business-analyst",
+      "floor": 3,
+      "tier": "specialist",
+      "reportsTo": "software-architect",
+      "independent": false,
+      "roleTr": "İş analisti",
+      "phrasesTr": [
+        "Gereksinimleri yazdım.",
+        "Kabul kriteri net mi?",
+        "Spec imzaya hazır."
+      ]
+    },
+    {
+      "id": "architecture-board",
+      "floor": 3,
+      "tier": "specialist",
+      "reportsTo": "chief-of-staff",
+      "independent": false,
+      "roleTr": "Mimari kurul",
+      "phrasesTr": [
+        "Yeni bağımlılık mı? Dur.",
+        "Gerekçe lütfen.",
+        "Koşullu onay verdim."
+      ]
+    },
+    {
+      "id": "quality-office",
+      "floor": 2,
+      "tier": "lead",
+      "reportsTo": "chief-of-staff",
+      "independent": false,
+      "roleTr": "Kalite ofisi",
+      "phrasesTr": [
+        "Teslim kapısı kapalı.",
+        "Kanıt nerede?",
+        "Zincir tek sefer çalışır."
+      ]
+    },
+    {
+      "id": "spec-critic",
+      "floor": 2,
+      "tier": "specialist",
+      "reportsTo": "quality-office",
+      "independent": false,
+      "roleTr": "Spec eleştirmeni",
+      "phrasesTr": [
+        "Bu cümle belirsiz.",
+        "Boşluk buldum.",
+        "Test edilebilir mi?"
+      ]
+    },
+    {
+      "id": "qa-engineer",
+      "floor": 2,
+      "tier": "specialist",
+      "reportsTo": "quality-office",
+      "independent": false,
+      "roleTr": "Kalite mühendisi",
+      "phrasesTr": [
+        "Testler yeşil mi?",
+        "Yapan doğrulamaz.",
+        "Kenar durumları denedim."
+      ]
+    },
+    {
+      "id": "appsec",
+      "floor": 2,
+      "tier": "specialist",
+      "reportsTo": "quality-office",
+      "independent": false,
+      "roleTr": "Uygulama güvenliği",
+      "phrasesTr": [
+        "Tehdit modeli hazır.",
+        "Girdi doğrulandı mı?",
+        "Gizli anahtar sızmasın."
+      ]
+    },
+    {
+      "id": "internal-auditor",
+      "floor": 2,
+      "tier": "specialist",
+      "reportsTo": "ceo",
+      "independent": true,
+      "roleTr": "İç denetçi (bağımsız)",
+      "phrasesTr": [
+        "Bağımsız denetim sürüyor.",
+        "Kanıt dosya:satır olmalı.",
+        "Kimseye bağlı değilim."
+      ]
+    },
+    {
+      "id": "devops-sre",
+      "floor": 1,
+      "tier": "lead",
+      "reportsTo": "chief-of-staff",
+      "independent": false,
+      "roleTr": "DevOps ve SRE",
+      "phrasesTr": [
+        "Konteyner ayakta.",
+        "Yayın zarfı CEO'da.",
+        "Geri dönüş planı hazır."
+      ]
+    },
+    {
+      "id": "dotnet-engineer",
+      "floor": 1,
+      "tier": "specialist",
+      "reportsTo": "devops-sre",
+      "independent": false,
+      "roleTr": ".NET mühendisi",
+      "phrasesTr": [
+        "Önce test, sonra kod.",
+        "Derleme geçti.",
+        "API sözleşmesine uydum."
+      ]
+    },
+    {
+      "id": "react-engineer",
+      "floor": 1,
+      "tier": "specialist",
+      "reportsTo": "devops-sre",
+      "independent": false,
+      "roleTr": "React mühendisi",
+      "phrasesTr": [
+        "Tüm durumlar kodlandı.",
+        "Erişilebilirlik tamam.",
+        "Görsel doğrulama bekliyor."
+      ]
+    },
+    {
+      "id": "polyglot-engineer",
+      "floor": 1,
+      "tier": "specialist",
+      "reportsTo": "devops-sre",
+      "independent": false,
+      "roleTr": "Çok dilli mühendis",
+      "phrasesTr": [
+        "Bugün hangi yığın?",
+        "Django, Vue ya da Go.",
+        "Spec neyi adlandırıyorsa."
+      ]
+    },
+    {
+      "id": "marketing",
+      "floor": 0,
+      "tier": "lead",
+      "reportsTo": "chief-of-staff",
+      "independent": false,
+      "roleTr": "Pazarlama",
+      "phrasesTr": [
+        "Marka tonu net.",
+        "Mağaza metni hazır.",
+        "Mesaj kısa ve dürüst."
+      ]
+    },
+    {
+      "id": "tech-comms",
+      "floor": 0,
+      "tier": "specialist",
+      "reportsTo": "marketing",
+      "independent": false,
+      "roleTr": "Teknik iletişim",
+      "phrasesTr": [
+        "Kılavuz güncellendi.",
+        "Sade bir dille yazdım.",
+        "Sürüm notları hazır."
+      ]
+    }
+  ]
+}
