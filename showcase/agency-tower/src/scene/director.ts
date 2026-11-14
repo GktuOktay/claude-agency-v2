@@ -183,6 +183,9 @@ interface Bot {
 
 const DESK_SCROLL = new Set<string>(['step-work', 'review', 'test']);
 
+/** Reduced motion (REQ-19): progress shown in whole 10 % steps (floor, so 100 only when done). */
+export const tenths = (pct: number): number => Math.floor(pct / 10) * 10;
+
 export function createDirector(o: DirectorOptions): Director {
   const anchors = createAnchors(o.layouts);
   const byVariant = new Map<string, Scenario>(o.scenarios.scenarios.map((s) => [s.id, s]));
@@ -660,7 +663,8 @@ export function createDirector(o: DirectorOptions): Director {
       const ev = evidence.get(u);
       if (ev !== undefined && now + EPS < ev) return { mode: 'evidence' };
       const p = progress.get(u);
-      if (p && (p.until === undefined || now + EPS < p.until)) return { mode: 'progress', pct: p.pct };
+      // Reduced motion (REQ-19): the bar moves in 10 % steps.
+      if (p && (p.until === undefined || now + EPS < p.until)) return { mode: 'progress', pct: o.still?.() ? tenths(p.pct) : p.pct };
       return { mode: 'code' };
     },
     transitions: () => log,

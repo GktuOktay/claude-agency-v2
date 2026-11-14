@@ -266,25 +266,39 @@ describe('campus breaks: determinism, interrupts, pause, reduced motion', () => 
     expect(r.mv.calls.length).toBe(calls);
   });
 
-  it('reduced motion: break walkers show leg cuts, no new break starts, arrivals still settle', () => {
+  // Spec 0002 REQ-19 / AC-16: the trace is identical with and without reduced motion (the old clause "no new
+  // break starts" contradicted it and is replaced by full equality of the movement calls and events).
+  it('reduced motion: break walkers show leg cuts; breaks, calls and events are identical to the run without it; arrivals still settle', () => {
     const r = rig();
+    const twin = rig();
     let u: string | null = null;
     for (let i = 0; i < 12000 && !u; i++) {
       r.step();
+      twin.step();
       u = ids.find((id) => r.sim.onBreak(id) && r.sim.get(id).kind === 'walk' && r.nav.phase(id) === 'walk') ?? null;
     }
     expect(u).not.toBeNull();
     const w = u!;
     r.sim.setStatic(true);
-    const calls = r.mv.calls.length;
-    r.step(5);
-    const p = r.nav.renderPosition(w, true);
-    expect(r.sim.get(w).x).toBeCloseTo(p.x, 9);
-    expect(r.sim.get(w).z).toBeCloseTo(p.z, 9);
-    r.step(1500);
-    expect(r.mv.calls.length).toBe(calls);
-    expect(r.sim.get(w).kind).toBe('coffee');
-    expect(r.sim.onBreak(w)).not.toBeNull();
+    const events: unknown[] = [];
+    const twinEvents: unknown[] = [];
+    let settled = false;
+    r.step(1500, () => {
+      events.push(...r.sim.drainEvents());
+      const v = r.sim.get(w);
+      expect(v.kind).not.toBe('walk');
+      if (!r.sim.onBreak(w)) return; // back home: the ambient cycle's own leg cuts apply (activity tests)
+      const p = r.nav.renderPosition(w, true);
+      expect(v.x).toBeCloseTo(p.x, 9);
+      expect(v.z).toBeCloseTo(p.z, 9);
+      expect(v.pose).not.toBe('walk');
+      if (r.sim.onBreak(w) && r.sim.get(w).kind === 'coffee') settled = true;
+    });
+    twin.step(1500, () => twinEvents.push(...twin.sim.drainEvents()));
+    expect(settled).toBe(true);
+    expect(JSON.stringify(r.mv.calls)).toBe(JSON.stringify(twin.mv.calls));
+    expect(JSON.stringify(events)).toBe(JSON.stringify(twinEvents));
+    expect(r.sim.time).toBe(twin.sim.time);
   });
 });
 

@@ -76,6 +76,8 @@ interface Internal {
   target: WalkTarget;
   targetPoint: Point;
   walkLength: number;
+  /** Start of the current ambient walk leg (reduced motion renders here until the leg ends, REQ-19). */
+  walkFrom: Point;
   walkPhase: number;
   waving: boolean;
   /** Reserved by a workflow step (spec 0002): the cycle holds until `resume`. */
@@ -137,7 +139,10 @@ export interface ActivitySim {
   select(id: string): void;
   release(id: string): void;
   faceToward(id: string, x: number, z: number): void;
-  /** Reduced motion: walkers settle at their target, nothing moves, selection raises an arm (no wave). */
+  /**
+   * Reduced motion (0002 REQ-19): rendering only. The simulation keeps its time, events and draws exactly as
+   * without it; `get` renders every walker at its leg start until the leg ends, never in a walk or wave pose.
+   */
   setStatic(on: boolean): void;
   /** §7.5 interrupt: a step reserved the robot; its cycle stops where it is (the director moves it). */
   reserve(id: string): void;
@@ -157,7 +162,8 @@ export function createActivitySim(specs: readonly ActivitySpec[], seed: number, 
   const brng: Rng = createRng((seed ^ CAMPUS_SEED_SALT) >>> 0);
   const events: SimEvent[] = [];
   const robots = new Map<string, Internal>();
-  let frozen = false;
+  /** Reduced motion is a render flag only: `step` never reads it (trace identical, AC-16). */
+  let reduced = false;
 
   // Upper bound is reduced by one maximal step so an elapsed period never exceeds its range.
   const draw = (kind: Stay): number => range(rng, DURATIONS[kind][0], DURATIONS[kind][1] - MAX_STEP_S);
@@ -173,6 +179,7 @@ export function createActivitySim(specs: readonly ActivitySpec[], seed: number, 
       target: 'home',
       targetPoint: spec.home,
       walkLength: 0,
+      walkFrom: { ...spec.home },
       walkPhase: 0,
       waving: false,
       reserved: false,
@@ -192,6 +199,7 @@ export function createActivitySim(specs: readonly ActivitySpec[], seed: number, 
     r.target = t;
     r.targetPoint = pointFor(r, t);
     r.walkLength = dist(r.pos, r.targetPoint);
+    r.walkFrom = { ...r.pos };
     change(r, 'walk', time);
   };
 
@@ -216,7 +224,7 @@ export function createActivitySim(specs: readonly ActivitySpec[], seed: number, 
   };
 
   function beginBreak(r: Internal, s: AmenitySpot, partner: string | null, mv: BreakMovement, time: number): void {
-    const p = mv.renderPosition(r.spec.id, frozen);
+    const p = mv.renderPosition(r.spec.id, false);
     r.brk = { spot: s, phase: 'go', partner, last: { ...p } };
     mv.moveTo(r.spec.id, spotTarget(s));
     r.target = 'home';
@@ -271,13 +279,13 @@ export function createActivitySim(specs: readonly ActivitySpec[], seed: number, 
     change(r, 'walk', time);
   }
 
-  /** One step of a robot on a campus break; `timers` false under reduced motion (arrivals only). */
-  function stepBreak(r: Internal, dt: number, timers: boolean): void {
+  /** One step of a robot on a campus break (simulation state; the true nav position, never the render cut). */
+  function stepBreak(r: Internal, dt: number): void {
     const b = r.brk;
     if (!b || !campus) return;
     const mv = campus.movement;
     const id = r.spec.id;
-    const p = mv.renderPosition(id, frozen);
+    const p = mv.renderPosition(id, false);
     const dx = p.x - b.last.x;
     const dz = p.z - b.last.z;
     if (Math.hypot(dx, dz) > 1e-5) {
@@ -286,7 +294,7 @@ export function createActivitySim(specs: readonly ActivitySpec[], seed: number, 
     }
     b.last = { ...p };
     r.pos = { ...p };
-    if (timers) r.elapsed += dt;
+    r.elapsed += dt;
     if (b.phase === 'go') {
       if (mv.isAt(id, spotTarget(b.spot))) {
         change(r, 'coffee', sim.time);
@@ -297,10 +305,9 @@ export function createActivitySim(specs: readonly ActivitySpec[], seed: number, 
         if (mate && mate.brk?.phase === 'go') mate.limit = r.limit;
         b.phase = 'stay';
         r.facing = b.spot.facing;
-      } else if (b.partner !== null && !mateOf(r) && timers) leaveBreak(r, mv, sim.time);
+      } else if (b.partner !== null && !mateOf(r)) leaveBreak(r, mv, sim.time);
     } else if (b.phase === 'stay') {
       r.facing = b.spot.facing;
-      if (!timers) return;
       // Ping-pong: the game clock waits for the mate (at most MATE_WAIT_S), then both share one length.
       const mate = mateOf(r);
       if (mate && mate.brk?.phase !== 'stay') {
@@ -336,16 +343,11 @@ export function createActivitySim(specs: readonly ActivitySpec[], seed: number, 
     step(dtMs) {
       const dt = Math.min(Math.max(dtMs, 0), MAX_STEP_MS) / 1000;
       const paused = campus?.paused?.() ?? false;
-      if (frozen) {
-        // Reduced motion: the cycle stands still; break walkers finish their nav legs (shown as leg cuts).
-        if (campus && !paused) for (const r of robots.values()) if (r.brk && !r.reserved && !r.waving) stepBreak(r, dt, false);
-        return;
-      }
       sim.time += dt;
       for (const r of robots.values()) {
         if (r.waving || r.reserved) continue;
         if (r.brk) {
-          if (!paused) stepBreak(r, dt, true);
+          if (!paused) stepBreak(r, dt);
           continue;
         }
         r.elapsed += dt;
@@ -385,14 +387,19 @@ export function createActivitySim(specs: readonly ActivitySpec[], seed: number, 
     get(id) {
       const r = robots.get(id);
       if (!r) throw new Error(`unknown robot ${id}`);
-      const kind: ActivityKind = r.waving ? (frozen ? 'raise' : 'wave') : r.kind;
+      // Reduced motion renders a walker standing (idle pose) and a selected robot with a raised arm.
+      const kind: ActivityKind = r.waving ? (reduced ? 'raise' : 'wave') : reduced && r.kind === 'walk' ? 'idle' : r.kind;
+      const walkPhase = reduced ? 0 : r.walkPhase;
       if (r.brk && campus && !r.reserved) {
         // Live from the nav movement (it steps after this sim in a frame); the selection gesture wins the pose.
-        const p = campus.movement.renderPosition(id, frozen);
-        const pose = r.waving ? undefined : breakPose(r);
-        return { kind, ...(pose ? { pose } : {}), x: p.x, y: p.y, z: p.z, facing: r.facing, walkPhase: r.walkPhase, elapsed: r.elapsed };
+        const p = campus.movement.renderPosition(id, reduced);
+        const raw = r.waving ? undefined : breakPose(r);
+        const pose = reduced && raw === 'walk' ? 'idle' : raw;
+        return { kind, ...(pose ? { pose } : {}), x: p.x, y: p.y, z: p.z, facing: r.facing, walkPhase, elapsed: r.elapsed };
       }
-      return { kind, x: r.pos.x, y: r.pos.y, z: r.pos.z, facing: r.facing, walkPhase: r.walkPhase, elapsed: r.elapsed };
+      // Leg cut (REQ-19): an ambient walker is rendered at its leg start until it arrives.
+      const p = reduced && r.kind === 'walk' && !r.reserved ? r.walkFrom : r.pos;
+      return { kind, x: p.x, y: p.y, z: p.z, facing: r.facing, walkPhase, elapsed: r.elapsed };
     },
     drainEvents() {
       return events.splice(0, events.length);
@@ -406,16 +413,8 @@ export function createActivitySim(specs: readonly ActivitySpec[], seed: number, 
       if (r) r.waving = false;
     },
     setStatic(on) {
-      frozen = on;
-      if (!on) return;
-      for (const r of robots.values()) {
-        if (r.kind !== 'walk' || r.reserved || r.brk) continue; // break walkers follow the nav movement
-        r.pos = { ...r.targetPoint };
-        const to = r.target === 'desk' ? 'work' : r.target === 'coffee' ? 'coffee' : 'idle';
-        change(r, to, sim.time);
-        r.limit = draw(to);
-        r.facing = to === 'idle' ? 0 : Math.PI;
-      }
+      // Render flag only: no event, no draw, no position change (a live change mid-leg shows the leg start).
+      reduced = on;
     },
     reserve(id) {
       const r = robots.get(id);
