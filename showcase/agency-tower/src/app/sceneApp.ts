@@ -19,7 +19,7 @@ import {
 } from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { tr } from '../i18n/tr';
-import { createActivitySim, BREAK_QUEUE_MAX, createBubbleScheduler, SOCIAL_MAX_AWAY, type ActivityView, type BreakMovement, type Bubble } from '../scene/activity';
+import { appCampusOptions, createActivitySim, BREAK_QUEUE_MAX, createBubbleScheduler, type ActivityView, type BreakMovement, type Bubble } from '../scene/activity';
 import { CAMERA_FOV, CameraRig, FLOOR_TARGET_Y, classifyPointer, configureOrbit, setFrameAspect, setFrameInsets, setOrgInsets, setSheetInset, setZoomSheetInset } from '../scene/camera';
 import { createDayNight, lightingFor } from '../scene/daynight';
 import { buildOrgLines, orgLines } from '../scene/org';
@@ -47,7 +47,7 @@ import { createSettingsMenu } from '../ui/settingsMenu';
 import { createAppearanceSection, readStoredQuality, toLegacyQuality, type OnQuality, type QualityTier } from '../ui/settings/appearance';
 import { createActiveJobsSection } from '../ui/settings/activeJobs';
 import { createOfficeSection } from '../ui/settings/office';
-import { createOfficeSchedule, type OfficeClock } from '../sim/schedule';
+import { breakPeriodAt, createOfficeSchedule, type OfficeClock } from '../sim/schedule';
 import { createScenarioSection } from '../ui/settings/scenario';
 import { createAccessibilitySection } from '../ui/settings/accessibility';
 import { RENDERER_OPTIONS, applyQuality, createQualityContext, initialTier, roomEnvironment } from './quality';
@@ -65,6 +65,7 @@ import { HALF_DEPTH, SHAFT_X, STAFF_SHAFT, whiteboardTextureSize } from '../sim/
 import { isNavMovement, type NavMovement } from '../sim/navMovement';
 import { createStaffRuntime, type StaffRuntime } from './staffRuntime';
 import { createStaff, type StaffModel } from '../scene/staff';
+import { createRoomLife, frameRoomLife } from '../scene/roomLife';
 import { rideToFloor } from './stripActivation';
 import type { SceneContext } from './bootstrap';
 
@@ -185,18 +186,16 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     model.robots.map((r) => ({ id: r.unit.id, home: r.homePoint, work: r.workPoint, coffee: r.coffeePoint })),
     SEED,
     {
-      campus: {
+      // Rev 35 P3: breaks follow the office schedule; Rev 35: social areas for everyone (the director latches the
+      // current floor on an interrupt); Rev 39: the occupancy director keeps every zone and Ar-Ge in use.
+      campus: appCampusOptions({
         movement: breakMovement,
         floors: new Map(data.units.map((u) => [u.id, u.floor])),
-        // Rev 35 P3: breaks follow the office schedule (coffee, lunch, tea slots; rare in between, none after hours).
         period: () => office.breakPeriod(),
+        periodAhead: (s) => breakPeriodAt(runtime.clock.time + s),
         paused: () => runtime.clock.paused,
-        canRide: () => (breakNav?.elevator.queue().length ?? BREAK_QUEUE_MAX) < BREAK_QUEUE_MAX,
-        // Rev 35: social areas for everyone (the CEO included); the director latches the current floor on an
-        // interrupt, so off-floor breaks are safe. The elevator gate (`canRide`) still spaces the trips.
-        exclude: new Set<string>(),
-        maxAway: SOCIAL_MAX_AWAY,
-      },
+        queued: () => breakNav?.elevator.queue().length ?? BREAK_QUEUE_MAX,
+      }),
     },
   );
   const bubbles = createBubbleScheduler(
@@ -274,9 +273,14 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
   // Staff NPCs: static import, no request after page load (0001 REQ-16; budget per KARARLAR Rev 31).
   let staff: StaffModel | null = null;
   let staffRt: StaffRuntime | null = null;
+  // Room life (Rev 39): the wider team in every room; not units, never pickable. Synced with the staff.
+  const roomLife = createRoomLife({ seed: 1, officeTime: office.minutes() });
+  model.root.add(roomLife.group);
   function syncStaff(): void {
     staff?.setView(model.view);
     staff?.setOrg(orgOn);
+    roomLife.setView(model.view);
+    roomLife.setOrg(orgOn);
   }
   {
     const st = createStaff({ layouts: model.layouts, seed: 1, reducedMotion: false }); // synced right after `motion` is bound
@@ -467,11 +471,13 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     screens: model.robots.map((r) => r.screen),
     onChange: (on) => {
       staff?.setReducedMotion(on);
+      roomLife.setReducedMotion(on);
       model.city?.setReducedMotion(on);
       dnControl.refresh();
     },
   });
   staff?.setReducedMotion(motion.active());
+  roomLife.setReducedMotion(motion.active());
   model.city?.setReducedMotion(motion.active());
   syncStaff();
 
@@ -649,6 +655,7 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     boardTex?.render(board.state(runtime.workflow, motion.active()));
     staffRt?.frame(dt); // staff NPCs: paused with the clock's global reasons (org / user / hidden)
     if (!runtime.clock.paused) model.city?.step(dt); // city life: same global pause reasons
+    frameRoomLife(roomLife, runtime.clock, dt, office.minutes()); // room life: office clock, same pause reasons
     const selected = flow.selectedId();
     const still = motion.active();
     for (const r of model.robots) {
