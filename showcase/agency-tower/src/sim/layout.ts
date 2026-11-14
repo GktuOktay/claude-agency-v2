@@ -486,3 +486,61 @@ export function zoneAt(layout: FloorLayout, p: XZ): Zone | null {
 export function separationExempt(layout: FloorLayout, a: XZ, b: XZ): boolean {
   return zoneAt(layout, a) !== null && zoneAt(layout, b) !== null;
 }
+
+// ---------------------------------------------------------------- staff NPCs (CEO-authorized expansion, rev 31)
+// Additive only: the floor-0 security desk and turnstile footprints and the staff patrol spots. The robot
+// layout above is unchanged; src/sim/staffSim.ts builds its own staff graph from floorLayout() plus these.
+
+/** Lobby floor of the security desk, the turnstile and both guards. */
+export const LOBBY_FLOOR = 0;
+/** Security desk in the lobby's south strip, west of the turnstile; the desk guard stands north of it facing the entrance. */
+export const SECURITY_DESK = { x: -5.8, z: 4.8, hw: 0.5, hd: 0.25, height: 0.5 } as const;
+/** Turnstile: two waist-high cabinets either side of a centred passage toward the (south-wall) entrance. */
+export const TURNSTILE = { x: -4.5, z: 4.8, gap: 0.64, cabinetHw: 0.08, cabinetHd: 0.3, height: 0.45 } as const;
+
+/** Footprints of the lobby staff props (floor 0 only). */
+export function lobbyPropFootprints(): Rect[] {
+  const d = SECURITY_DESK;
+  const t = TURNSTILE;
+  const off = t.gap / 2 + t.cabinetHw;
+  return [
+    rect('security-desk', d.x, d.z, d.hw, d.hd),
+    rect('turnstile', t.x - off, t.z, t.cabinetHw, t.cabinetHd),
+    rect('turnstile', t.x + off, t.z, t.cabinetHw, t.cabinetHd),
+  ];
+}
+
+/** West end of the staff corridor: staff also walk the robot-free west corridor (all floors). */
+export const STAFF_CORRIDOR_WEST_X = -6.6;
+
+export interface StaffSpot extends XZ {
+  readonly id: string;
+  /** Attach point: 'corridor' (spur from the corridor) or another staff spot id (spur of a spur). */
+  readonly via: string;
+}
+
+/** Cleaner mop spots, every floor: beside the corridor lanes in the robot-free west corridor. */
+export const MOP_SPOTS: readonly StaffSpot[] = [
+  { id: 'staff:mop:0', x: -6.0, z: -0.6, via: 'corridor' },
+  { id: 'staff:mop:1', x: -4.4, z: -0.6, via: 'corridor' },
+  { id: 'staff:mop:2', x: -3.6, z: -1.2, via: 'corridor' },
+];
+
+/**
+ * Floor-0 lobby path (south-west room): corridor -> partition door -> east passage -> south strip -> the
+ * turnstile passage and the entrance; the guard post hangs off the south strip.
+ */
+export const LOBBY_SPOTS: readonly StaffSpot[] = [
+  { id: 'staff:lobby-door', x: -2.95, z: 0.9, via: 'corridor' },
+  { id: 'staff:lobby-east', x: -1.9, z: 0.9, via: 'staff:lobby-door' },
+  { id: 'staff:lobby-corner', x: -1.9, z: 3.7, via: 'staff:lobby-east' },
+  { id: 'staff:lobby-south', x: -4.5, z: 3.7, via: 'staff:lobby-corner' },
+  { id: 'staff:entrance', x: -4.5, z: 5.15, via: 'staff:lobby-south' },
+  { id: 'staff:guard-post', x: -5.8, z: 4.1, via: 'staff:lobby-south' },
+  { id: 'staff:patrol-west', x: -5.2, z: -1.2, via: 'corridor' },
+  { id: 'staff:patrol-east', x: 3.0, z: -0.6, via: 'corridor' },
+];
+/** Patrol loop of the floor-0 guard (spot ids, visited in order). */
+export const PATROL_ROUTE: readonly string[] = ['staff:entrance', 'staff:lobby-corner', 'staff:patrol-west', 'staff:patrol-east', 'staff:lobby-door'];
+/** Where the desk guard stands, facing the entrance (yaw 0 faces +z). */
+export const GUARD_POST = { id: 'staff:guard-post', facing: 0 } as const;
