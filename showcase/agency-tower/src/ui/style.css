@@ -187,6 +187,29 @@ button:hover { background: #fff; border-color: rgba(47, 102, 208, 0.35); }
 .fps[hidden] { display: none; }
 @keyframes bubble-in { from { opacity: 0; } to { opacity: 1; } }
 
+/* Job strip (0002 REQ-11): bottom-left card on desktop; state shown in words and symbols, never colour alone. */
+.job-strip { position: absolute; z-index: 10; left: var(--space-4); bottom: var(--space-4); width: min(22rem, calc(100vw - 2rem)); max-height: 40vh; overflow-y: auto; background: var(--panel); border: 1px solid var(--panel-border); border-radius: var(--radius); box-shadow: var(--panel-shadow); padding: var(--space-2) var(--space-3); font-size: 0.82rem; }
+.job-strip h2 { margin: 0 0 var(--space-1); font-size: 0.78rem; font-weight: 700; letter-spacing: 0.04em; color: var(--fg-muted); }
+.job-strip h2:focus { outline: none; }
+.job-strip h2:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.job-empty { margin: 0; color: var(--fg-muted); }
+.job-empty[hidden], .job[hidden], .job-more[hidden], .job-steps[hidden] { display: none; }
+.job-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-1); }
+.job { display: grid; grid-template-columns: 1fr auto; gap: var(--space-1); align-items: start; }
+.job-entry { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; width: 100%; min-height: var(--touch); padding: 6px var(--space-2); margin: 0; overflow-wrap: anywhere; }
+.job-entry.is-done { grid-column: 1 / -1; border: 1px dashed var(--panel-border); border-radius: var(--radius-sm); }
+.job-head { font-weight: 600; }
+.job-step, .job-loops, .job-pause { color: var(--fg-muted); }
+.job-pause { font-weight: 600; color: var(--fg); }
+.job-steps-toggle, .job-more { min-height: var(--touch); min-width: var(--touch); font-size: 0.78rem; }
+.job-steps-toggle[aria-expanded='true'] { background: var(--accent-soft); }
+.job-steps { grid-column: 1 / -1; margin: 0; padding: 0 0 0 var(--space-2); list-style: none; display: grid; gap: 2px; color: var(--fg-muted); }
+.job-steps .mark-now { color: var(--fg); font-weight: 600; }
+.job-more { margin-top: var(--space-1); }
+.toolbar > button[aria-pressed='true'].motion-toggle { background: var(--pill-dark); color: #fff; }
+.is-night .job-strip { box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.18), 0 2px 10px rgba(0, 0, 0, 0.4); }
+html.is-org .job-strip { opacity: 0.92; }
+
 /* Org mode: a darker neutral backdrop so the faint tower recedes and the glowing lines read. */
 html.is-org body { background: radial-gradient(120% 90% at 50% 30%, #4b515b 0%, #343941 62%, #25292f 100%); }
 html.is-org .robot-label { box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.25), 0 4px 12px rgba(0, 0, 0, 0.35); }
@@ -212,6 +235,8 @@ html.is-org .robot-label { box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.25), 0 4p
   .toolbar > button, .segmented button { min-height: var(--touch); }
   .segmented button { min-width: var(--touch); padding: 4px 10px; }
   .org-legend { bottom: 72px; }
+  /* Strip under the floor strip, above the card sheet and the toolbar; internal scroll. */
+  .job-strip { left: 8px; right: 8px; top: 64px; bottom: auto; width: auto; max-height: 28vh; }
 }
 
 @media (prefers-reduced-motion: reduce) {

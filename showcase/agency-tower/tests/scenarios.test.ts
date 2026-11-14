@@ -7,6 +7,7 @@ import { boot, type BootDeps } from '../src/app/bootstrap';
 import scenarios from '../src/data/scenarios.json';
 import roster from '../src/data/roster.generated.json';
 import hierarchy from '../src/data/hierarchy.json';
+import jobTitles from '../src/data/jobTitles.json';
 import { appRoot } from './helpers';
 import { unitFloors } from './workflowHelpers';
 
@@ -155,7 +156,7 @@ describe('invalid scenario data yields the data-error state (AC-2, REQ-2)', () =
     document.body.replaceChildren(root);
     return {
       root,
-      deps: { root, loadRaw: () => Promise.resolve({ roster, overlay: hierarchy, scenarios: scen }), hasWebGL2: () => true, startScene: () => undefined },
+      deps: { root, loadRaw: () => Promise.resolve({ roster, overlay: hierarchy, scenarios: scen, jobTitles }), hasWebGL2: () => true, startScene: () => undefined },
     };
   }
 

@@ -1,6 +1,7 @@
 import type { Unit } from '../data/types';
 import { tr } from '../i18n/tr';
 import { el } from './dom';
+import type { CardLines } from './nowLine';
 
 export interface CardOptions {
   resolveName(id: string): string;
@@ -9,7 +10,8 @@ export interface CardOptions {
 
 export interface CardController {
   element: HTMLElement;
-  open(unit: Unit, opener: HTMLElement | null): void;
+  /** `lines` (0002 REQ-12) only in the scene; the fallback card has neither line. */
+  open(unit: Unit, opener: HTMLElement | null, lines?: CardLines): void;
   close(): void;
   isOpen(): boolean;
 }
@@ -34,7 +36,7 @@ export function createCard(parent: HTMLElement, opts: CardOptions): CardControll
     },
     isOpen: () => panel !== null,
     close,
-    open(unit, from) {
+    open(unit, from, lines) {
       if (panel) {
         panel.remove();
         panel = null;
@@ -48,6 +50,10 @@ export function createCard(parent: HTMLElement, opts: CardOptions): CardControll
         dl.append(el('dt', {}, label), el('dd', {}, value));
       };
       row(tr.card.name, unit.name);
+      if (lines) {
+        row(tr.now.label, lines.now);
+        if (lines.job) row(tr.now.job, lines.job);
+      }
       row(tr.card.tier, tr.tiers[unit.tier]);
       row(tr.card.role, unit.roleTr);
       row(tr.card.description, unit.description);

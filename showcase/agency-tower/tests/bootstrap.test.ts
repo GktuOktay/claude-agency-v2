@@ -3,6 +3,7 @@ import { boot, type BootDeps } from '../src/app/bootstrap';
 import roster from '../src/data/roster.generated.json';
 import hierarchy from '../src/data/hierarchy.json';
 import scenarios from '../src/data/scenarios.json';
+import jobTitles from '../src/data/jobTitles.json';
 import { sortUnits } from '../src/ui/unitList';
 import { loadData } from '../src/data/loader';
 
@@ -12,7 +13,7 @@ function makeDeps(over: Partial<BootDeps> = {}): { deps: BootDeps; root: HTMLEle
   const startScene = vi.fn();
   const deps: BootDeps = {
     root,
-    loadRaw: () => Promise.resolve({ roster, overlay: hierarchy, scenarios }),
+    loadRaw: () => Promise.resolve({ roster, overlay: hierarchy, scenarios, jobTitles }),
     hasWebGL2: () => true,
     startScene,
     ...over,
@@ -28,11 +29,11 @@ describe('app states (AC-5)', () => {
   });
 
   it('shows the loading text while the loader is delayed', async () => {
-    let release: (v: { roster: unknown; overlay: unknown; scenarios: unknown }) => void = () => undefined;
+    let release: (v: { roster: unknown; overlay: unknown; scenarios: unknown; jobTitles: unknown }) => void = () => undefined;
     const { deps, root } = makeDeps({ loadRaw: () => new Promise((r) => (release = r)) });
     const p = boot(deps);
     expect(root.textContent).toContain('Kule yükleniyor…');
-    release({ roster, overlay: hierarchy, scenarios });
+    release({ roster, overlay: hierarchy, scenarios, jobTitles });
     await p;
     expect(root.textContent).not.toContain('Kule yükleniyor…');
   });
@@ -40,7 +41,7 @@ describe('app states (AC-5)', () => {
   it('invalid data and no WebGL2: data error only, no fallback, no scene', async () => {
     const probe = vi.fn(() => false);
     const { deps, root, startScene } = makeDeps({
-      loadRaw: () => Promise.resolve({ roster: { schemaVersion: 9 }, overlay: hierarchy, scenarios }),
+      loadRaw: () => Promise.resolve({ roster: { schemaVersion: 9 }, overlay: hierarchy, scenarios, jobTitles }),
       hasWebGL2: probe,
     });
     expect(await boot(deps)).toBe('data-error');
@@ -52,7 +53,7 @@ describe('app states (AC-5)', () => {
   });
 
   it('invalid data with WebGL2 present: data error, no scene', async () => {
-    const { deps, root, startScene } = makeDeps({ loadRaw: () => Promise.resolve({ roster: null, overlay: null, scenarios }) });
+    const { deps, root, startScene } = makeDeps({ loadRaw: () => Promise.resolve({ roster: null, overlay: null, scenarios, jobTitles }) });
     expect(await boot(deps)).toBe('data-error');
     expect(root.textContent).toContain('Kadro verisi okunamadı.');
     expect(startScene).not.toHaveBeenCalled();

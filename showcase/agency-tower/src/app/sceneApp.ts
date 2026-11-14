@@ -42,6 +42,8 @@ import { createFpsMeter, createLoop } from './loop';
 import { qualitySettings, resolveQuality, type Params } from './params';
 import { framePose, shouldStepSim } from './frameUpdate';
 import { createSelectionFlow } from './selection';
+import { createSimRuntime } from './simRuntime';
+import { rideToFloor } from './stripActivation';
 import type { SceneContext } from './bootstrap';
 
 const SEED = 20261113;
@@ -53,7 +55,7 @@ function brighten(floor: number): number {
 }
 
 export function startSceneApp(ctx: SceneContext, params: Params): void {
-  const { root, data, card } = ctx;
+  const { root, data, card, scenarios, titles } = ctx;
   const coarse = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
   const quality = qualitySettings(resolveQuality(params, coarse), window.devicePixelRatio || 1);
 
@@ -136,6 +138,25 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
   );
   const robotById = new Map<string, RobotEntry>(model.robots.map((r) => [r.unit.id, r]));
 
+  // ---- 0002: simulation clock, workflow engine (timed movement stand-in until T-6), job strip ----
+  const narrowMq = typeof matchMedia === 'function' ? matchMedia('(max-width: 767px)') : null;
+  const reducedMq = typeof matchMedia === 'function' ? matchMedia('(prefers-reduced-motion: reduce)') : null;
+  const runtime = createSimRuntime({
+    scenarios,
+    units: new Map(data.units.map((u) => [u.id, u.floor])),
+    titles,
+    maxJobs: quality.quality === 'low' ? 2 : 3,
+    isNarrow: () => narrowMq?.matches ?? false,
+    reducedMotion: () => reducedMq?.matches ?? false,
+    rideTo: (floor) =>
+      rideToFloor(
+        { cardOpen: () => card.isOpen(), closeCard: () => closeCard(), orgOn: () => orgOn, leaveOrg: () => dropOrg(), goFloor: (f) => goFloor(f) },
+        floor,
+      ),
+  });
+  document.addEventListener('visibilitychange', () => runtime.setHidden(document.hidden));
+  runtime.setHidden(document.hidden);
+
   // ---- navigation and selection ----
   // ---- org-chart mode (REQ-17) ----
   let orgOn = false;
@@ -155,6 +176,7 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     legend.hidden = true;
     document.documentElement.classList.remove('is-org');
     orgBtn.setAttribute('aria-pressed', 'false');
+    runtime.setOrg(false);
   };
   /** Org framing keeps the name pills clear of the toolbar (top) and the legend (bottom). */
   function measureOrgInsets(): void {
@@ -175,6 +197,7 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     if (orgOn) return;
     closeCardQuiet();
     orgOn = true;
+    runtime.setOrg(true);
     model.setOrg(true);
     legend.hidden = false;
     document.documentElement.classList.add('is-org');
@@ -196,7 +219,16 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
   }
   orgBtn.addEventListener('click', () => (orgOn ? exitOrg() : enterOrg()));
 
-  const flow = createSelectionFlow({ rig, sim, model, getCard: () => card, exitOrg: dropOrg });
+  const flow = createSelectionFlow({
+    rig,
+    sim,
+    model,
+    getCard: () => card,
+    exitOrg: dropOrg,
+    linesFor: (id) => runtime.cardLinesFor(id, sim.get(id).kind),
+    onSelect: (id) => runtime.select(id),
+    onRelease: (id) => runtime.release(id),
+  });
   ctx.hooks.onCardClosed = () => flow.onCardClosed();
   const closeCard = (): void => {
     if (card.isOpen()) card.close();
@@ -248,7 +280,7 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
   // ---- day / night (REQ-18) ----
   const dayNight = createDayNight();
   const dnControl = createDayNightControl(dayNight);
-  toolbar.append(dnControl.element, orgBtn, shortcutBtn);
+  toolbar.append(dnControl.element, orgBtn, runtime.pauseButton, shortcutBtn);
 
   // ---- reduced motion (REQ-20), on load and on live change ----
   const rmq = typeof matchMedia === 'function' ? matchMedia('(prefers-reduced-motion: reduce)') : null;
@@ -286,7 +318,8 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
   );
   const fpsEl = el('div', { class: 'fps' }, '');
   fpsEl.hidden = !params.debug;
-  root.append(toolbar, panel.element, unitList.element, labels, legend, fpsEl);
+  // Tab order: floor panel, then the strip (§4), then the rest.
+  root.append(toolbar, panel.element, runtime.strip.element, unitList.element, labels, legend, fpsEl);
 
   let hoverId: string | null = null;
   let focusId: string | null = null;
@@ -379,6 +412,7 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     clock += dt;
 
     if (shouldStepSim(orgOn)) sim.step(dt * 1000); // org mode: robots freeze in place
+    runtime.frame(dt * 1000); // simulation clock (≤ 100 ms steps, frozen by org / user / hidden), engine, strip
     const selected = flow.selectedId();
     const still = motion.active();
     for (const r of model.robots) {
