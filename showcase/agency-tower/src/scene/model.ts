@@ -44,6 +44,7 @@ import {
   type ShadowRole,
 } from './furniture';
 import { buildFloorDressing } from './flexOffice';
+import { buildSoftwareDecor, dressDesks } from './softwareDecor';
 import { type MatOptions, type RobotParts } from './robot';
 import { createCharacter } from './human';
 import { Screen } from './screen';
@@ -183,6 +184,8 @@ export interface BuildOptions {
   whiteboardTexture?: () => Texture | null;
   /** Green, flexible floor dressing (src/scene/flexOffice.ts); default on, off for A/B budget checks. */
   dressing?: boolean;
+  /** Software-company decor and desk setups (src/scene/softwareDecor.ts); default on, off for A/B budget checks. */
+  software?: boolean;
   /** City around the campus (src/scene/city.ts); default on, off for A/B budget checks. */
   city?: boolean;
 }
@@ -580,6 +583,7 @@ export function buildTower(data: TowerData, options: BuildOptions = {}): TowerMo
     }
 
     if (options.dressing !== false) group.add(buildFloorDressing(k, id, accent));
+    if (options.software !== false) group.add(buildSoftwareDecor(k, id, accent));
 
     rooms.push({ floor: id, text: floorName(id), primary: true, position: new Vector3(isPenthouse ? -1.2 : WORK_CENTER_X, id * FLOOR_HEIGHT + FLOOR_TOP + ROOM_LABEL_Y, -3.6) });
     rooms.push({ floor: id, text: tr.rooms.coffee, primary: false, position: new Vector3(COFFEE.x, id * FLOOR_HEIGHT + FLOOR_TOP + ROOM_LABEL_Y * 0.9, COFFEE.z - 0.6) });
@@ -655,6 +659,7 @@ export function buildTower(data: TowerData, options: BuildOptions = {}): TowerMo
       root.add(group);
       robots.push({ unit, floor: entry.id, group, parts, screen, workPoint: work, homePoint: home, coffeePoint });
     });
+    if (options.software !== false) dressDesks(k, entry.id, entry.group, robots.filter((r) => r.floor === entry.id).map((r) => r.screen));
 
     // Every floor has at least one desk (the penthouse adds a side desk next to the signing desk).
     if (!entry.group.children.some((c) => c.name === 'desk')) {

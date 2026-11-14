@@ -144,6 +144,22 @@ export class Kit {
     return mat;
   }
 
+  /**
+   * Self-lit display material (contents category) showing `map` (a shared atlas); a dark screen colour
+   * when no canvas texture exists. One per floor, so displays merge into a single draw call per floor.
+   */
+  panel(map: Texture | null): Material {
+    if (!map) return this.m(0x27303b, { roughness: 0.35 });
+    const key = `p:${map.uuid}`;
+    let mat = this.mats.get(key);
+    if (!mat) {
+      mat = new MeshBasicMaterial({ map, toneMapped: false });
+      this.sinks.contents.push(mat);
+      this.mats.set(key, mat);
+    }
+    return mat;
+  }
+
   place(parent: Group, geo: BufferGeometry, mat: Material, x: number, y: number, z: number, role: ShadowRole = 'object', name = ''): Mesh {
     const mesh = new Mesh(geo, mat);
     mesh.position.set(x, y, z);
@@ -217,10 +233,15 @@ export function monitor(k: Kit, faceMat: Material, wide = false): Group {
   return g;
 }
 
+/** Mechanical keyboard on a felt desk mat: graphite case, raised keycap rows, an accent-free mouse. */
 export function keyboard(k: Kit): Group {
   const g = new Group();
-  k.box(g, 0.3, 0.012, 0.1, 0.004, k.m(0xdfe2e6), 0, 0, 0);
-  k.box(g, 0.05, 0.01, 0.07, 0.004, k.m(0xdfe2e6), 0.25, 0, 0);
+  g.name = 'mech-keyboard';
+  k.box(g, 0.62, 0.004, 0.2, 0, k.m(PALETTE.charcoal, { roughness: 0.95 }), 0.06, 0, 0, 'none');
+  k.box(g, 0.3, 0.016, 0.1, 0, k.m(PALETTE.graphite), 0, 0.004, 0);
+  const cap = k.m(PALETTE.offWhite);
+  for (let r = 0; r < 3; r++) k.box(g, 0.27, 0.008, 0.022, 0, cap, 0, 0.02, -0.03 + r * 0.03, 'none');
+  k.box(g, 0.05, 0.012, 0.07, 0, k.m(0xdfe2e6), 0.25, 0.004, 0);
   return g;
 }
 
@@ -388,6 +409,8 @@ export function glassPartition(k: Kit, x0: number, z0: number, x1: number, z1: n
   const posts = Math.max(1, Math.round(len / 1.0));
   for (let i = 0; i <= posts; i++) k.box(g, 0.06, h, 0.08, 0.012, frame, -len / 2 + (i * len) / posts, 0, 0, 'none');
   k.box(g, len, h - 0.1, 0.012, 0, k.tint(0xbcd9e6, 0.38), 0, 0.05, 0, 'none');
+  // Subtle frosted privacy band across the pane (KARARLAR Rev 35).
+  k.box(g, len, 0.2, 0.016, 0, k.tint(0xf4f7f8, 0.5), 0, h * 0.42, 0, 'none');
   return g;
 }
 
