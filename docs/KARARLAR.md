@@ -274,3 +274,10 @@ Eski kurulum: ~/.claude-backup-2026-11-01 (silme işlemi henüz yapılmadı).
 - Motor düzeltmesi: eşlik eden birime teslim artık ikisi aynı yerdeyken yapılıyor; taşıyıcı teslimden önce eve yürümüyor. İnceleme saati eşlik eden birim yanına gelince başlıyor (R-11).
 - Sonuç: l2 işleri gerçek yolculuk nedeniyle yavaşladı; çekim sayım testi (seed 9) 1200 s'de 5 sonuç çekimi gördü, eşik >5. **Ruling:** o testin koşu süresi 1500 s; doğrulamalar aynı. Yanlışsa maliyet: tek sayı.
 - **Ruling:** personel ayak izi taraması (`staff-sim.test.ts`) paralel yük altında 15 s zaman aşımına düşüyor, tek başına ~10 s; o teste 45 s süre. Doğrulamalar aynı.
+
+## Revizyon 35: Ayarlar menüsü, mola saatleri, sosyal alanlar, prestij (2026-11-14)
+- CEO: her şey ayarlar menüsü altında, modüler ve temiz; yalnız kat planı açık kalır. Mola saatleri olsun; sosyal alanlar herkes için. Otopark eklenebilir. Gerçekçilik ve prestij artsın; görüntü kalitesi ayarlardan seçilsin. Açık riskler giderilsin. Ar-Ge "yıldız alan" olsun. Şirket bir yazılım şirketi; görseller buna göre.
+- Paketler: P1 arayüz (modüler ayarlar menüsü, iş şeridi menüye, yalnız kat planı açık); P2 görüntü kalitesi (Düşük/Orta/Yüksek/Ultra; ortam haritası, ton eşleme, yumuşak gölge; çalışırken değiştirilebilir); P3 mola saatleri ve herkes için sosyal alanlar (QA düzeltmeleri `activity.ts`'i bitirince); P4a kampüs: Ar-Ge yıldız alanı ve otopark; P4b yazılım şirketi görselleri (ekranlar, CI/kanban panoları, sunucu odası, bina tabelası).
+- **Ruling (bütçe):** giriş dosyası sınırı 1 000 000 B (sayfa açıldıktan sonra ağ isteği yasak, tembel yükleme yok). Yanlışsa maliyet: ilk açılış biraz yavaşlar.
+- **Ruling:** tabelada kurgusal marka ("Ajans") kullanılır; gerçek şirket adı ya da logosu yok.
+- Açık risk, CEO işi: Node 22 bu makinede yok; `npx node@22` izin sisteminde engellendi. Kurulum CEO'da (Beklenenler).

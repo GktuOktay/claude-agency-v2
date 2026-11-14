@@ -20,26 +20,26 @@ function fixture(bytes: number, extra: Record<string, string> = {}): string {
 }
 
 describe('budget-check (AC-17, R-10)', () => {
-  it('the ceiling is 900 000 bytes (Rev 31 campus scope; 1 kB = 1000 bytes, raw minified)', () => {
-    expect(BUDGET_BYTES).toBe(900_000);
+  it('the ceiling is 1 000 000 bytes (Rev 31/35 campus scope; 1 kB = 1000 bytes, raw minified)', () => {
+    expect(BUDGET_BYTES).toBe(1_000_000);
   });
 
-  it('passes on an entry chunk of exactly 900 000 bytes', () => {
-    const r = checkBudget(fixture(900_000));
+  it('passes on an entry chunk of exactly 1 000 000 bytes', () => {
+    const r = checkBudget(fixture(1_000_000));
     expect(r.ok).toBe(true);
-    expect(r.bytes).toBe(900_000);
+    expect(r.bytes).toBe(1_000_000);
     expect(r.file).toBe('assets/index-abc123.js');
   });
 
-  it('fails on an entry chunk of 901 000 bytes', () => {
-    const r = checkBudget(fixture(901_000));
+  it('fails on an entry chunk of 1 001 000 bytes', () => {
+    const r = checkBudget(fixture(1_001_000));
     expect(r.ok).toBe(false);
-    expect(r.bytes).toBe(901_000);
-    expect(r.message).toMatch(/901000/);
+    expect(r.bytes).toBe(1_001_000);
+    expect(r.message).toMatch(/1001000/);
   });
 
   it('measures only the chunk referenced by index.html, not other JS files', () => {
-    const r = checkBudget(fixture(10, { 'assets/vendor-big.js': 'c'.repeat(900_000) }));
+    const r = checkBudget(fixture(10, { 'assets/vendor-big.js': 'c'.repeat(1_000_000) }));
     expect(r.ok).toBe(true);
     expect(r.bytes).toBe(10);
   });
@@ -64,12 +64,12 @@ describe('budget-check (AC-17, R-10)', () => {
     expect(checkBudget(missing).ok).toBe(false);
   });
 
-  it('CLI: exit 0 at 900 000 bytes, exit 1 at 901 000 bytes', () => {
+  it('CLI: exit 0 at 1 000 000 bytes, exit 1 at 1 001 000 bytes', () => {
     const script = join(appRoot, 'scripts', 'budget-check.mjs');
-    const pass = spawnSync(process.execPath, [script, fixture(900_000)], { encoding: 'utf8' });
+    const pass = spawnSync(process.execPath, [script, fixture(1_000_000)], { encoding: 'utf8' });
     expect(pass.status).toBe(0);
     expect(pass.stdout).toMatch(/budget OK/);
-    const fail = spawnSync(process.execPath, [script, fixture(901_000)], { encoding: 'utf8' });
+    const fail = spawnSync(process.execPath, [script, fixture(1_001_000)], { encoding: 'utf8' });
     expect(fail.status).toBe(1);
     expect(fail.stderr).toMatch(/over budget/);
   });
