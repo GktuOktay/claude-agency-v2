@@ -259,3 +259,8 @@ Eski kurulum: ~/.claude-backup-2026-11-01 (silme işlemi henüz yapılmadı).
 - **Ruling:** 0001 REQ-8 "altı kat" korunur; büyüme yatayda (kuleye köprüyle bağlı yan kanat) ve çatıda (çatı bahçesi). Yanlışsa maliyet: kat sayısı değişirse kat paneli, asansör ve 0001 testleri yeniden yazılır.
 - **Ruling:** bütçeler korunur (vertex < 700 000, mesh < 1000, JS ≤ 748 000 B); paketlere pay verilir, birleştirme ve instancing zorunlu.
 - **Ruling (bütçe, Rev 31 ek):** T-7 sonrası giriş dosyası 727 876 B (748 000 sınırının %97.3'ü). Kampüs, karakter, personel ve iç mekân paketleri bu sınırı aşacak. Ağ isteği yasağı (0001 REQ-16) tembel yüklemeyi engelliyor. Genişletilmiş kapsam için sınır 900 000 B; 0002 AC-17'deki 748 000 kontrolü bu kapsam için sapma olarak kayıtlı. Yanlışsa maliyet: ilk açılış biraz yavaşlar; paketler küçültülürse sınır geri çekilir.
+
+## Revizyon 32: Gerçek yürüme ve AC-5 döngü sınırı (2026-11-14)
+- Asansör simülasyonu ve gerçek yürüme (navMovement) birleşti. Gerçek geometride l3-full zorunlu `test` ret döngüsü 92.3 s; 0002 AC-5 sınırı 90 s. Katlar arası her taşıma ~35 s.
+- **Ruling (CEO yetkisi, Rev 31):** zorunlu döngü sınırı gerçek hareketle 100 s. Görünmez bir test sınırı; yerleşimi değiştirmek ya da robotları hızlandırmak görünür olurdu. Yanlışsa maliyet: tek sabit.
+- **Ruling:** motor testleri (AC-4 izi, 30 s kayma, iş şeridi binici katı) hareketten bağımsız mantığı ölçer; bu testlere zamanlı yer tutucu açıkça enjekte edilir, varsayılan ise navMovement olur. Hiçbir doğrulama gevşetilmez.
