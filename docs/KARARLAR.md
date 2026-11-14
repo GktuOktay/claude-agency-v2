@@ -293,3 +293,10 @@ Eski kurulum: ~/.claude-backup-2026-11-01 (silme işlemi henüz yapılmadı).
 - Paketler: L1 şehir lüksü (lüks araçlar, üst segment cadde ve mimari, gerçek ölçekler); L2 bina dış cephesi ve peyzaj (cam giydirme cephe, giriş meydanı, yansıma havuzu, peyzaj). Çalışan P4a (Ar-Ge, otopark) ve P4b (iç mekân) paketlerine lüks yönü eklendi.
 - **Ruling:** gerçek bir şirketin kampüsü, binası ya da logosu kopyalanmaz; özgün tasarım, gerçek dünya ölçek ve malzeme mantığıyla. Yanlışsa maliyet: yok (taklit riski kapalı).
 - **Ruling:** prosedürel geometri ilkesi korunur (görsel dosya yok, ağ isteği yok); gerçekçilik ölçek, malzeme, ışık ve ayrıntıyla sağlanır.
+
+## Revizyon 38: Ofis programı ve herkes için sosyal alanlar (2026-11-14)
+- Ofis günü simülasyon saatine bağlandı (`schedule.ts`) ve Ayarlar › Ofis sekmesinde canlı saatle gösteriliyor. Molalar programa göre: kahve, çay, yemekhane ve teras.
+- Kanat herkese açık; CEO dahil. Kat mandalı sayesinde başka katta kesilen robot sıçramadan geri yürüyor. Ar-Ge'nin çekiciliği güçlendirildi (`LAB_FANS`).
+- **Ruling (CEO yetkisi, Rev 35 · imzalı 0001 REQ-18'den sapma):** Otomatik modda ışık ofis saatini izliyor. Tam döngü 90 s yerine 420 s ve duraklatmada donuyor. Gündüz ve Gece seçenekleri aynı. Yanlışsa maliyet: `schedule.ts` içindeki tek tablo.
+- Ölçüm: 1200 s'de molalar açıkken 3 iş, kapalıyken 5 iş bitiyor (`office-liveness.test.ts`). Darboğaz tek personel asansörü. İşler aç kalmıyor, gerçekçilik bilerek tercih edildi.
+- Açık: molaya özel kart satırları ("Spor salonunda", "Ar-Ge'de" vb.) cila turunda yapılacak.
