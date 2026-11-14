@@ -41,7 +41,9 @@ import { mountHud } from '../ui/hudLayout';
 import { createUnitList } from '../ui/unitList';
 import { applyInitialCamera, projectToScreen } from './initialCamera';
 import { createFpsMeter, createLoop } from './loop';
-import { qualitySettings, resolveQuality, type Params } from './params';
+import { maxJobsFor, qualitySettings, resolveQuality, type Params } from './params';
+import { createScenarioInfo, createSettingsMenu, createShortcutToggle } from '../ui/settingsMenu';
+import { MASTER_SEED } from '../sim/workflow';
 import { framePose, shouldStepSim } from './frameUpdate';
 import { createSelectionFlow } from './selection';
 import { createSimRuntime } from './simRuntime';
@@ -149,7 +151,7 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     scenarios,
     units: new Map(data.units.map((u) => [u.id, u.floor])),
     titles,
-    maxJobs: quality.quality === 'low' ? 2 : 3,
+    maxJobs: maxJobsFor(quality.quality),
     unitName: ctx.nameOf,
     isNarrow: () => narrowMq?.matches ?? false,
     reducedMotion: () => reducedMq?.matches ?? false,
@@ -311,18 +313,12 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
   });
   window.addEventListener('keydown', (e) => keys.handle(e));
 
-  const toolbar = el('div', { class: 'toolbar', role: 'toolbar', 'aria-label': tr.title });
-  const shortcutBtn = el('button', { type: 'button', 'aria-pressed': 'true' }, tr.shortcutsOn);
-  shortcutBtn.addEventListener('click', () => {
-    const on = !keys.isEnabled();
-    keys.setEnabled(on);
-    shortcutBtn.setAttribute('aria-pressed', String(on));
-    shortcutBtn.textContent = on ? tr.shortcutsOn : tr.shortcutsOff;
-  });
-  // ---- day / night (REQ-18) ----
+  // ---- day / night (REQ-18); the former toolbar lives in the corner settings menu ----
   const dayNight = createDayNight();
   const dnControl = createDayNightControl(dayNight);
-  toolbar.append(dnControl.element, orgBtn, runtime.pauseButton, shortcutBtn);
+  const scenarioInfo = createScenarioInfo({ seed: MASTER_SEED, laneWeights: scenarios.laneWeights, quality: quality.quality, maxJobs: { low: maxJobsFor('low'), high: maxJobsFor('high') } });
+  const settings = createSettingsMenu({ controls: [dnControl.element, orgBtn, runtime.pauseButton, createShortcutToggle(keys)], scenario: scenarioInfo });
+  const toolbar = settings.element; // org framing keeps the name pills clear of the corner button
 
   // ---- reduced motion (REQ-20), on load and on live change ----
   const rmq = typeof matchMedia === 'function' ? matchMedia('(prefers-reduced-motion: reduce)') : null;

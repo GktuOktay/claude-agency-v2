@@ -107,9 +107,28 @@ button:hover { background: #fff; border-color: rgba(47, 102, 208, 0.35); }
 .floor-panel .dot { width: 8px; height: 8px; border-radius: 50%; flex: none; background: var(--floor-accent, #9aa1ab); }
 .floor-panel button[data-floor='all'] .dot { background: transparent; border: 2px solid #9aa1ab; }
 .floor-panel .marker { display: inline-block; min-width: 0.9em; color: var(--accent); font-size: 0.7rem; }
-.toolbar { position: absolute; right: var(--space-4); top: var(--space-4); display: flex; gap: var(--space-2); flex-wrap: wrap; justify-content: flex-end; max-width: calc(100vw - 15rem); }
-.toolbar > button { box-shadow: var(--panel-shadow); border-radius: var(--radius-pill); padding: 6px var(--space-4); font-size: 0.85rem; }
-.toolbar > button[aria-pressed='true'].org-toggle { background: var(--pill-dark); color: #fff; }
+/* Corner settings menu (replaces the toolbar): icon button + non-modal popover. */
+.settings { position: absolute; z-index: 14; right: var(--space-4); top: var(--space-4); }
+.settings-button { display: grid; place-items: center; min-height: var(--touch); min-width: var(--touch); padding: 0; border-radius: var(--radius-pill); box-shadow: var(--panel-shadow); }
+.settings-button[aria-expanded='true'] { background: var(--pill-dark); color: #fff; }
+.settings-button .knob { fill: var(--bg-1); }
+.settings-panel { position: absolute; right: 0; top: calc(var(--touch) + var(--space-2)); width: min(20rem, calc(100vw - 16px)); max-height: calc(100vh - var(--touch) - 3 * var(--space-4)); overflow-y: auto; background: var(--panel); border: 1px solid var(--panel-border); border-radius: var(--radius); box-shadow: var(--panel-shadow); padding: var(--space-3); backdrop-filter: blur(8px); }
+.settings-panel[hidden] { display: none; }
+.settings-title { margin: 0 0 var(--space-2); font-size: 0.95rem; }
+.settings-controls { display: grid; gap: var(--space-2); }
+.settings-controls > button { min-height: var(--touch); border-radius: var(--radius-pill); text-align: left; padding: 6px var(--space-4); font-size: 0.85rem; }
+.settings-controls > button[aria-pressed='true'] { background: var(--pill-dark); color: #fff; }
+.settings-controls > button[aria-pressed='true']::before { content: '✓ '; }
+.settings-controls .segmented { box-shadow: none; justify-content: space-between; }
+.settings-controls .segmented button { min-height: var(--touch); flex: 1; }
+.settings-scenario { margin-top: var(--space-3); padding-top: var(--space-3); border-top: 1px solid var(--panel-border); font-size: 0.82rem; }
+.settings-scenario h3 { margin: 0; font-size: 0.85rem; }
+.settings-note { margin: 2px 0 var(--space-2); color: var(--fg-muted); font-size: 0.75rem; }
+.settings-scenario dl { margin: 0; display: grid; grid-template-columns: 1fr; gap: 2px; }
+.settings-scenario dt { font-weight: 600; color: var(--fg-muted); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; margin-top: var(--space-1); }
+.settings-scenario dd { margin: 0; overflow-wrap: anywhere; }
+.settings-scenario ul { margin: 0; padding-left: 1.1em; }
+.settings-seed { font-variant-numeric: tabular-nums; font-family: ui-monospace, monospace; }
 .segmented { display: inline-flex; padding: 3px; gap: 2px; background: var(--panel); border: 1px solid var(--panel-border); border-radius: var(--radius-pill); box-shadow: var(--panel-shadow); }
 .segmented button { border: 0; background: transparent; border-radius: var(--radius-pill); padding: 4px 12px; min-height: 30px; font-size: 0.82rem; }
 .segmented button[aria-pressed='true'] { background: var(--pill-dark); color: #fff; font-weight: 600; }
@@ -148,7 +167,7 @@ button:hover { background: #fff; border-color: rgba(47, 102, 208, 0.35); }
 /* DOM labels over the canvas (aria-hidden; text via textContent). */
 .overlay { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 1; }
 .overlay * { pointer-events: none; }
-.toolbar, .fps { z-index: 10; }
+.fps { z-index: 10; }
 .overlay > * { position: absolute; left: 0; top: 0; will-change: transform; }
 .overlay > [hidden] { display: none; }
 .room-label {
@@ -227,7 +246,6 @@ button:hover { background: #fff; border-color: rgba(47, 102, 208, 0.35); }
 .job-steps { grid-column: 1 / -1; margin: 0; padding: 0 0 0 var(--space-2); list-style: none; display: grid; gap: 2px; color: var(--fg-muted); }
 .job-steps .mark-now { color: var(--fg); font-weight: 600; }
 .job-more { margin-top: var(--space-1); }
-.toolbar > button[aria-pressed='true'].motion-toggle { background: var(--pill-dark); color: #fff; }
 .is-night .job-strip { box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.18), 0 2px 10px rgba(0, 0, 0, 0.4); }
 html.is-org .job-strip { opacity: 0.92; }
 
@@ -258,8 +276,9 @@ html.is-org .robot-label { box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.25), 0 4p
   .panel-group + .panel-group { margin-top: 0; padding-top: 0; border-top: 0; margin-left: 2px; padding-left: 4px; border-left: 1px solid var(--panel-border); }
   .panel-group-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   .floor-panel .is-campus .num { display: inline; }
-  .toolbar { left: 8px; right: 8px; top: auto; bottom: 8px; max-width: none; justify-content: center; }
-  .toolbar > button, .segmented button { min-height: var(--touch); }
+  .settings { right: 8px; top: 8px; }
+  /* Floor strip leaves the top-right corner to the settings button. */
+  .floor-panel { margin-right: calc(var(--touch) + 8px); }
   .segmented button { min-width: var(--touch); padding: 4px 10px; }
   .org-legend { position: static; align-self: center; margin-top: auto; max-width: 100%; }
   .org-legend:not([hidden]) + .job-strip { margin-top: 0; }

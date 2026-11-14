@@ -76,6 +76,19 @@ export const tr = {
       returned: { symbol: '↺', word: 'geri döndü' },
     },
   },
+  // Corner settings menu (Rev 31 UI pass).
+  settings: {
+    title: 'Ayarlar',
+    view: 'Görünüm',
+    scenario: 'Senaryo',
+    readOnly: 'Salt okunur · simülasyon verisi',
+    seed: 'Tohum (seed)',
+    laneWeights: 'Hat ağırlıkları',
+    limit: 'Aktif iş sınırı',
+    tiers: { low: 'Düşük kalite', high: 'Yüksek kalite' },
+    maxJobs: (n: number): string => `en çok ${n} aktif iş`,
+    current: '(şu an)',
+  },
   // REQ-18 toolbar toggle.
   motionPause: 'Hareketi durdur',
   motionResume: 'Sürdür',
