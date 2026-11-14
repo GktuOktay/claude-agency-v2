@@ -3,7 +3,7 @@ import { createFloorPanel } from '../src/ui/floorPanel';
 import hierarchy from '../src/data/hierarchy.json';
 
 describe('floor panel (AC-8)', () => {
-  it('has buttons 5..0 with Turkish names plus "Tüm kule"', () => {
+  it('has buttons 5..0 with Turkish names plus "Tüm şirket"', () => {
     const onSelect = vi.fn();
     const p = createFloorPanel(hierarchy.floors, onSelect);
     const buttons = [...p.element.querySelectorAll('button')];
@@ -11,11 +11,22 @@ describe('floor panel (AC-8)', () => {
     expect(buttons.map((b) => b.getAttribute('data-floor'))).toEqual(['5', '4', '3', '2', '1', '0', 'all']);
     expect(buttons[0]?.textContent).toContain('Penthouse — CEO Ofisi');
     expect(buttons[2]?.textContent).toContain('Strateji ve Mimari');
-    expect(buttons[6]?.textContent).toContain('Tüm kule');
+    expect(buttons[6]?.textContent).toContain('Tüm şirket');
     buttons[2]?.click();
     expect(onSelect).toHaveBeenCalledWith(3);
     buttons[6]?.click();
     expect(onSelect).toHaveBeenCalledWith('all');
+  });
+
+  it('"Tüm şirket" keeps its full accessible name while phones show the short visible label "Şirket"', () => {
+    const p = createFloorPanel(hierarchy.floors, () => undefined);
+    const all = p.element.querySelector<HTMLButtonElement>('[data-floor="all"]')!;
+    expect(all.getAttribute('aria-label')).toBe('Tüm şirket');
+    const short = all.querySelector('.short')!;
+    expect(short.textContent).toBe('Şirket');
+    expect(short.getAttribute('aria-hidden')).toBe('true');
+    expect(all.getAttribute('aria-label')!.toLowerCase()).toContain(short.textContent!.toLowerCase());
+    expect(p.element.textContent).not.toMatch(/kule/i);
   });
 
   it('marks the current floor with aria-current and a text marker, not color alone', () => {

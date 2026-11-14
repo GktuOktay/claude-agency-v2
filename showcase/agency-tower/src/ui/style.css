@@ -85,12 +85,13 @@ button:hover { background: #fff; border-color: rgba(47, 102, 208, 0.35); }
   padding: 6px 8px;
   position: relative;
 }
-/* Groups "Kule" / "Kampüs" (Rev 31 UI pass); campus areas get a square marker (shape, not colour). */
+/* Groups "Bina" / "Kampüs" (Rev 31 UI pass); campus areas get a square marker (shape, not colour). */
 .panel-group { display: flex; flex-direction: column; gap: 2px; }
 .panel-group + .panel-group { margin-top: var(--space-1); padding-top: var(--space-1); border-top: 1px solid var(--panel-border); }
 .panel-group-label { margin: 2px 8px; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--fg-muted); }
 .floor-panel .is-campus .dot { border-radius: 2px; background: #7c8a6a; }
 .floor-panel .is-campus .num { display: none; }
+.floor-panel .short { display: none; }
 .floor-panel .num { font-variant-numeric: tabular-nums; font-weight: 700; }
 .floor-panel button:hover { background: rgba(31, 35, 41, 0.04); border-color: transparent; }
 .floor-panel button[aria-current='true'] { background: var(--accent-soft); font-weight: 700; color: #173a7a; }
@@ -300,20 +301,20 @@ html.is-org .robot-label { box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.25), 0 4p
   .floor-panel:not(.has-groups) { flex-wrap: wrap; border-radius: 26px; }
   .floor-panel button { min-width: var(--touch); min-height: var(--touch); justify-content: center; padding: 4px 10px; flex: none; }
   .floor-panel .name { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-  .floor-panel button[data-floor='all'] .name { position: static; width: auto; height: auto; clip-path: none; }
+  .floor-panel button[data-floor='all'] .short { display: inline; }
   .floor-panel button[aria-current='true']::before { left: 10px; right: 10px; top: auto; bottom: 3px; width: auto; height: 3px; }
   .floor-panel .marker { display: none; }
   .panel-group { flex-direction: row; align-items: center; gap: 4px; flex: none; }
   .panel-group + .panel-group { margin-top: 0; padding-top: 0; border-top: 0; margin-left: 2px; padding-left: 4px; border-left: 1px solid var(--panel-border); }
   .panel-group-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   .floor-panel .is-campus .num { display: inline; }
-  /* Rev 38: two rows at 375 px, no hidden sideways scroll: floors 5..0 on top; "Tüm kule" wraps to the second
-     row, the campus areas share that row (same grid cell, bottom-aligned, offset past "Tüm kule"). */
+  /* Rev 38: two rows at 375 px, no hidden sideways scroll: floors 5..0 on top; "Tüm şirket" wraps to the second
+     row (short label "Şirket" on phones), the campus areas share that row (same grid cell, bottom-aligned, offset past it). */
   .floor-panel.has-groups { display: grid; grid-template-columns: max-content; border-radius: 26px; }
   .floor-panel.has-groups .panel-group:first-child { grid-area: 1 / 1; flex-wrap: wrap; width: calc(6 * var(--touch) + 5 * 4px + 2px); }
   .floor-panel.has-groups .is-campus { grid-area: 1 / 1; align-self: end; margin-left: calc(4.5rem + 6px); }
   /* Fixed widths, never content-sized: six floors always fill row 1 exactly (a 45 px digit button would push
-     floor 0 onto row 2 and under the campus areas), "Tüm kule" never paints past its box. */
+     floor 0 onto row 2 and under the campus areas), the "Şirket" button never paints past its box. */
   .floor-panel.has-groups .panel-group:first-child button:not([data-floor='all']) { width: var(--touch); padding: 4px 0; gap: 4px; }
   .floor-panel.has-groups button[data-floor='all'] { width: 4.5rem; padding: 4px 6px; gap: 0; overflow: hidden; white-space: nowrap; }
   .floor-panel.has-groups button[data-floor='all'] .dot { display: none; }
