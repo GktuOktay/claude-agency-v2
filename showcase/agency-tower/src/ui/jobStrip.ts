@@ -180,7 +180,9 @@ export function createJobStrip(opts: JobStripOptions): JobStrip {
         const li = rows.get(n)!.li;
         if (list.children[i] !== li) list.insertBefore(li, list.children[i] ?? null);
       });
-      empty.hidden = entries.length > 0;
+      // The empty text is in the DOM only when no job is shown (its text must not linger for readers).
+      if (entries.length === 0 && !empty.isConnected) section.insertBefore(empty, list);
+      else if (entries.length > 0 && empty.isConnected) empty.remove();
       applyNarrow();
       if (hadFocus && (!active.isConnected || active.closest('[hidden]'))) header.focus();
     },

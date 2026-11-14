@@ -296,16 +296,23 @@ describe('pause texts and "Hareketi durdur" (AC-15 UI)', () => {
 
   it('selection: that job reads "Duraklatıldı · seçili robot", another job does not', () => {
     const rt = makeRuntime();
-    frames(rt, 35);
-    const r = rt.workflow.running().find((x) => x.job === 2 && x.units.length > 0)!;
-    rt.select(r.units[0]!);
+    let r: { job: number; units: string[] } | undefined;
+    frames(rt, 120, () => {
+      if (rt.workflow.jobs().filter((j) => !j.done).length < 2) return;
+      r = rt.workflow.running().find((x) => x.kind !== 'call' && x.units.length > 0);
+      return r !== undefined;
+    });
+    expect(r).toBeDefined();
+    const n = r!.job;
+    rt.select(r!.units[0]!);
     rt.frame(100);
-    expect(entry(rt, 2)!.querySelector('.job-pause')!.textContent).toBe('Duraklatıldı · seçili robot');
-    const others = rt.workflow.jobs().filter((j) => j.n !== 2 && !j.pausedBySelection);
+    expect(entry(rt, n)!.querySelector('.job-pause')!.textContent).toBe('Duraklatıldı · seçili robot');
+    const others = rt.workflow.jobs().filter((j) => j.n !== n && !j.pausedBySelection);
+    expect(others.length).toBeGreaterThan(0);
     for (const j of others) expect(entry(rt, j.n)!.querySelector('.job-pause')).toBeNull();
-    rt.release(r.units[0]!);
+    rt.release(r!.units[0]!);
     rt.frame(100);
-    expect(entry(rt, 2)!.querySelector('.job-pause')).toBeNull();
+    expect(entry(rt, n)!.querySelector('.job-pause')).toBeNull();
   });
 
   it('the toggle sets aria-pressed, switches its text, pauses; org + toggle: turning one off keeps paused; no camera move', () => {
