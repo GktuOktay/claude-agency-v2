@@ -2,11 +2,12 @@
 // (level 1); nap pods, R&D lab and the project archive (level 2); greenery on every level. Procedural
 // geometry with the floor's kit; repeats are instanced (green-wall leaves, archive boxes). Positions follow
 // the footprints in src/sim/layout.ts (wingFurniture) so the nav graph keeps clear of everything.
-import { BoxGeometry, CanvasTexture, Color, Group, IcosahedronGeometry, InstancedMesh, Matrix4, Mesh, MeshBasicMaterial, PlaneGeometry, Quaternion, SphereGeometry, SRGBColorSpace, Vector3, type BufferGeometry, type Texture } from 'three';
+import { BoxGeometry, BufferAttribute, CanvasTexture, Color, Group, IcosahedronGeometry, InstancedMesh, Matrix4, Mesh, MeshBasicMaterial, MeshStandardMaterial, PlaneGeometry, Quaternion, Shape, ShapeGeometry, SphereGeometry, SRGBColorSpace, Vector3, type BufferGeometry, type Texture } from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { PALETTE, bistroTable, fridge, plant, stool, type Kit } from './furniture';
 import type { FloorMaterials } from './model';
-import { AMENITY_SPOTS, FLOOR_TOP, wingX, type AmenityKind } from '../sim/layout';
+import { AMENITY_SPOTS, FLOOR_TOP, LAB_STATIONS, wingX, type AmenityKind } from '../sim/layout';
+import { CODE_LINES } from './codeLines';
 
 /** Closed projects in the archive (fictional names; one label per box, cycled). */
 export const PROJECT_ARCHIVE: readonly string[] = [
@@ -329,43 +330,411 @@ function level2(k: Kit, g: Group, materials: FloorMaterials): void {
     k.box(g, 0.4, 0.08, 0.22, 0, p.offWhite, s.x, Y + 0.16, -4.75);
     k.box(g, 0.2, 0.04, 0.02, 0, p.warm, s.x, Y + 0.78, -4.94, 'none');
   }
-  planter(k, p, g, X(-0.5), -5.45, X(-0.1), -2.3);
-  // R&D lab: screen wall on the north glass, prototype stands, two lab benches with kit, lab stools.
-  k.box(g, 4.6, 0.95, 0.08, 0, p.dark, X(2.75), Y + 0.15, -5.4);
-  k.box(g, 4.4, 0.8, 0.012, 0, p.screen, X(2.75), Y + 0.22, -5.35, 'none');
-  for (let i = 0; i < 6; i++) k.box(g, 0.5, 0.05 + (i % 3) * 0.12, 0.006, 0, p.warm, X(0.9 + i * 0.72), Y + 0.32, -5.34, 'none');
-  [1.2, 2.5, 3.8].forEach((lx, i) => {
-    k.box(g, 0.36, 0.5, 0.36, 0.02, p.white, X(lx), Y, -4.3);
-    if (i === 0) {
-      k.box(g, 0.24, 0.04, 0.24, 0, p.dark, X(lx), Y + 0.56, -4.3);
-      for (const [dx, dz] of [[-0.14, -0.14], [0.14, -0.14], [-0.14, 0.14], [0.14, 0.14]] as const) k.cyl(g, 0.06, 0.06, 0.01, p.book(0), X(lx) + dx, Y + 0.6, -4.3 + dz, 12);
-    } else if (i === 1) {
-      k.ball(g, 0.14, p.book(3), X(lx), Y + 0.64, -4.3);
-    } else {
-      k.cyl(g, 0.03, 0.03, 0.3, p.steel, X(lx), Y + 0.5, -4.3, 8);
-      k.box(g, 0.2, 0.04, 0.04, 0, p.book(4), X(lx) + 0.08, Y + 0.8, -4.3);
-    }
-  });
-  for (const [lx0, lx1] of [[1.0, 2.6], [3.2, 4.8]] as const) {
-    const cx = X((lx0 + lx1) / 2);
-    k.box(g, lx1 - lx0, 0.05, 0.6, 0.02, p.white, cx, Y + 0.4, -3.0);
-    for (const dx of [-(lx1 - lx0) / 2 + 0.08, (lx1 - lx0) / 2 - 0.08]) k.box(g, 0.05, 0.4, 0.5, 0, p.steel, cx + dx, Y, -3.0);
-    k.box(g, 0.4, 0.26, 0.03, 0, p.dark, cx - 0.35, Y + 0.48, -3.15);
-    k.cyl(g, 0.05, 0.07, 0.22, p.steel, cx + 0.3, Y + 0.45, -3.1, 8);
-    for (const dx of [0.0, 0.12]) k.cyl(g, 0.03, 0.03, 0.1, p.glass, cx + dx, Y + 0.45, -2.85, 10, 'none');
-  }
-  for (const s of spotsOf(2, 'lab-bench')) g.add(at(stool(k, BLUE ?? PALETTE.white), s.x, Y, s.z));
-  // Prototype showroom (south-east): stands with glass vitrines.
-  const stands: readonly (readonly [number, number, number])[] = [[2.6, 1.6, 0], [4.0, 3.2, 3], [2.6, 4.6, 4]];
-  for (const [lx, z, c] of stands) {
-    k.box(g, 0.5, 0.45, 0.5, 0.03, p.white, X(lx), Y, z);
-    k.box(g, 0.46, 0.4, 0.46, 0, p.glass, X(lx), Y + 0.45, z, 'none');
-    k.ball(g, 0.1, p.book(c), X(lx), Y + 0.58, z);
-  }
-  planter(k, p, g, X(4.6), 4.6, X(5.4), 5.4);
-  planter(k, p, g, X(4.6), 0.0, X(5.4), 0.8);
-  g.add(at(plant(k, 1.3), X(1.6), Y, 4.9));
+  rndLab(k, p, g, materials);
   archive(k, p, g, materials);
+}
+
+// ---------------------------------------------------------------- level 2: R&D lab ("AR-GE ★", rev 35)
+// The campus showpiece of a software company: a curved LED video wall (animated code, graphs and a
+// model-training curve), workstations, a prototype bench with a robot arm, a device-lab wall, an
+// architecture whiteboard, a glass GPU cluster and collaboration pods, on a polished warm floor with brass
+// accents. Every display face is one atlas-mapped mesh ('rnd-displays'); the polished floor and brass trims
+// are one vertex-coloured mesh ('rnd-polished'); everything else uses the floor's existing materials.
+
+/** Video-wall redraw rate (frames per second): low on purpose, the wall is ambient. */
+export const LAB_WALL_HZ = 2;
+
+/** Returns a clock check that is true at most `hz` times per second (now in seconds). */
+export function createLabWallTicker(hz: number): (now: number) => boolean {
+  let last = -Infinity;
+  return (now) => {
+    if (now - last < 1 / hz - 1e-9) return false;
+    last = now;
+    return true;
+  };
+}
+
+/** Built-in code lines shown on the wall at time t (scrolling through CODE_LINES; never repo content). */
+export function labWallCode(t: number, count: number): string[] {
+  const start = Math.floor(Math.max(0, t) * 1.5);
+  return Array.from({ length: count }, (_, i) => CODE_LINES[(start + i) % CODE_LINES.length] ?? '');
+}
+
+/** Training loss of the simulated model at a step (monotonically decreasing, positive). */
+export const trainingLoss = (step: number): number => 0.08 + 2.2 * Math.exp(-Math.max(0, step) / 45);
+
+const ATLAS_W = 1024;
+const ATLAS_H = 512;
+type Cell = readonly [x: number, y: number, w: number, h: number];
+const CELL = {
+  wall: [0, 0, 1024, 224],
+  board: [0, 232, 512, 184],
+  phone: [520, 232, 112, 184],
+  tablet: [640, 232, 240, 184],
+  ledGreen: [896, 232, 56, 56],
+  ledBlue: [960, 232, 56, 56],
+  pod: [520, 424, 240, 88],
+} as const satisfies Record<string, Cell>;
+
+/** Maps a geometry's 0..1 uvs into an atlas cell (canvas y down; textures flip y). */
+function inCell(geo: BufferGeometry, [x, y, w, h]: Cell): BufferGeometry {
+  const uv = geo.attributes.uv;
+  if (uv) for (let i = 0; i < uv.count; i++) uv.setXY(i, (x + uv.getX(i) * w) / ATLAS_W, 1 - (y + (1 - uv.getY(i)) * h) / ATLAS_H);
+  return geo;
+}
+
+/** Vertex colour for the polished mesh. */
+function painted(geo: BufferGeometry, color: number): BufferGeometry {
+  const c = new Color(color);
+  const n = geo.attributes.position?.count ?? 0;
+  const arr = new Float32Array(n * 3);
+  for (let i = 0; i < n; i++) arr.set([c.r, c.g, c.b], i * 3);
+  geo.setAttribute('color', new BufferAttribute(arr, 3));
+  return geo;
+}
+
+/** Bends a geometry along x onto an arc of radius r (concave toward +z). */
+function bend(geo: BufferGeometry, r: number): BufferGeometry {
+  const pos = geo.attributes.position;
+  if (!pos) return geo;
+  for (let i = 0; i < pos.count; i++) {
+    const a = pos.getX(i) / r;
+    pos.setXYZ(i, r * Math.sin(a), pos.getY(i), pos.getZ(i) + r * (1 - Math.cos(a)));
+  }
+  geo.computeVertexNormals();
+  return geo;
+}
+
+const font = (px: number, mono = false): string => `${px}px ${mono ? 'ui-monospace, Menlo, monospace' : 'system-ui, sans-serif'}`;
+
+/** Draws the static atlas cells (whiteboard, device and pod screens). */
+function drawStatic(g: CanvasRenderingContext2D): void {
+  // Whiteboard: an architecture diagram (client -> gateway -> services -> data), marker style.
+  const [bx, by, bw, bh] = CELL.board;
+  g.fillStyle = '#fbfaf6';
+  g.fillRect(bx, by, bw, bh);
+  g.lineWidth = 3;
+  g.font = font(15);
+  g.textAlign = 'center';
+  g.textBaseline = 'middle';
+  const node = (x: number, y: number, w: number, label: string, color: string): void => {
+    g.strokeStyle = color;
+    g.strokeRect(bx + x - w / 2, by + y - 16, w, 32);
+    g.fillStyle = '#2f3540';
+    g.fillText(label, bx + x, by + y);
+  };
+  const arrow = (x0: number, y0: number, x1: number, y1: number): void => {
+    g.strokeStyle = '#4a5160';
+    g.beginPath();
+    g.moveTo(bx + x0, by + y0);
+    g.lineTo(bx + x1, by + y1);
+    const a = Math.atan2(y1 - y0, x1 - x0);
+    g.lineTo(bx + x1 - 10 * Math.cos(a - 0.4), by + y1 - 10 * Math.sin(a - 0.4));
+    g.moveTo(bx + x1, by + y1);
+    g.lineTo(bx + x1 - 10 * Math.cos(a + 0.4), by + y1 - 10 * Math.sin(a + 0.4));
+    g.stroke();
+  };
+  node(60, 92, 90, 'İstemci', '#3d7bd9');
+  node(190, 92, 100, 'API geçidi', '#d9822b');
+  node(340, 44, 110, 'Kimlik', '#3c9a5f');
+  node(340, 92, 110, 'Sipariş', '#3c9a5f');
+  node(340, 140, 110, 'Model servis', '#8a5cc7');
+  node(462, 92, 76, 'Veri', '#c2453d');
+  arrow(105, 92, 140, 92);
+  arrow(240, 84, 285, 50);
+  arrow(240, 92, 285, 92);
+  arrow(240, 100, 285, 136);
+  for (const y of [44, 92, 140]) arrow(395, y, 424, 92);
+  g.fillStyle = '#7a7f87';
+  g.font = font(13);
+  g.fillText('mimari v3 · olay güdümlü · p95 < 120 ms', bx + bw / 2, by + bh - 14);
+  // Device screens: a phone app and a tablet dashboard.
+  const app = (cell: Cell, wide: boolean): void => {
+    const [x, y, w, h] = cell;
+    g.fillStyle = '#f4f7fb';
+    g.fillRect(x, y, w, h);
+    g.fillStyle = '#5b8fd6';
+    g.fillRect(x, y, w, h * 0.16);
+    const cols = wide ? 3 : 1;
+    for (let r = 0; r < 4; r++) for (let c = 0; c < cols; c++) {
+      g.fillStyle = ['#cfe0f5', '#f6d9b8', '#cdeccf', '#e6d5f3'][(r + c) % 4] ?? '#cfe0f5';
+      g.fillRect(x + 8 + (c * (w - 16)) / cols, y + h * 0.22 + r * h * 0.19, (w - 16) / cols - 6, h * 0.15);
+    }
+  };
+  app(CELL.phone, false);
+  app(CELL.tablet, true);
+  // Pod screens: a shared board of sticky notes.
+  const [px, py, pw, ph] = CELL.pod;
+  g.fillStyle = '#1d2a3a';
+  g.fillRect(px, py, pw, ph);
+  for (let i = 0; i < 9; i++) {
+    g.fillStyle = ['#ffe39a', '#a9e5c4', '#f6b8b0', '#b8d4f6'][i % 4] ?? '#ffe39a';
+    g.fillRect(px + 10 + (i % 5) * 46, py + 10 + Math.floor(i / 5) * 40, 38, 30);
+  }
+}
+
+/** Draws the animated cells (video wall and status LEDs) for time t (seconds). */
+function drawLive(g: CanvasRenderingContext2D, t: number): void {
+  const [x, y, w, h] = CELL.wall;
+  const bg = g.createLinearGradient(x, y, x, y + h);
+  bg.addColorStop(0, '#0f2134');
+  bg.addColorStop(1, '#132b40');
+  g.fillStyle = bg;
+  g.fillRect(x, y, w, h);
+  g.textAlign = 'left';
+  g.textBaseline = 'alphabetic';
+  // Left: scrolling code.
+  g.font = font(15, true);
+  labWallCode(t, 10).forEach((line, i) => {
+    g.fillStyle = ['#9fd3ff', '#ffd59a', '#b7f0c8', '#e3c8ff'][i % 4] ?? '#9fd3ff';
+    g.fillText(line, x + 18, y + 26 + i * 19, 300);
+  });
+  // Middle: model training (loss falling, accuracy rising) up to the current step.
+  const cx = x + 350;
+  const cw = 360;
+  const top = y + 30;
+  const ch = h - 64;
+  g.strokeStyle = '#3d5a78';
+  g.lineWidth = 1;
+  g.strokeRect(cx, top, cw, ch);
+  const steps = 200;
+  const now = Math.floor((t * 8) % steps);
+  const line = (f: (s: number) => number, color: string): void => {
+    g.strokeStyle = color;
+    g.lineWidth = 3;
+    g.beginPath();
+    for (let s = 0; s <= now; s += 2) {
+      const px = cx + (s / steps) * cw;
+      const py = top + ch - Math.min(1, Math.max(0, f(s))) * ch;
+      if (s === 0) g.moveTo(px, py);
+      else g.lineTo(px, py);
+    }
+    g.stroke();
+  };
+  line((s) => trainingLoss(s) / 2.4, '#ffb36b');
+  line((s) => 0.97 - trainingLoss(s) / 2.6, '#6fe3b5');
+  g.fillStyle = '#d8e6f3';
+  g.font = font(15);
+  g.fillText(`model eğitimi · adım ${now}/${steps} · kayıp ${trainingLoss(now).toFixed(3)}`, cx, y + 20);
+  // Right: throughput bars and a build status line.
+  const rx = x + 750;
+  for (let i = 0; i < 8; i++) {
+    const v = 0.35 + 0.5 * (0.5 + 0.5 * Math.sin(t * 0.9 + i * 0.8));
+    g.fillStyle = i % 2 ? '#5b9df0' : '#7fc4ff';
+    g.fillRect(rx + i * 30, y + h - 34 - v * 120, 20, v * 120);
+  }
+  g.fillStyle = '#b7f0c8';
+  g.fillText('derleme ✓ · testler 412/412', rx, y + 20);
+  // Status LEDs: a soft breathing glow.
+  for (const [cell, color] of [[CELL.ledGreen, '111, 227, 160'], [CELL.ledBlue, '120, 180, 255']] as const) {
+    const [lx, ly, lw, lh] = cell;
+    const a = 0.75 + 0.25 * Math.sin(t * 2.2 + lx);
+    const r = g.createRadialGradient(lx + lw / 2, ly + lh / 2, 2, lx + lw / 2, ly + lh / 2, lw / 2);
+    r.addColorStop(0, `rgba(${color}, ${a})`);
+    r.addColorStop(1, 'rgba(10, 20, 30, 1)');
+    g.fillStyle = r;
+    g.fillRect(lx, ly, lw, lh);
+  }
+}
+
+/** Display material: the atlas canvas in the browser (redrawn at LAB_WALL_HZ), plain light cyan elsewhere. */
+function displayMaterial(k: Kit): { material: MeshBasicMaterial; tick: ((now: number) => void) | null } {
+  const canvas = k.textures.wood && typeof document !== 'undefined' ? document.createElement('canvas') : null;
+  const g = canvas?.getContext('2d') ?? null;
+  if (!canvas || !g) return { material: new MeshBasicMaterial({ color: 0xbfe9ff, toneMapped: false }), tick: null };
+  canvas.width = ATLAS_W;
+  canvas.height = ATLAS_H;
+  g.fillStyle = '#0f2134';
+  g.fillRect(0, 0, ATLAS_W, ATLAS_H);
+  drawStatic(g);
+  drawLive(g, 0);
+  const tex = new CanvasTexture(canvas);
+  tex.colorSpace = SRGBColorSpace;
+  const reduced = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const due = createLabWallTicker(LAB_WALL_HZ);
+  const t0 = typeof performance !== 'undefined' ? performance.now() / 1000 : 0;
+  const tick = reduced
+    ? null
+    : (now: number): void => {
+        if (!due(now)) return;
+        drawLive(g, now - t0);
+        tex.needsUpdate = true;
+      };
+  return { material: new MeshBasicMaterial({ color: 0xffffff, map: tex, toneMapped: false }), tick };
+}
+
+/** Rev 37 gallery finishes: bronze details, honed travertine floor, walnut tops. */
+const BRASS = 0xa8783f;
+const POLISHED = 0xece4d6;
+const WALNUT = 0x6b4a33;
+
+function star(r: number): ShapeGeometry {
+  const s = new Shape();
+  for (let i = 0; i < 10; i++) {
+    const a = Math.PI / 2 + (i * Math.PI) / 5;
+    const rr = i % 2 ? r * 0.42 : r;
+    if (i === 0) s.moveTo(rr * Math.cos(a), rr * Math.sin(a));
+    else s.lineTo(rr * Math.cos(a), rr * Math.sin(a));
+  }
+  return new ShapeGeometry(s);
+}
+
+function rndLab(k: Kit, p: Paints, g: Group, materials: FloorMaterials): void {
+  const disp: BufferGeometry[] = [];
+  const shine: BufferGeometry[] = [];
+  const brass = (w: number, h: number, d: number, x: number, y: number, z: number): void => {
+    shine.push(painted(new BoxGeometry(w, h, d).translate(x, y + h / 2, z), BRASS));
+  };
+  const screenAt = (geo: BufferGeometry, cell: Cell): void => {
+    disp.push(inCell(geo, cell));
+  };
+
+  // Polished warm stone floor over the lab (north room and south-east room), brass inlays and a star at the entry.
+  shine.push(painted(new BoxGeometry(5.63, 0.004, 5.15).translate(X(2.635), Y + 0.004, -2.875), POLISHED));
+  shine.push(painted(new BoxGeometry(4.85, 0.004, 5.75).translate(X(3.025), Y + 0.004, 2.575), POLISHED));
+  brass(5.63, 0.003, 0.04, X(2.635), Y + 0.006, -1.6);
+  brass(4.85, 0.003, 0.04, X(3.025), Y + 0.006, -0.25);
+  brass(0.04, 0.003, 5.7, X(0.62), Y + 0.006, 2.6);
+  shine.push(painted(star(0.32).rotateX(-Math.PI / 2).translate(X(2.9), Y + 0.008, -0.9), BRASS));
+
+  // Hero: curved LED video wall on the north glass, dark bezel, brass trims and a warm floor cove.
+  const R = 6;
+  const wallX = X(2.65);
+  const wallZ = -5.3;
+  const wy = Y + 0.15;
+  screenAt(bend(new PlaneGeometry(4.6, 0.98, 32, 1), R).translate(wallX, wy + 0.5, wallZ), CELL.wall);
+  k.place(g, bend(new BoxGeometry(4.74, 1.1, 0.06, 32, 1, 1), R), p.dark, wallX, wy + 0.5, wallZ - 0.045);
+  for (const yy of [wy - 0.05, wy + 1.04]) shine.push(painted(bend(new BoxGeometry(4.78, 0.03, 0.07, 32, 1, 1), R).translate(wallX, yy, wallZ - 0.02), BRASS));
+  k.place(g, bend(new BoxGeometry(4.5, 0.02, 0.05, 32, 1, 1), R), p.warm, wallX, Y + 0.01, wallZ + 0.16, 'none');
+
+  // Whiteboard wall (architecture diagrams) on the partition to the nap pods, facing the lab.
+  k.box(g, 0.1, 1.15, 2.55, 0.02, p.white, X(-0.25), Y, -4.175);
+  screenAt(new PlaneGeometry(2.4, 0.84).rotateY(Math.PI / 2).translate(X(-0.193), Y + 0.68, -4.175), CELL.board);
+  for (const yy of [Y + 0.24, Y + 1.1]) brass(0.025, 0.025, 2.46, X(-0.188), yy, -4.175);
+  k.box(g, 0.07, 0.03, 2.0, 0, p.steel, X(-0.16), Y + 0.2, -4.175);
+  planter(k, p, g, X(-0.5), -2.85, X(-0.1), -2.3);
+
+  // Workstations: a long white desk with wide monitors and keyboards (seats face north).
+  shine.push(painted(new BoxGeometry(1.6, 0.04, 0.5).translate(X(1.5), Y + 0.4, -2.95), WALNUT));
+  for (const dx of [-0.74, 0.74]) k.box(g, 0.05, 0.38, 0.44, 0, p.steel, X(1.5 + dx), Y, -2.95);
+  brass(1.6, 0.015, 0.015, X(1.5), Y + 0.405, -2.7);
+  for (const lx of [1.1, 1.9]) {
+    k.box(g, 0.56, 0.32, 0.03, 0.01, p.dark, X(lx), Y + 0.5, -3.1);
+    k.box(g, 0.52, 0.28, 0.006, 0, p.screen, X(lx), Y + 0.52, -3.082, 'none');
+    k.box(g, 0.04, 0.1, 0.04, 0, p.steel, X(lx), Y + 0.42, -3.1);
+    k.box(g, 0.34, 0.015, 0.12, 0, p.offWhite, X(lx), Y + 0.42, -2.85);
+  }
+
+  // Prototype bench with a robot arm, a circuit board, a drone frame and a telemetry screen.
+  k.box(g, 1.6, 0.05, 0.5, 0.02, p.white, X(4.3), Y + 0.38, -2.95);
+  for (const dx of [-0.74, 0.74]) k.box(g, 0.05, 0.38, 0.44, 0, p.steel, X(4.3 + dx), Y, -2.95);
+  k.box(g, 0.9, 0.006, 0.36, 0, p.book(3), X(4.15), Y + 0.43, -2.95);
+  const ax = X(4.75);
+  const az = -3.0;
+  const top = Y + 0.43;
+  k.cyl(g, 0.12, 0.13, 0.06, p.dark, ax, top, az, 20);
+  k.cyl(g, 0.08, 0.09, 0.14, p.white, ax, top + 0.06, az, 16);
+  const sh = new Vector3(ax, top + 0.24, az);
+  const link = (from: Vector3, len: number, ang: number, w: number): Vector3 => {
+    const to = from.clone().add(new Vector3(-Math.sin(ang) * len, Math.cos(ang) * len, 0));
+    const seg = k.box(g, w, len, w, 0.02, p.white, (from.x + to.x) / 2, 0, az);
+    seg.position.y = (from.y + to.y) / 2;
+    seg.rotation.z = ang;
+    return to;
+  };
+  k.ball(g, 0.075, p.book(0), sh.x, sh.y, sh.z);
+  const elbow = link(sh, 0.42, 0.45, 0.075);
+  k.ball(g, 0.065, p.book(0), elbow.x, elbow.y, elbow.z);
+  const wrist = link(elbow, 0.34, 1.9, 0.06);
+  k.ball(g, 0.045, p.dark, wrist.x, wrist.y, wrist.z);
+  for (const dz of [-0.03, 0.03]) k.box(g, 0.02, 0.08, 0.015, 0, p.steel, wrist.x, wrist.y - 0.11, az + dz);
+  k.box(g, 0.16, 0.012, 0.12, 0, p.book(3), wrist.x - 0.02, top, az);
+  const drone = k.box(g, 0.3, 0.025, 0.04, 0, p.dark, X(3.85), top + 0.01, -2.9);
+  drone.rotation.y = Math.PI / 4;
+  const drone2 = k.box(g, 0.3, 0.025, 0.04, 0, p.dark, X(3.85), top + 0.01, -2.9);
+  drone2.rotation.y = -Math.PI / 4;
+  k.box(g, 0.36, 0.24, 0.03, 0.01, p.dark, X(4.3), top + 0.06, -3.15);
+  k.box(g, 0.32, 0.2, 0.006, 0, p.screen, X(4.3), top + 0.08, -3.132, 'none');
+  brass(1.6, 0.015, 0.015, X(4.3), Y + 0.415, -2.7);
+
+  // Device lab wall: shelves of phones and tablets on the east wall, screens facing the lab.
+  k.box(g, 0.06, 1.1, 2.7, 0, p.dark, X(5.4), Y + 0.05, 1.25);
+  for (const yy of [0.25, 0.5, 0.75, 1.0]) {
+    k.box(g, 0.18, 0.02, 2.6, 0, p.white, X(5.3), Y + yy, 1.25);
+    let z = 0.05;
+    for (let i = 0; i < 8; i++) {
+      const tablet = i % 3 === 2;
+      const w = tablet ? 0.2 : 0.075;
+      const h = tablet ? 0.15 : 0.14;
+      z += w / 2;
+      k.box(g, 0.012, h + 0.012, w + 0.012, 0, p.dark, X(5.26), Y + yy + 0.02, z);
+      screenAt(new PlaneGeometry(w, h).rotateY(-Math.PI / 2).translate(X(5.252), Y + yy + 0.026 + h / 2, z), tablet ? CELL.tablet : CELL.phone);
+      z += w / 2 + 0.17;
+    }
+  }
+  brass(0.02, 0.02, 2.7, X(5.21), Y + 1.12, 1.25);
+
+  // Glass GPU cluster in the south-east corner: racks with soft status LEDs behind a brass-framed enclosure.
+  k.box(g, 1.75, 1.15, 0.012, 0, p.glass, X(4.575), Y, 3.0, 'none');
+  k.box(g, 0.012, 1.15, 2.45, 0, p.glass, X(3.7), Y, 4.225, 'none');
+  for (const [lx, z] of [[3.7, 3.0], [5.42, 3.0], [3.7, 5.42]] as const) brass(0.04, 1.17, 0.04, X(lx), Y, z);
+  brass(1.75, 0.03, 0.04, X(4.575), Y + 1.15, 3.0);
+  brass(0.04, 0.03, 2.45, X(3.7), Y + 1.15, 4.225);
+  k.box(g, 1.6, 0.006, 0.08, 0, p.screen, X(4.6), Y + 0.004, 4.2, 'none');
+  for (const lx of [4.05, 4.6, 5.15]) {
+    k.box(g, 0.46, 1.02, 0.6, 0.02, p.dark, X(lx), Y, 4.6);
+    for (const yy of [0.3, 0.6]) k.box(g, 0.42, 0.012, 0.005, 0, p.steel, X(lx), Y + yy, 4.297);
+    for (let r = 0; r < 5; r++) for (const dx of [-0.15, -0.09]) {
+      const cell = (r + Math.round(lx * 10)) % 3 === 0 ? CELL.ledBlue : CELL.ledGreen;
+      screenAt(new PlaneGeometry(0.035, 0.035).rotateY(Math.PI).translate(X(lx) + dx, Y + 0.15 + r * 0.17, 4.296), cell);
+    }
+  }
+
+  // Collaboration pods: white shells lined with felt, a desk and a shared screen at the back.
+  for (const lx of [1.9, 3.05]) {
+    k.box(g, 1.1, 1.15, 0.12, 0.04, p.white, X(lx), Y, 5.33);
+    for (const dx of [-0.5, 0.5]) {
+      k.box(g, 0.1, 1.15, 2.0, 0.03, p.white, X(lx + dx), Y, 4.4);
+      k.box(g, 0.012, 0.9, 1.8, 0, p.book(4), X(lx + dx * 0.88), Y + 0.15, 4.45);
+      brass(0.11, 0.02, 0.02, X(lx + dx), Y + 1.15, 3.41);
+    }
+    shine.push(painted(new BoxGeometry(0.86, 0.04, 0.34).translate(X(lx), Y + 0.38, 4.88), WALNUT));
+    k.box(g, 0.05, 0.36, 0.3, 0, p.steel, X(lx), Y, 4.88);
+    screenAt(new PlaneGeometry(0.8, 0.3).rotateY(Math.PI).translate(X(lx), Y + 0.72, 5.265), CELL.pod);
+  }
+
+  // Seats at every lab spot, greenery.
+  // One stool colour (a new seat colour would cost a draw call); pod stools get a felt cushion.
+  for (const s of spotsOf(2, 'lab-bench')) {
+    g.add(at(stool(k, BLUE ?? PALETTE.white), s.x, Y, s.z));
+    if (LAB_STATIONS.get(s.id) === 'pod') k.box(g, 0.22, 0.03, 0.22, 0.01, p.book(4), s.x, Y + 0.33, s.z);
+  }
+  planter(k, p, g, X(1.4), -0.3, X(3.8), 0.15);
+  g.add(at(plant(k, 1.3), X(5.2), Y, -4.42));
+
+  // One display mesh (atlas) and one polished mesh for the whole lab.
+  const { material, tick } = displayMaterial(k);
+  materials.contents.push(material);
+  const displays = new Mesh(merged(disp), material);
+  displays.name = 'rnd-displays';
+  displays.userData.shadow = 'none';
+  if (tick) displays.onBeforeRender = () => tick(performance.now() / 1000);
+  g.add(displays);
+  const polished = new MeshStandardMaterial({ color: 0xffffff, vertexColors: true, roughness: 0.18, metalness: 0.12, emissive: 0xffd9a0, emissiveIntensity: 0.06 });
+  polished.userData.glow = { day: 0.06, night: 0.3 };
+  k.glows.push(polished);
+  materials.slab.push(polished);
+  const shineMesh = new Mesh(merged(shine), polished);
+  shineMesh.name = 'rnd-polished';
+  shineMesh.userData.shadow = 'surface';
+  shineMesh.receiveShadow = true;
+  g.add(shineMesh);
+}
+
+function merged(parts: BufferGeometry[]): BufferGeometry {
+  const out = mergeGeometries(parts) ?? new BoxGeometry(0.01, 0.01, 0.01);
+  for (const p of parts) p.dispose();
+  return out;
 }
 
 /** Furnishes one wing level (0, 1 or 2) into `group` with the floor's kit and materials. */

@@ -2,19 +2,27 @@
 // by glass sky-bridges, with a roof garden at floor-3 height. Procedural geometry only (no assets).
 // Each wing level is built with the kit and materials of the tower floor of the same index and added to
 // that floor's group, so it ghosts, casts shadows, glows at night and merges exactly like the floor.
-import { BoxGeometry, Color, CylinderGeometry, Group, IcosahedronGeometry, InstancedMesh, Matrix4, Mesh, MeshStandardMaterial, PlaneGeometry, Quaternion, Vector3, type BufferGeometry, type Material } from 'three';
+import { BoxGeometry, BufferAttribute, Color, CylinderGeometry, Group, IcosahedronGeometry, SphereGeometry, InstancedMesh, Matrix4, Mesh, MeshStandardMaterial, PlaneGeometry, Quaternion, Vector3, type BufferGeometry, type Material } from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { PALETTE, plant, type Kit, type KitTextures } from './furniture';
 import type { FloorMaterials, RoomLabel } from './model';
 import { anchorInstances, buildAmenities } from './amenities';
 import {
   AMENITY_SPOTS,
+  BIKE_RACKS,
   BRIDGE_DOOR,
   CAMPUS_ZONES,
   FLOOR_HEIGHT,
   FLOOR_TOP,
   HALF_DEPTH,
   HALF_WIDTH,
+  PARKING_BAY,
+  PARKING_BAYS,
+  PARKING_CAR_TONES,
+  PARKING_GATE,
+  PARKING_LAMPS,
+  PARKING_LOT,
+  PARKING_TREES,
   ROOF_GARDEN_FLOOR,
   SKY_BRIDGE,
   STAFF_SHAFT,
@@ -25,6 +33,7 @@ import {
   WING_LEVELS,
   wingX,
   type AmenitySpot,
+  type CarStyle,
   type AmenityZone,
 } from '../sim/layout';
 
@@ -276,25 +285,182 @@ function at<T extends Group>(obj: T, x: number, y: number, z: number): T {
   return obj;
 }
 
-/** Lawn and trees around the wing and its terrace (campus grounds). */
-function buildGrounds(): Group {
+/** Vertex-coloured part list for the grounds (one draw call for lawn, paths and the whole car park). */
+class Painter {
+  readonly parts: BufferGeometry[] = [];
+  add(geo: BufferGeometry, color: number): void {
+    const c = new Color(color);
+    const n = geo.attributes.position?.count ?? 0;
+    const arr = new Float32Array(n * 3);
+    for (let i = 0; i < n; i++) arr.set([c.r, c.g, c.b], i * 3);
+    geo.setAttribute('color', new BufferAttribute(arr, 3));
+    this.parts.push(geo);
+  }
+  /** Axis-aligned box from x0..x1, y0..y1, z0..z1. */
+  box(x0: number, x1: number, y0: number, y1: number, z0: number, z1: number, color: number): void {
+    this.add(new BoxGeometry(x1 - x0, y1 - y0, z1 - z0).translate((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2), color);
+  }
+  /** Flat ground patch at height y. */
+  flat(x0: number, x1: number, z0: number, z1: number, y: number, color: number): void {
+    this.add(new PlaneGeometry(x1 - x0, z1 - z0).rotateX(-Math.PI / 2).translate((x0 + x1) / 2, y, (z0 + z1) / 2), color);
+  }
+}
+
+const ASPHALT = 0x9a9fa5;
+const MARKING = 0xf4f2ea;
+const CURB = 0xd9d4ca;
+const STEEL = 0x8a9098;
+const TYRE = 0x2f3236;
+const CABIN = 0x5d6873;
+const EV = 0x9fd2b4;
+
+/** A parked premium car (about 4.4 x 1.85, city car scale), nose toward -z, centred on x/z. */
+function car(p: Painter, x: number, z: number, tone: number, style: CarStyle): void {
+  const suv = style === 'suv';
+  const gt = style === 'gt';
+  const half = suv ? 0.94 : 0.92;
+  const len = gt ? 2.2 : 2.25;
+  const sill = suv ? 0.36 : 0.26;
+  const belt = suv ? 1.0 : gt ? 0.72 : 0.8;
+  p.flat(x - 1.08, x + 1.08, z - len - 0.1, z + len + 0.1, 0.011, 0x7d8288); // soft contact shadow
+  // Lower body with a lower, tapered nose and tail.
+  p.box(x - half, x + half, sill, belt - 0.12, z - len + 0.25, z + len - 0.2, tone);
+  p.box(x - half + 0.04, x + half - 0.04, sill + 0.04, belt - 0.2, z - len, z - len + 0.25, tone);
+  p.box(x - half + 0.04, x + half - 0.04, sill + 0.04, belt - 0.16, z + len - 0.2, z + len, tone);
+  p.box(x - half + 0.02, x + half - 0.02, belt - 0.12, belt, z - len + 0.5, z + len - 0.35, tone);
+  // Greenhouse: tinted glass set back from a long hood (grand tourer: further back and lower).
+  const g0 = gt ? -0.2 : suv ? -0.95 : -0.75;
+  const g1 = gt ? 1.15 : suv ? 1.75 : 1.3;
+  const roof = belt + (suv ? 0.62 : gt ? 0.4 : 0.5);
+  p.box(x - half + 0.1, x + half - 0.1, belt, roof - 0.05, z + g0, z + g1, 0x2c333b);
+  p.box(x - half + 0.14, x + half - 0.14, roof - 0.05, roof, z + g0 + 0.15, z + g1 - 0.15, tone);
+  if (suv) for (const dx of [-0.6, 0.6]) p.box(x + dx - 0.03, x + dx + 0.03, roof, roof + 0.04, z + g0 + 0.2, z + g1 - 0.2, 0x9aa0a6);
+  // Wheels with bright rims, slim LED head and tail lights.
+  const r = suv ? 0.38 : 0.34;
+  for (const dx of [-half + 0.06, half - 0.06]) for (const dz of [-len + 0.72, len - 0.68]) {
+    p.add(new CylinderGeometry(r, r, 0.24, 14).rotateZ(Math.PI / 2).translate(x + dx, r, z + dz), TYRE);
+    p.add(new CylinderGeometry(r * 0.6, r * 0.6, 0.02, 14).rotateZ(Math.PI / 2).translate(x + dx + Math.sign(dx) * 0.125, r, z + dz), 0xc9ccd0);
+  }
+  p.box(x - half + 0.12, x + half - 0.12, belt - 0.24, belt - 0.2, z - len - 0.01, z - len + 0.02, 0xfdf6e0);
+  p.box(x - half + 0.08, x + half - 0.08, belt - 0.22, belt - 0.18, z + len - 0.02, z + len + 0.01, 0xb0302a);
+}
+
+/** Car park (KARARLAR rev 35): asphalt, marked bays, cars, EV chargers, gate, bicycle racks, lamps. */
+function buildParking(p: Painter, l: Painter): void {
+  const lot = PARKING_LOT;
+  const b = PARKING_BAY;
+  const y = 0.006;
+  p.flat(lot.x0, lot.x1, lot.z0, lot.z1, y, ASPHALT);
+  // North planting strip with its curb, south curb along the lawn (open at the west entrance).
+  p.flat(lot.x0, lot.x1, lot.z0, b.z0 - b.d - 0.15, y + 0.003, LAWN);
+  p.box(lot.x0, lot.x1, 0, 0.12, b.z0 - b.d - 0.2, b.z0 - b.d - 0.05, CURB);
+  p.box(lot.x0 + 3.2, lot.x1, 0, 0.1, lot.z1 - 0.12, lot.z1, CURB);
+  // Bay lines, head line, EV bay paint and charger posts; one-way arrows on the aisle.
+  const head = b.z0 - b.d;
+  for (let i = 0; i <= PARKING_BAYS.length; i++) p.flat(b.x0 + i * b.w - 0.05, b.x0 + i * b.w + 0.05, head, b.z0, y + 0.004, MARKING);
+  p.flat(b.x0, b.x0 + PARKING_BAYS.length * b.w, b.z0 - 0.05, b.z0 + 0.05, y + 0.004, MARKING);
+  for (const bay of PARKING_BAYS) {
+    if (bay.ev) {
+      p.flat(bay.x - b.w / 2 + 0.08, bay.x + b.w / 2 - 0.08, head, b.z0 - 0.08, y + 0.002, EV);
+      p.box(bay.x - 0.16, bay.x + 0.16, 0, 1.25, head - 0.35, head - 0.15, 0xf7f5f0);
+      p.box(bay.x - 0.02, bay.x + 0.02, 0.35, 0.9, head - 0.15, head - 0.1, 0x3b4046);
+      l.box(bay.x - 0.11, bay.x + 0.11, 0.85, 1.05, head - 0.155, head - 0.145, 0x7fe3b0);
+    }
+    if (bay.car !== null) car(p, bay.x, bay.z + 0.1, PARKING_CAR_TONES[bay.car % PARKING_CAR_TONES.length]?.hex ?? 0xb8bdc3, bay.style);
+  }
+  const aisleZ = (b.z0 + lot.z1) / 2;
+  for (let x = b.x0 + 2; x < lot.x1 - 2; x += 6) {
+    p.flat(x, x + 1.0, aisleZ - 0.06, aisleZ + 0.06, y + 0.004, MARKING);
+    p.add(new PlaneGeometry(0.42, 0.42).rotateZ(Math.PI / 4).rotateX(-Math.PI / 2).translate(x + 1.0, y + 0.004, aisleZ), MARKING);
+  }
+  // Gate: barrier post and striped arm across the aisle, ticket post, attendant booth, a "P" sign.
+  const g = PARKING_GATE;
+  p.box(g.barrier.x - 0.15, g.barrier.x + 0.15, 0, 1.0, g.barrier.z0 - 0.5, g.barrier.z0 - 0.2, 0xf7f5f0);
+  const armLen = g.barrier.z1 - g.barrier.z0;
+  for (let i = 0; i < 6; i++) {
+    const z0 = g.barrier.z0 + (i * armLen) / 6;
+    p.box(g.barrier.x - 0.04, g.barrier.x + 0.04, 0.86, 0.96, z0, z0 + armLen / 6, i % 2 ? 0xe58a7a : 0xfbfaf6);
+  }
+  p.box(g.barrier.x - 1.0, g.barrier.x - 0.75, 0, 1.1, g.barrier.z0 - 0.45, g.barrier.z0 - 0.2, 0x6f7780);
+  l.box(g.barrier.x - 0.99, g.barrier.x - 0.76, 0.8, 0.98, g.barrier.z0 - 0.19, g.barrier.z0 - 0.18, 0x9ce8ff);
+  const bo = g.booth;
+  p.box(bo.x0, bo.x1, 0, 0.9, bo.z0, bo.z1, 0xf7f5f0);
+  p.box(bo.x0, bo.x1, 1.55, 1.95, bo.z0, bo.z1, 0xf7f5f0);
+  for (const [x0, x1] of [[bo.x0, bo.x0 + 0.08], [bo.x1 - 0.08, bo.x1]] as const) for (const [z0, z1] of [[bo.z0, bo.z0 + 0.08], [bo.z1 - 0.08, bo.z1]] as const) p.box(x0, x1, 0.9, 1.55, z0, z1, 0xf7f5f0);
+  l.box(bo.x0 + 0.08, bo.x1 - 0.08, 0.9, 1.55, bo.z0 + 0.04, bo.z1 - 0.04, 0xfff1d6);
+  p.box(bo.x0 - 0.15, bo.x1 + 0.15, 1.95, 2.05, bo.z0 - 0.15, bo.z1 + 0.15, 0x6f7780);
+  const sx = lot.x0 + 0.3;
+  const sz = lot.z1 - 0.4;
+  p.box(sx - 0.04, sx + 0.04, 0, 1.9, sz - 0.04, sz + 0.04, STEEL);
+  p.box(sx - 0.03, sx + 0.03, 1.4, 2.0, sz - 0.3, sz + 0.3, 0x5b8fd6);
+  p.box(sx - 0.035, sx + 0.035, 1.5, 1.9, sz - 0.14, sz - 0.08, MARKING);
+  p.box(sx - 0.035, sx + 0.035, 1.84, 1.9, sz - 0.08, sz + 0.12, MARKING);
+  p.box(sx - 0.035, sx + 0.035, 1.68, 1.74, sz - 0.08, sz + 0.12, MARKING);
+  p.box(sx - 0.035, sx + 0.035, 1.68, 1.9, sz + 0.1, sz + 0.16, MARKING);
+  // EV charging canopy with a planted (sedum) roof on slim bronze columns; valet stand by the gate.
+  const cn = g.canopy;
+  for (const cx of [cn.x0 + 0.1, cn.x1 - 0.1]) p.box(cx - 0.06, cx + 0.06, 0, 2.3, cn.z0 + 0.1, cn.z0 + 0.22, 0x8a6a45);
+  p.box(cn.x0, cn.x1, 2.3, 2.42, cn.z0, cn.z1, 0xf2efe8);
+  p.box(cn.x0 + 0.08, cn.x1 - 0.08, 2.42, 2.5, cn.z0 + 0.08, cn.z1 - 0.08, 0x7fa463);
+  for (let i = 0; i < 6; i++) p.add(new SphereGeometry(0.16, 8, 6).scale(1, 0.55, 1).translate(cn.x0 + 0.5 + i * 0.78, 2.53, (cn.z0 + cn.z1) / 2 + ((i % 2) - 0.5) * 1.6), 0x6a9150);
+  l.box(cn.x0 + 0.2, cn.x1 - 0.2, 2.27, 2.3, cn.z1 - 0.4, cn.z1 - 0.3, 0xfff1d6);
+  const v = g.valet;
+  p.box(v.x - 0.25, v.x + 0.25, 0, 1.05, v.z - 0.18, v.z + 0.18, 0x5a4330);
+  p.box(v.x - 0.3, v.x + 0.3, 1.05, 1.1, v.z - 0.22, v.z + 0.22, 0x8a6a45);
+  p.box(v.x - 0.2, v.x + 0.2, 1.1, 1.13, v.z - 0.14, v.z + 0.14, 0xf2efe8);
+  // Landscaped island (lawn, curb, low shrubs) at the east end of the bay row.
+  const ix0 = b.x0 + PARKING_BAYS.length * b.w + 0.15;
+  const ix1 = lot.x1 - 0.2;
+  if (ix1 - ix0 > 0.4) {
+    p.box(ix0, ix1, 0, 0.12, head + 0.2, b.z0 - 0.3, CURB);
+    p.box(ix0 + 0.05, ix1 - 0.05, 0.12, 0.13, head + 0.25, b.z0 - 0.35, LAWN);
+    for (let i = 0; i < 4; i++) p.add(new SphereGeometry(0.26, 8, 6).scale(1, 0.7, 1).translate((ix0 + ix1) / 2, 0.3, head + 0.8 + i * 0.9), i % 2 ? 0x6a9150 : 0x7fa463);
+  }
+  // Bicycle racks (hoops) with a few pastel bikes, on the lawn strip by the wing.
+  BIKE_RACKS.forEach(([cx, cz], r) => {
+    for (let i = 0; i < 4; i++) {
+      const x = cx - 0.45 + i * 0.3;
+      for (const dz of [-0.2, 0.2]) p.box(x - 0.015, x + 0.015, 0, 0.5, cz + dz - 0.015, cz + dz + 0.015, STEEL);
+      p.box(x - 0.015, x + 0.015, 0.5, 0.53, cz - 0.215, cz + 0.215, STEEL);
+      if ((i + r) % 2 === 0) {
+        const tone = PARKING_CAR_TONES[(i + r * 2) % PARKING_CAR_TONES.length]?.hex ?? 0xb8bdc3;
+        for (const dz of [-0.36, 0.36]) p.add(new CylinderGeometry(0.22, 0.22, 0.03, 12).rotateZ(Math.PI / 2).translate(x + 0.08, 0.23, cz + dz), TYRE);
+        p.box(x + 0.065, x + 0.095, 0.3, 0.36, cz - 0.36, cz + 0.36, tone);
+        p.box(x + 0.065, x + 0.095, 0.36, 0.5, cz + 0.08, cz + 0.12, tone);
+      }
+    }
+  });
+  // Lamp posts with warm heads (night lights).
+  for (const [x, z] of PARKING_LAMPS) {
+    p.box(x - 0.05, x + 0.05, 0, 3.2, z - 0.05, z + 0.05, STEEL);
+    p.box(x - 0.04, x + 0.04, 3.1, 3.16, z, z + 0.7, STEEL);
+    l.box(x - 0.16, x + 0.16, 3.04, 3.1, z + 0.4, z + 0.8, 0xfff1d6);
+  }
+}
+
+/** Lawn, paths, trees and the car park around the wing and its terrace (campus grounds). */
+function buildGrounds(nightKit: Kit | undefined): Group {
   const g = new Group();
   g.name = 'campus-grounds';
-  const lawn = new MeshStandardMaterial({ color: LAWN, roughness: 1 });
-  const path = new MeshStandardMaterial({ color: 0xe9e2d6, roughness: 0.95 });
+  const paint = new Painter();
+  const light = new Painter();
   const x0 = WING.x - WING.halfW - 1.6;
   const x1 = WING.x + WING.halfW + 1.2;
   const z0 = -WING.halfD - 1.4;
   const z1 = TERRACE.z1 + 1.4;
-  const lawnMesh = named(new PlaneGeometry(x1 - x0, z1 - z0).rotateX(-Math.PI / 2), lawn, 'campus-lawn', 'surface');
-  lawnMesh.position.set((x0 + x1) / 2, 0.004, (z0 + z1) / 2);
-  lawnMesh.receiveShadow = true;
-  const walk = named(new PlaneGeometry(1.2, z1 - TERRACE.z1).rotateX(-Math.PI / 2), path, 'campus-path', 'surface');
-  walk.position.set(wingX(1.0), 0.008, (TERRACE.z1 + z1) / 2);
-  g.add(lawnMesh, walk);
+  paint.flat(x0, x1, z0, z1, 0.004, LAWN);
+  paint.flat(wingX(1.0) - 0.6, wingX(1.0) + 0.6, TERRACE.z1, z1, 0.008, 0xe9e2d6);
+  buildParking(paint, light);
+  const ground = new MeshStandardMaterial({ color: 0xffffff, vertexColors: true, roughness: 0.85 });
+  const grounds = named(merged(paint.parts), ground, 'parking', 'surface');
+  grounds.receiveShadow = true;
+  const lamps = new MeshStandardMaterial({ color: 0xffffff, vertexColors: true, roughness: 0.6, emissive: 0xffd9a0, emissiveIntensity: 0.15 });
+  lamps.userData.glow = { day: 0.15, night: 1.6 };
+  nightKit?.glows.push(lamps);
+  g.add(grounds, named(merged(light.parts), lamps, 'parking-lights', 'none'));
   const trunk = new MeshStandardMaterial({ color: PALETTE.oakDark, roughness: 0.9 });
   const crown = new MeshStandardMaterial({ color: 0xffffff, roughness: 0.85 });
-  trees(g, [[x0 + 0.6, -4.6, 1.2], [x0 + 0.7, 0.2, 1.0], [x0 + 0.6, 4.4, 1.3], [wingX(-4.2), z1 - 0.6, 1.1], [wingX(4.6), z1 - 0.5, 0.9], [x1 - 0.3, -6.0, 1.0]], 0, trunk, crown, 'campus-tree');
+  trees(g, [[x0 + 0.6, -4.6, 1.2], [x0 + 0.7, 0.2, 1.0], [x0 + 0.6, 4.4, 1.3], [wingX(-4.2), z1 - 0.6, 1.1], [wingX(4.6), z1 - 0.5, 0.9], [x1 - 0.3, -6.0, 1.0], ...PARKING_TREES], 0, trunk, crown, 'campus-tree');
   return g;
 }
 
@@ -328,7 +494,7 @@ export function buildCampus(options: CampusOptions): Campus {
   const rooms: RoomLabel[] = CAMPUS_ZONES.flatMap((z) =>
     z.label === null ? [] : [{ floor: z.floor, text: z.label, primary: false, position: new Vector3(z.labelAt.x, z.floor * FLOOR_HEIGHT + FLOOR_TOP + ZONE_LABEL_Y, z.labelAt.z) }],
   );
-  const group = buildGrounds();
+  const group = buildGrounds(options.kits[0]);
   group.name = 'campus';
   group.userData.zones = CAMPUS_ZONES;
   return { group, levels, zones: CAMPUS_ZONES, spots: AMENITY_SPOTS, rooms };
