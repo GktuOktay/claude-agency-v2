@@ -6,7 +6,7 @@
 // clear of every waypoint edge, lane and spot of src/sim/layout.ts (which this module never changes).
 import { BufferAttribute, Group, InstancedMesh, Mesh, MeshStandardMaterial, type BufferGeometry } from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import { PENTHOUSE, MEETING_FLOOR, FLOOR_HEIGHT, FLOOR_TOP, type Rect } from '../sim/layout';
+import { PENTHOUSE, MEETING_FLOOR, FLOOR_HEIGHT, FLOOR_TOP, LOBBY_FLOOR, type Rect } from '../sim/layout';
 import { Kit, PALETTE, coffeeTable, floorLamp, glassPartition, rug, sofa } from './furniture';
 import { softwareDecorFootprints } from './softwareLayout';
 import { Foliage, GREENS, hangingPlant, leafAt, mossWall, planterBox, smallPlant, tallHalf, tallPlant, type Leaf, type TallKind } from './greenery';
@@ -305,9 +305,13 @@ function items(floor: number): Item[] {
   // Two focus pods (phone booths) along the west wall of the south-west room.
   for (const z of [0.45, 1.4]) out.push({ name: 'focus-pod', x: POD_X, z, box: sym(0.47, 0.47), build: focusPod });
 
-  // Two sit-stand desks (one raised, one lowered) along the south windows, stools on the north side.
-  for (const [x, raised] of [[-5.4, true], [-4.0, false]] as const) {
-    out.push({ name: 'sit-stand-desk', x, z: 4.85, box: [-0.56, 0.56, -0.75, 0.31], build: (c) => sitStandDesk(c, raised) });
+  // Two sit-stand desks (one raised, one lowered) along the south windows, stools on the north side. The lobby
+  // (floor 0) has its security desk and turnstile in that strip (QA r2B overlap): there one desk stands by the
+  // west wall south of the reception, the other at the south windows east of the lobby path.
+  const sitStand: readonly (readonly [number, number, boolean])[] =
+    floor === LOBBY_FLOOR ? [[-6.95, 3.95, true], [0.3, 4.85, false]] : [[-5.4, 4.85, true], [-4.0, 4.85, false]];
+  for (const [x, z, raised] of sitStand) {
+    out.push({ name: 'sit-stand-desk', x, z, box: [-0.56, 0.56, -0.75, 0.31], build: (c) => sitStandDesk(c, raised) });
   }
 
   // Planter divider between the corridor and the lounge.
