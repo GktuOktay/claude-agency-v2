@@ -183,7 +183,7 @@ describe('city scene luxury (rev 37)', () => {
 
   it('paints are refined (pearl white, graphite, deep navy, champagne, racing green) and stay above the mood floor', () => {
     for (const k of ['pearl', 'graphite', 'navy', 'champagne', 'racingGreen'] as const) expect(CAR_PAINTS[k], k).toBeTypeOf('number');
-    const allowed = new Set(Object.values(CAR_PAINTS));
+    const allowed = new Set<number>(Object.values(CAR_PAINTS));
     const c = new Color();
     const hsl = { h: 0, s: 0, l: 0 };
     const used = new Set<number>();
