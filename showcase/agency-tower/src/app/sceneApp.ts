@@ -120,7 +120,7 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
       cam.top = half;
       cam.bottom = -half;
       cam.near = 0.5;
-      cam.far = mode === 'floor' ? 45 : 110;
+      cam.far = mode === 'floor' ? 90 : 110; // 90: city ground must not end in a visible edge in floor views
       cam.updateProjectionMatrix();
     }
   };
@@ -366,10 +366,12 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     screens: model.robots.map((r) => r.screen),
     onChange: (on) => {
       staff?.setReducedMotion(on);
+      model.city?.setReducedMotion(on);
       dnControl.refresh();
     },
   });
   staff?.setReducedMotion(motion.active());
+  model.city?.setReducedMotion(motion.active());
   syncStaff();
 
   const unitList = createUnitList(data.units, (u, opener) => flow.select(u, opener, { fromOrg: orgOn }), { visible: false });
@@ -490,6 +492,7 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     runtime.frame(dt * 1000); // simulation clock (≤ 100 ms steps, frozen by org / user / hidden), engine, director, strip
     syncStaffCabinFrom(runtime.workflow.movement, model.staffCabin);
     staffRt?.frame(dt); // staff NPCs: paused with the clock's global reasons (org / user / hidden)
+    if (!runtime.clock.paused) model.city?.step(dt); // city life: same global pause reasons
     const selected = flow.selectedId();
     const still = motion.active();
     for (const r of model.robots) {
