@@ -1,14 +1,12 @@
 // Scene wiring: renderer, lights, camera, input, DOM overlays, render loop. Needs WebGL2 and a browser;
 // the logic it composes is unit-tested separately (visual behaviour is verified by eye).
 import {
-  ACESFilmicToneMapping,
   Color,
   PointLight,
   type Group,
   AmbientLight,
   DirectionalLight,
   HemisphereLight,
-  PCFSoftShadowMap,
   PerspectiveCamera,
   MeshBasicMaterial,
   Mesh,
@@ -44,6 +42,7 @@ import { createUnitList } from '../ui/unitList';
 import { applyInitialCamera, projectToScreen } from './initialCamera';
 import { createFpsMeter, createLoop } from './loop';
 import { maxJobsFor, qualitySettings, resolveQuality, type Params } from './params';
+import { RENDERER_OPTIONS, applyQuality, createQualityContext, initialTier, roomEnvironment } from './quality';
 import { createScenarioInfo, createSettingsMenu, createShortcutToggle } from '../ui/settingsMenu';
 import { MASTER_SEED } from '../sim/workflow';
 import { framePose, shouldStepSim } from './frameUpdate';
@@ -86,13 +85,9 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
 
   const canvas = el('canvas', { class: 'tower-canvas', tabindex: '-1', 'aria-label': tr.title });
   root.prepend(canvas);
-  const renderer = new WebGLRenderer({ canvas, antialias: true, alpha: true });
-  renderer.setPixelRatio(quality.pixelRatio);
+  const renderer = new WebGLRenderer({ canvas, ...RENDERER_OPTIONS });
   renderer.setClearColor(0x000000, 0); // the page's soft off-white gradient shows through
-  renderer.toneMapping = ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.08;
-  renderer.shadowMap.enabled = quality.shadows;
-  renderer.shadowMap.type = PCFSoftShadowMap;
 
   // Fixed day lighting (M1): warm key light, soft sky/ground fill, high ambient.
   const scene = new Scene();
@@ -102,12 +97,17 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
   scene.add(hemi, ambient, interior);
   const sun = new DirectionalLight(0xfff0dc, 2.3);
   scene.add(sun, sun.target);
-  if (quality.shadows) {
-    sun.castShadow = true;
-    sun.shadow.mapSize.set(2048, 2048);
-    sun.shadow.bias = -0.0004;
-    sun.shadow.normalBias = 0.02;
-  }
+  sun.shadow.bias = -0.0004;
+  sun.shadow.normalBias = 0.02;
+  // Render quality (Rev 35): pixel ratio, shadows, tone mapping, environment; switchable at runtime.
+  const qualityCtx = createQualityContext({
+    renderer,
+    scene,
+    shadowLights: [sun],
+    devicePixelRatio: () => window.devicePixelRatio || 1,
+    createEnvironment: roomEnvironment(renderer),
+  });
+  applyQuality(qualityCtx, initialTier(params, coarse));
   let shadowMode: 'overview' | 'floor' | null = null;
   const placeSun = (): void => {
     const mode = model.view.mode;
@@ -116,7 +116,7 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     sun.target.position.set(0, focusY, 0);
     sun.position.set(7 * reach, focusY + 16 * reach, 10 * reach);
     sun.target.updateMatrixWorld();
-    if (quality.shadows && shadowMode !== mode) {
+    if (shadowMode !== mode) {
       shadowMode = mode;
       const cam = sun.shadow.camera;
       const half = mode === 'floor' ? 10.5 : 24;
@@ -669,6 +669,9 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     sun.intensity = L.sun;
     sun.color.setHex(L.sunColor);
     hemi.intensity = L.hemi;
+    hemi.color.setHex(L.hemiSky);
+    hemi.groundColor.setHex(L.hemiGround);
+    scene.environmentIntensity = L.env;
     ambient.intensity = L.ambient;
     renderer.toneMappingExposure = L.exposure;
     model.setNight(lightsOn);
@@ -686,7 +689,7 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
 
     placeSun();
     renderer.render(scene, camera);
-    if (params.debug) fpsEl.textContent = `${fps.frame(now).toFixed(0)} fps · ${quality.quality}`;
+    if (params.debug) fpsEl.textContent = `${fps.frame(now).toFixed(0)} fps · ${qualityCtx.tier ?? quality.quality}`;
   };
 
   const loop = createLoop({
