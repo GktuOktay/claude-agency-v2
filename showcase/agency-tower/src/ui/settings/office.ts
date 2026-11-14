@@ -1,6 +1,6 @@
 // "Ofis" section (Rev 35): Hareketi durdur, Organizasyon şeması and the "Mola saatleri" schedule view.
-// The schedule data will come from src/sim/schedule.ts (built separately); this file defines the
-// contract it must meet (OfficeSchedule) and renders a placeholder until it is wired in.
+// The schedule data comes from src/sim/schedule.ts (live office clock on the simulation clock); this file
+// defines the contract it meets (OfficeSchedule). The placeholder stays for tests and as a fallback.
 import { tr } from '../../i18n/tr';
 import { el } from '../dom';
 import { sectionBody, type SettingsSection } from './section';
@@ -99,12 +99,13 @@ export interface OfficeOptions {
   schedule: OfficeSchedule;
 }
 
-export function createOfficeSection(o: OfficeOptions): SettingsSection {
+/** The office section; `refresh` re-reads the schedule (the scene calls it while the menu is open). */
+export function createOfficeSection(o: OfficeOptions): SettingsSection & { refresh(): void } {
   const t = tr.settings;
   const body = sectionBody('office');
   const controls = el('div', { class: 'settings-controls' });
   controls.append(...o.controls);
   const view = createScheduleView(o.schedule);
   body.append(controls, view.element);
-  return { id: 'office', title: t.office, element: body, onShow: () => view.refresh() };
+  return { id: 'office', title: t.office, element: body, onShow: () => view.refresh(), refresh: () => view.refresh() };
 }
