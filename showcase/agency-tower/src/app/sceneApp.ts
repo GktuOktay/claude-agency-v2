@@ -43,6 +43,8 @@ import { qualitySettings, resolveQuality, type Params } from './params';
 import { framePose, shouldStepSim } from './frameUpdate';
 import { createSelectionFlow } from './selection';
 import { createSimRuntime } from './simRuntime';
+import { createStaffRuntime, type StaffRuntime } from './staffRuntime';
+import type { StaffModel } from '../scene/staff';
 import { rideToFloor } from './stripActivation';
 import type { SceneContext } from './bootstrap';
 
@@ -158,6 +160,21 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
   document.addEventListener('visibilitychange', () => runtime.setHidden(document.hidden));
   runtime.setHidden(document.hidden);
 
+  // Staff NPCs load as their own chunk (keeps the entry chunk inside the size budget).
+  let staff: StaffModel | null = null;
+  let staffRt: StaffRuntime | null = null;
+  function syncStaff(): void {
+    staff?.setView(model.view);
+    staff?.setOrg(orgOn);
+  }
+  void import('../scene/staff').then(({ createStaff }) => {
+    const st = createStaff({ layouts: model.layouts, seed: 1, reducedMotion: motion.active() });
+    model.root.add(st.group);
+    staff = st;
+    staffRt = createStaffRuntime({ staff: st, clock: runtime.clock });
+    syncStaff();
+  });
+
   // ---- navigation and selection ----
   // ---- org-chart mode (REQ-17) ----
   let orgOn = false;
@@ -193,6 +210,7 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     if (!orgOn) return;
     clearOrg();
     model.setOrg(false);
+    syncStaff();
   };
   function enterOrg(): void {
     if (orgOn) return;
@@ -200,6 +218,7 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     orgOn = true;
     runtime.setOrg(true);
     model.setOrg(true);
+    syncStaff();
     legend.hidden = false;
     document.documentElement.classList.add('is-org');
     measureOrgInsets();
@@ -215,6 +234,7 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     if (!orgOn) return;
     clearOrg();
     model.setOrg(false);
+    syncStaff();
     rig.exitOrg();
     panel.setCurrent(model.view.mode === 'floor' ? model.view.focusFloor : 'all');
   }
@@ -248,11 +268,13 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
 
   function goFloor(n: number): void {
     model.setView({ mode: 'floor', focusFloor: n });
+    syncStaff();
     rig.goToFloor(n);
     panel.setCurrent(n);
   }
   function goOverview(): void {
     model.setView({ mode: 'overview', focusFloor: 0 });
+    syncStaff();
     rig.goOverview();
     panel.setCurrent('all');
   }
@@ -296,7 +318,10 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     sim,
     dayNight,
     screens: model.robots.map((r) => r.screen),
-    onChange: () => dnControl.refresh(),
+    onChange: (on) => {
+      staff?.setReducedMotion(on);
+      dnControl.refresh();
+    },
   });
 
   const unitList = createUnitList(data.units, (u, opener) => flow.select(u, opener, { fromOrg: orgOn }), { visible: false });
@@ -414,6 +439,7 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
 
     if (shouldStepSim(orgOn)) sim.step(dt * 1000); // org mode: robots freeze in place
     runtime.frame(dt * 1000); // simulation clock (≤ 100 ms steps, frozen by org / user / hidden), engine, strip
+    staffRt?.frame(dt); // staff NPCs: paused with the clock's global reasons (org / user / hidden)
     const selected = flow.selectedId();
     const still = motion.active();
     for (const r of model.robots) {
@@ -501,7 +527,23 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
       if (e.textContent !== b.text) e.textContent = b.text;
       show(e, p.visible && !orgOn && bubbleVisible(r.floor, model.view), p.x, p.y, labelShown.has(b.unitId) ? 30 : 4);
     });
-    for (let i = active.length; i < bubbleEls.length; i++) {
+    const staffActive = staffRt?.bubbles(active.length) ?? [];
+    staffActive.forEach((b, j) => {
+      const i = active.length + j;
+      let e = bubbleEls[i];
+      if (!e) {
+        e = el('div', { class: 'bubble' });
+        e.hidden = true;
+        labels.append(e);
+        bubbleEls[i] = e;
+      }
+      const hp = staff?.headPosition(b.staffId);
+      if (!hp) return;
+      const p = project(hp);
+      if (e.textContent !== b.text) e.textContent = b.text;
+      show(e, p.visible && !orgOn && bubbleVisible(b.floor, model.view), p.x, p.y, 4);
+    });
+    for (let i = active.length + staffActive.length; i < bubbleEls.length; i++) {
       const e = bubbleEls[i];
       if (e) e.hidden = true;
     }
