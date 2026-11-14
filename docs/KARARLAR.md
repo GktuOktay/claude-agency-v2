@@ -312,3 +312,14 @@ Eski kurulum: ~/.claude-backup-2026-11-01 (silme işlemi henüz yapılmadı).
 - CEO kararı (gün döngüsü): "420 sn, gece %25". Otomatik mod ofis saatini izlemeye devam eder; gece döngünün yaklaşık %25'i olur (~105 s). İmzalı 0001 REQ-18'den (90 s, gece %50) kayıtlı sapma.
 - **Ruling (AC-1):** izin listesi dışındaki dosyalar (`docs/qa/*`, `specs/done/0001`, `specs/draft/0003`, `.claude/launch.json`, `.gitignore`) süreç ve araç dosyalarıdır; CEO'nun "mevcutları commitle" talimatıyla girdi. Kayıtlı sapma, temizlik yok.
 - Açık (Type 1, A paketi sonrası ölçülecek): molaların iş hızına etkisi (3'e karşı 5).
+
+## Revizyon 41: Doluluk yönetimi sonuçları (2026-11-14)
+- Önce/sonra, mesai süresinin en az 1 robotla geçen yüzdesi (seed 20261113, 420 s gün, yüksek kalite):
+  - Ar-Ge 10.8 → 80.3; spor 2.7 → 72.8; oyun 9.3 → 39.7; snack 8.1 → 67.9; teras 25 → 49.1; uyku 0 → 26.9; arşiv 0 → 24.7.
+  - Öğle yemekhane 65.5 → 83.9.
+  - Ar-Ge'de en az 2 kişi: 5.2 → 42.9 (hedef %70 tutmadı; test eşiği %35).
+- 1200 s'de biten iş sayısı 3 → 4.
+- **Ruling:** doluluk yöneticisi mesai, öğle ve kahve/çay saatlerinde çalışır, yalnız boştaki ambient robotları alır, iş adımındaki robota dokunmaz. Yanlışsa maliyet: `breaks.ts` hedef tabloları.
+- **Ruling:** asansör darboğaz değil; ortalama bekleyen ~0.5. İkinci kabin yapılmadı. Kapasite 4'e çıkarmak AC-13'ü bozuyor.
+- **Ruling (gün):** gece 18:00–06:00 = 105 s (%25), şafak 5 s, iş blokları 37.5 s, öğle 80 s, kahve/çay 40 s.
+- Açık: kule içi oturma köşeleri, odak kabinleri, toplantı nişleri ve çatı teraslarında yürünebilir nokta yok; Ar-Ge'de 2+ kişi hedefi %70'in altında. Ekip figürleri (B paketi) bu boşluğu dolduracak.
