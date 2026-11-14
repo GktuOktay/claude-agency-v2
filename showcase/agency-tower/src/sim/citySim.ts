@@ -1,6 +1,10 @@
-// City life around the campus (KARARLAR rev 31, calm and prestige rework rev 33): a pure, seedable street
-// plan (tree-lined boulevards with planted medians and bike lanes, a park with a pond, café terraces) plus
-// calm vehicle, cyclist and pedestrian loops. No three.js and no DOM here; src/scene/city.ts turns the plan into meshes and reads the sim state.
+// City life around the campus (KARARLAR rev 31, calm and prestige rework rev 33, luxury and realism rev 37):
+// a pure, seedable street plan (tree-lined boulevards with planted medians and bike lanes, a park with a
+// landscaped plaza and a pond, café terraces, a grand hotel with a porte-cochère, glass towers further back)
+// plus calm premium traffic, cyclists and pedestrian loops.
+//
+// Ruling: one world unit is one metre (the tower floor is a 3 m diorama floor); city storeys are 3.5 m,
+// lanes 3.5 m and sidewalks 4 m like a real European boulevard — if wrong, change the scale constants. No three.js and no DOM here; src/scene/city.ts turns the plan into meshes and reads the sim state.
 //
 // Coordinates are world x/z (the tower root sits at the origin). +x is east, +z is south (toward the
 // default cameras). Traffic keeps right: the right of heading (dx, dz) is (-dz, dx).
@@ -18,28 +22,40 @@ export interface CityXZ {
 }
 export type Axis = 'x' | 'z';
 export type Signal = 'green' | 'yellow' | 'red';
-/** `bus` is the small electric shuttle (rev 33: no big buses). */
+/** `bus` is the small electric shuttle (rev 33: no big buses); `taxi` is the chauffeured limousine (rev 37). */
 export type VehicleKind = 'car' | 'taxi' | 'bus';
+/** Body style (rev 37): cars are sedans, grand tourers, electric SUVs or convertibles. */
+export type BodyStyle = 'sedan' | 'tourer' | 'suv' | 'convertible' | 'limousine' | 'shuttle';
+export type BuildingStyle = 'midrise' | 'tower' | 'hotel' | 'canopy';
 
-export const ROAD_HALF = 3.2;
-export const LANE_OFFSET = 1.6;
-export const WALK_WIDTH = 2.4;
+/** Half width of the planted median on the ring boulevards. */
+export const MEDIAN_HALF = 0.8;
+/** One traffic lane each way (real-world 3.5 m). */
+export const LANE_WIDTH = 3.5;
+/** Painted bike lane on the outer edge of the road. */
+export const BIKE_WIDTH = 1.5;
+export const ROAD_HALF = MEDIAN_HALF + LANE_WIDTH + BIKE_WIDTH;
+/** Vehicles drive in the middle of their lane. */
+export const LANE_OFFSET = MEDIAN_HALF + LANE_WIDTH / 2;
+export const WALK_WIDTH = 4.0;
 /** Free plot (plaza) between the campus footprint and its sidewalk. */
 export const PLOT_MARGIN = 2.3;
-export const CROSSWALK_WIDTH = 2.4;
+export const CROSSWALK_WIDTH = 3.0;
 /** Vehicles stop this far from the intersection centre: road half, crosswalk and a small gap. */
 export const STOP_DIST = ROAD_HALF + CROSSWALK_WIDTH + 0.5;
-/** Cyclists ride this far right of the road centre line, on the outer bike lane. */
-export const BIKE_OFFSET = 2.85;
-/** Half width of the planted median on the ring boulevards. */
-export const MEDIAN_HALF = 0.4;
+/** Cyclists ride this far right of the road centre line, in the middle of the outer bike lane. */
+export const BIKE_OFFSET = ROAD_HALF - BIKE_WIDTH / 2;
 /** City reach beyond the ring roads (it fades into the haze before this). */
 export const CITY_REACH = 46;
 /** Building height cap: h <= HEIGHT_SLOPE * (distance to the campus footprint) - HEIGHT_DROP. */
 export const HEIGHT_SLOPE = 0.38;
 export const HEIGHT_DROP = 1.0;
-/** Storey height of the neighbouring buildings. */
-export const STOREY = 3.2;
+/** Storey height of the neighbouring buildings (real-world 3.5 m). */
+export const STOREY = 3.5;
+/** Parapet and roof build-up above the top storey. */
+export const PARAPET = 0.6;
+/** Floors a building may have at most: camera side (south, east) and further back. */
+const MAX_FLOORS = { cameraSide: 3, back: 8 } as const;
 
 /** Signal cycle (s): x green, x yellow, all red, z green, z yellow, all red. */
 export const SIGNAL = { green: 10, yellow: 2.5, allRed: 2.5 } as const;
@@ -49,6 +65,22 @@ export interface Building extends CityRect {
   readonly h: number;
   readonly floors: number;
   readonly tone: number; // palette index
+  readonly style: BuildingStyle;
+}
+/** Grand hotel (rev 37): stepped stone blocks, a porte-cochère over the forecourt drop-off and a doorman. */
+export interface Hotel {
+  readonly blocks: readonly Building[];
+  readonly canopy: Building;
+  /** Paved drop-off between the front block and the sidewalk. */
+  readonly forecourt: CityRect;
+  readonly doorman: { readonly x: number; readonly z: number; readonly yaw: number };
+}
+export interface Sculpture {
+  readonly x: number;
+  readonly z: number;
+  readonly h: number;
+  /** Half extent of its footprint. */
+  readonly r: number;
 }
 export interface Tree {
   readonly x: number;
@@ -133,6 +165,12 @@ export interface CityPlan {
   /** Planted medians (boulevard) and painted bike lanes, cut at the intersection boxes. */
   readonly medians: readonly CityRect[];
   readonly bikeLanes: readonly CityRect[];
+  /** Landscaped stone plaza in the park with a reflecting pool and a sculpture (rev 37). */
+  readonly plaza: CityRect;
+  readonly pool: CityRect;
+  readonly sculpture: Sculpture;
+  readonly hotel: Hotel;
+  readonly bollards: readonly CityXZ[];
   readonly tables: readonly CafeTable[];
   readonly sitters: readonly Sitter[];
   readonly buildings: readonly Building[];
@@ -336,11 +374,18 @@ export function cityPlan(campus: CityRect, seed = 7): CityPlan {
   const pondHalf = Math.min(10, (park.x1 - park.x0) / 2 - 5);
   const pond = rect(pc.x - pondHalf, pc.x + pondHalf, pc.z + 4, park.z1 - 3.4);
   const kiosk = rect(pc.x + 12, pc.x + 14.6, park.z0 + 2.6, park.z0 + 4.6);
+  const plaza = rect(pc.x - 7.5, pc.x + 7.5, pc.z - 4.4, pc.z + 2.9);
+  const pool = rect(pc.x - 4.6, pc.x + 4.6, pc.z - 1.9, pc.z + 1.9);
+  const sculpture: Sculpture = { x: pc.x, z: pc.z, h: 3.6, r: 0.9 };
 
   const buildings: Building[] = [];
+  const hotel = hotelIn(rect(xs[1]![0], xs[1]![1], zs[0]![0], zs[0]![1]), campus);
+  buildings.push(...hotel.blocks, hotel.canopy);
+  const hotelSite = rect(hotel.forecourt.x0, hotel.forecourt.x1, Math.min(...hotel.blocks.map((b) => b.z0)), hotel.forecourt.z1);
   const tables: CafeTable[] = [];
   const terraces = { left: 3 };
-  for (const b of blocks) fillBlock(b, campus, park, rng, buildings, tables, terraces);
+  const reserved = [rect(park.x0 - 1, park.x1 + 1, park.z0 - 1, park.z1 + 1), rect(hotelSite.x0 - 1, hotelSite.x1 + 1, hotelSite.z0 - 1, hotelSite.z1 + 1)];
+  for (const b of blocks) fillBlock(b, campus, reserved, rng, buildings, tables, terraces);
 
   // Street trees and lamps on the outer sidewalks (the campus side keeps its clear ring).
   const trees: Tree[] = [];
@@ -351,7 +396,7 @@ export function cityPlan(campus: CityRect, seed = 7): CityPlan {
     const h = Math.min(hMax, heightCap(d) - 0.2);
     if (h >= 2.2) trees.push({ x, z, h });
   };
-  const curb = 0.7;
+  const curb = 0.6;
   const sides: [Axis, number, number][] = [
     ['x', ring.n - R - curb, -1],
     ['x', ring.s + R + curb, 1],
@@ -365,8 +410,8 @@ export function cityPlan(campus: CityRect, seed = 7): CityPlan {
       const [x, z] = axis === 'x' ? [t, line] : [line, t];
       if (nearNode(x, z)) continue;
       // Tree-lined: a tree in every slot on the kerb edge, a lamp between every other pair.
-      const kerb = out * (0.35 - curb);
-      treeAt(axis === 'x' ? x : x + kerb, axis === 'x' ? z + kerb : z, range(rng, 3.6, 4.8));
+      const kerb = out * (0.9 - curb);
+      treeAt(axis === 'x' ? x : x + kerb, axis === 'x' ? z + kerb : z, range(rng, 6.5, 8.5));
       const [lx, lz] = axis === 'x' ? [x + 4.5, z] : [x, z + 4.5];
       if (k % 2 === 1 && !nearNode(lx, lz)) lamps.push({ x: lx, z: lz, dx: axis === 'z' ? -out : 0, dz: axis === 'x' ? -out : 0 });
     }
@@ -390,16 +435,16 @@ export function cityPlan(campus: CityRect, seed = 7): CityPlan {
   const keepM = STOP_DIST + 0.6;
   for (const [z, o] of [[ring.n, -1], [ring.s, 1]] as const) {
     for (const [a, b] of pieces(extent.x0, extent.x1, [ring.w, ring.e], keepM)) medians.push(rect(a, b, z - M, z + M));
-    for (const [a, b] of pieces(extent.x0, extent.x1, [ring.w, ring.e], R)) bikeLanes.push(rect(a, b, z + o * (B - 0.3), z + o * (B + 0.3)));
+    for (const [a, b] of pieces(extent.x0, extent.x1, [ring.w, ring.e], R)) bikeLanes.push(rect(a, b, z + o * (B - BIKE_WIDTH / 2), z + o * (B + BIKE_WIDTH / 2)));
   }
   for (const [x, o] of [[ring.w, -1], [ring.e, 1]] as const) {
     for (const [a, b] of pieces(extent.z0, extent.z1, [ring.n, ring.s], keepM)) medians.push(rect(x - M, x + M, a, b));
-    for (const [a, b] of pieces(extent.z0, extent.z1, [ring.n, ring.s], R)) bikeLanes.push(rect(x + o * (B - 0.3), x + o * (B + 0.3), a, b));
+    for (const [a, b] of pieces(extent.z0, extent.z1, [ring.n, ring.s], R)) bikeLanes.push(rect(x + o * (B - BIKE_WIDTH / 2), x + o * (B + BIKE_WIDTH / 2), a, b));
   }
   for (const m of medians) {
     const alongX = m.x1 - m.x0 > m.z1 - m.z0;
     const [a0, a1] = alongX ? [m.x0, m.x1] : [m.z0, m.z1];
-    for (let t = a0 + 3; t < a1 - 3; t += 9) treeAt(alongX ? t : (m.x0 + m.x1) / 2, alongX ? (m.z0 + m.z1) / 2 : t, range(rng, 3.4, 4.4));
+    for (let t = a0 + 3; t < a1 - 3; t += 9) treeAt(alongX ? t : (m.x0 + m.x1) / 2, alongX ? (m.z0 + m.z1) / 2 : t, range(rng, 5.5, 7.5));
   }
 
   // Park: trees on the edges, benches along the cross paths, a fountain in the middle (scene side).
@@ -408,10 +453,11 @@ export function cityPlan(campus: CityRect, seed = 7): CityPlan {
   for (const dz of [3.4, 6.2]) for (const dx of [4.6, 7.2, 9.8]) if (park.z0 + dz < cafe.z1 - 0.8) tables.push({ x: pc.x + dx, z: park.z0 + dz, tone: tables.length });
   const benches: Bench[] = [];
   for (let t = park.x0 + 3; t <= park.x1 - 3; t += 6) {
-    treeAt(t, park.z1 - 2.6, range(rng, 3.6, 5.0));
-    if (Math.abs(t - pc.x) > 6 && !inRect(cafe, { x: t + 1.5, z: park.z0 + 2.2 }, 1.5)) treeAt(t + 1.5, park.z0 + 2.2, range(rng, 3.0, 4.0));
+    treeAt(t, park.z1 - 2.6, range(rng, 7, 9.5));
+    if (Math.abs(t - pc.x) > 8.5 && !inRect(cafe, { x: t + 1.5, z: park.z0 + 2.2 }, 1.5)) treeAt(t + 1.5, park.z0 + 2.2, range(rng, 5, 7));
   }
-  for (const dx of [-12, -6]) if (pc.x + dx > park.x0 + 3) treeAt(pc.x + dx, pc.z - 5.5, range(rng, 3.4, 4.6));
+  // Clipped plane trees at the plaza's four corners.
+  for (const [x, z] of [[plaza.x0 + 0.9, plaza.z0 + 0.9], [plaza.x1 - 0.9, plaza.z0 + 0.9], [plaza.x0 + 0.9, plaza.z1 - 0.9], [plaza.x1 - 0.9, plaza.z1 - 0.9]] as const) treeAt(x, z, range(rng, 5, 6.5));
   for (const dx of [-14, -8, 8, 14]) {
     benches.push({ x: pc.x + dx, z: pc.z - 1.6, yaw: 0 }, { x: pc.x + dx, z: pc.z + 1.6, yaw: Math.PI });
   }
@@ -427,6 +473,16 @@ export function cityPlan(campus: CityRect, seed = 7): CityPlan {
     if (i % 3 !== 2) sitters.push({ x: t.x - 0.62, z: t.z, yaw: -Math.PI / 2, tone: i });
     if (i % 2 === 0) sitters.push({ x: t.x + 0.62, z: t.z, yaw: Math.PI / 2, tone: i + 2 });
   });
+
+  // Bollards: across the park entrance, along the plaza's street edge and both sides of the hotel forecourt.
+  const bollards: CityXZ[] = [];
+  for (const dx of [-1.5, -0.5, 0.5, 1.5]) bollards.push({ x: pc.x + dx, z: park.z0 + 0.3 });
+  for (let k = 0; k <= 6; k++) {
+    const x = plaza.x0 + 0.4 + ((plaza.x1 - plaza.x0 - 0.8) * k) / 6;
+    if (Math.abs(x - pc.x) > 1.5) bollards.push({ x, z: plaza.z0 - 0.3 });
+  }
+  const fc = hotel.forecourt;
+  for (let z = fc.z0 + 1; z <= fc.z1 - 0.6; z += 2) bollards.push({ x: fc.x0 + 0.4, z }, { x: fc.x1 - 0.4, z });
 
   const signals: SignalHead[] = [];
   const pole = R + 0.4;
@@ -472,12 +528,12 @@ export function cityPlan(campus: CityRect, seed = 7): CityPlan {
   const sw = R + W / 2;
   const ped: { pts: CityXZ[]; closed: boolean }[] = [{ pts: roundedLoop(rect(ring.w + sw, ring.e - sw, ring.n + sw, ring.s - sw), 1.2), closed: true }];
   for (const z of [ring.n - sw, ring.s + sw]) {
-    ped.push({ pts: [{ x: extent.x0, z: z - 0.4 }, { x: extent.x1, z: z - 0.4 }], closed: false });
-    ped.push({ pts: [{ x: extent.x1, z: z + 0.4 }, { x: extent.x0, z: z + 0.4 }], closed: false });
+    ped.push({ pts: [{ x: extent.x0, z: z - 0.6 }, { x: extent.x1, z: z - 0.6 }], closed: false });
+    ped.push({ pts: [{ x: extent.x1, z: z + 0.6 }, { x: extent.x0, z: z + 0.6 }], closed: false });
   }
   for (const x of [ring.w - sw, ring.e + sw]) {
-    ped.push({ pts: [{ x: x + 0.4, z: extent.z0 }, { x: x + 0.4, z: extent.z1 }], closed: false });
-    ped.push({ pts: [{ x: x - 0.4, z: extent.z1 }, { x: x - 0.4, z: extent.z0 }], closed: false });
+    ped.push({ pts: [{ x: x + 0.6, z: extent.z0 }, { x: x + 0.6, z: extent.z1 }], closed: false });
+    ped.push({ pts: [{ x: x - 0.6, z: extent.z1 }, { x: x - 0.6, z: extent.z0 }], closed: false });
   }
   const pedestrianPaths: CityPath[] = ped.map((r) => {
     const p = makePath(r.pts, r.closed);
@@ -498,7 +554,27 @@ export function cityPlan(campus: CityRect, seed = 7): CityPlan {
   const loop = makePath(roundedLoop(rect(park.x0 + 1.2, park.x1 - 1.2, park.z0 + 1.2, park.z1 - 1.2), 2.5), true);
   const parkPaths: CityPath[] = [{ ...loop, stops: [] }];
 
-  return { campus, clear, extent, ring, roads, sidewalks, crosswalks, intersections, blocks, park, pond, kiosk, medians, bikeLanes, tables, sitters, buildings, trees, lamps, signals, benches, vehiclePaths, pedestrianPaths, bikePaths, parkPaths };
+  return { campus, clear, extent, ring, roads, sidewalks, crosswalks, intersections, blocks, park, pond, kiosk, plaza, pool, sculpture, hotel, bollards, medians, bikeLanes, tables, sitters, buildings, trees, lamps, signals, benches, vehiclePaths, pedestrianPaths, bikePaths, parkPaths };
+}
+
+/** Floors that fit under the height cap at `d` metres from the campus. */
+const floorsAt = (d: number, max: number): number => Math.min(max, Math.floor((heightCap(d) - PARAPET) / STOREY));
+
+/**
+ * Grand hotel in the block behind the campus, facing the street toward the campus: a front block behind a
+ * forecourt with a porte-cochère, a taller rear block stepping up as the cap allows.
+ */
+function hotelIn(block: CityRect, campus: CityRect): Hotel {
+  const front = block.z1; // street side (toward the campus)
+  const dOf = (z: number): number => rectDistance(campus, rect(block.x0, block.x1, z - 1, z));
+  const hw = Math.min(11, (block.x1 - block.x0) / 2 - 1.2);
+  const cx = block.x1 - 0.8 - hw;
+  const fz = front - 10.4;
+  const mk = (x0: number, x1: number, z0: number, z1: number, floors: number, style: BuildingStyle, h = floors * STOREY + PARAPET): Building => ({ ...rect(x0, x1, z0, z1), h, floors, tone: 2, style });
+  const a = mk(cx - hw, cx + hw, fz - 12, fz, floorsAt(dOf(fz), 5), 'hotel');
+  const b = mk(cx - hw + 2, cx + hw - 2, Math.max(block.z0 + 1, fz - 23), fz - 12, floorsAt(dOf(fz - 12), 6), 'hotel');
+  const canopy = mk(cx - 5, cx + 5, fz, fz + 6.4, 1, 'canopy', 4.6);
+  return { blocks: [a, b], canopy, forecourt: rect(cx - hw, cx + hw, fz, front), doorman: { x: cx + 1.8, z: fz + 1.0, yaw: -Math.PI / 2 } };
 }
 
 /** Pedestrian stops: at the kerb before each crosswalk the walking line crosses. */
@@ -524,11 +600,11 @@ function pedestrianStops(p: Omit<CityPath, 'stops'>, nodes: readonly Intersectio
 const TONES = 6;
 
 /** Fills a block with low/mid-rise lots; heights follow the distance cap (never taller near the campus). */
-function fillBlock(b: CityRect, campus: CityRect, park: CityRect, rng: Rng, out: Building[], tables: CafeTable[], terraces: { left: number }): void {
+function fillBlock(b: CityRect, campus: CityRect, reserved: readonly CityRect[], rng: Rng, out: Building[], tables: CafeTable[], terraces: { left: number }): void {
   const setback = 0.8;
   const alley = 1.6;
   const cameraSide = b.z0 > campus.z1 || b.x0 > campus.x1;
-  const maxFloors = cameraSide ? 3 : 6;
+  const maxFloors = cameraSide ? MAX_FLOORS.cameraSide : MAX_FLOORS.back;
   let z = b.z0 + setback;
   while (z < b.z1 - setback - 6) {
     const depth = Math.min(range(rng, 8, 13), b.z1 - setback - z);
@@ -538,9 +614,8 @@ function fillBlock(b: CityRect, campus: CityRect, park: CityRect, rng: Rng, out:
       const lot = rect(x, x + width, z, z + depth);
       x += width + alley;
       if (width < 5 || depth < 6) continue;
-      if (rectsOverlap(lot, rect(park.x0 - 1, park.x1 + 1, park.z0 - 1, park.z1 + 1))) continue;
-      const cap = heightCap(rectDistance(campus, lot));
-      const top = Math.min(maxFloors, Math.floor((cap - 0.6) / STOREY));
+      if (reserved.some((r) => rectsOverlap(lot, r))) continue;
+      const top = floorsAt(rectDistance(campus, lot), maxFloors);
       if (top < 1) continue;
       if (rng() < 0.12) {
         // A few open lots: the first ones become café terraces with umbrella tables, the rest stay lawn.
@@ -550,8 +625,9 @@ function fillBlock(b: CityRect, campus: CityRect, park: CityRect, rng: Rng, out:
         }
         continue;
       }
-      const floors = Math.max(1, Math.round(range(rng, Math.max(1, top * 0.5), top)));
-      out.push({ ...lot, h: floors * STOREY + 0.6, floors, tone: Math.floor(rng() * TONES) });
+      // Glass towers only where the cap allows six floors or more, and then at full height.
+      const floors = top >= 6 ? top : Math.max(1, Math.round(range(rng, Math.max(1, top * 0.5), top)));
+      out.push({ ...lot, h: floors * STOREY + PARAPET, floors, tone: Math.floor(rng() * TONES), style: floors >= 6 ? 'tower' : 'midrise' });
     }
     z += depth + alley;
   }
@@ -566,16 +642,35 @@ export interface VehicleSpec {
   readonly vmax: number;
 }
 export const VEHICLE_SPECS: Record<VehicleKind, VehicleSpec> = {
-  car: { kind: 'car', length: 4.0, width: 1.8, vmax: 4.8 },
-  taxi: { kind: 'taxi', length: 4.2, width: 1.8, vmax: 4.6 },
-  bus: { kind: 'bus', length: 6.2, width: 2.0, vmax: 3.6 },
+  car: { kind: 'car', length: 4.9, width: 1.92, vmax: 4.8 },
+  taxi: { kind: 'taxi', length: 5.25, width: 1.95, vmax: 4.6 },
+  bus: { kind: 'bus', length: 6.0, width: 2.05, vmax: 3.6 },
 };
+/** Real-world body sizes (m) and wheel layout per style (rev 37; no copy of any real model). */
+export interface BodySpec {
+  readonly length: number;
+  readonly width: number;
+  readonly height: number;
+  readonly wheelbase: number;
+  readonly wheelR: number;
+}
+export const BODY_SPECS: Record<BodyStyle, BodySpec> = {
+  sedan: { length: 5.05, width: 1.9, height: 1.47, wheelbase: 3.05, wheelR: 0.36 },
+  tourer: { length: 4.75, width: 1.96, height: 1.3, wheelbase: 2.85, wheelR: 0.37 },
+  suv: { length: 4.95, width: 2.0, height: 1.68, wheelbase: 3.0, wheelR: 0.4 },
+  convertible: { length: 4.6, width: 1.9, height: 1.28, wheelbase: 2.75, wheelR: 0.35 },
+  limousine: { length: 5.3, width: 1.95, height: 1.5, wheelbase: 3.25, wheelR: 0.37 },
+  shuttle: { length: 6.0, width: 2.05, height: 2.5, wheelbase: 3.9, wheelR: 0.4 },
+};
+/** Car body styles in order of appearance: mostly sedans and SUVs, a few grand tourers and convertibles. */
+const CAR_BODIES: readonly BodyStyle[] = ['sedan', 'suv', 'tourer', 'sedan', 'convertible', 'suv', 'sedan', 'tourer', 'suv', 'convertible'];
 /** Bicycle length (m) and cruising speed range (m/s). */
 export const BIKE_LENGTH = 1.8;
 const BIKE_SPEED = [3.0, 3.8] as const;
 
 export interface Vehicle {
   readonly kind: VehicleKind;
+  readonly body: BodyStyle;
   readonly path: number;
   readonly length: number;
   readonly vmax: number;
@@ -644,11 +739,13 @@ function vehicleMix(pathIdx: number, rng: Rng): VehicleKind[] {
 export function createCitySim(plan: CityPlan, seed = 7): CitySim {
   const rng = createRng(seed ^ 0x5eed);
   const vehicles: Vehicle[] = [];
+  let carCount = 0;
   plan.vehiclePaths.forEach((path, i) => {
     const kinds = vehicleMix(i, rng);
     const slot = path.length / kinds.length;
     kinds.forEach((kind, k) => {
-      const spec = VEHICLE_SPECS[kind];
+      const body: BodyStyle = kind === 'taxi' ? 'limousine' : kind === 'bus' ? 'shuttle' : (CAR_BODIES[carCount++ % CAR_BODIES.length] ?? 'sedan');
+      const spec = BODY_SPECS[body];
       // Spawn outside the intersection approaches and clear of vehicles already placed (any path).
       let s = slot * k;
       for (let attempt = 0; attempt < 80; attempt++) {
@@ -658,7 +755,7 @@ export function createCitySim(plan: CityPlan, seed = 7): CitySim {
         const crowded = vehicles.some((u) => Math.hypot(u.x - q.x, u.z - q.z) < 14 && Math.cos(u.yaw) * q.dx - Math.sin(u.yaw) * q.dz > -0.5);
         if (!inBox && !crowded) break;
       }
-      const v: Vehicle = { kind, path: i, length: spec.length, vmax: spec.vmax * range(rng, 0.9, 1.05), s, speed: 0, x: 0, z: 0, yaw: 0, tone: Math.floor(rng() * 6) };
+      const v: Vehicle = { kind, body, path: i, length: spec.length, vmax: VEHICLE_SPECS[kind].vmax * range(rng, 0.9, 1.05), s, speed: 0, x: 0, z: 0, yaw: 0, tone: Math.floor(rng() * 6) };
       vehicles.push(v);
       placeOn(path, v);
     });
