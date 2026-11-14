@@ -66,8 +66,8 @@ describe('city meshes', () => {
     const c = count(city.group);
     console.info(`[budget] city meshes=${c.meshes} vertices=${c.verts} drawn(instances expanded)=${c.drawnVerts}`);
     expect(c.meshes).toBeLessThanOrEqual(40);
-    expect(c.verts).toBeLessThanOrEqual(80_000);
-    expect(c.drawnVerts, 'even with every instance expanded').toBeLessThanOrEqual(80_000);
+    expect(c.verts).toBeLessThanOrEqual(65_000); // Rev 40: was 80 000
+    expect(c.drawnVerts, 'even with every instance expanded').toBeLessThanOrEqual(65_000); // Rev 40: was 80 000
   });
 
   it('is not pickable: every mesh ignores raycasts', () => {

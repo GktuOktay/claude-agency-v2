@@ -39,6 +39,7 @@ import {
   Vector3,
   type Material,
 } from 'three';
+import { mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { CAMPUS_BOUNDS } from '../sim/layout';
 import {
   BODY_SPECS,
@@ -334,7 +335,7 @@ class Builder {
 
   /** Wheel on the z axis: tyre tread, the tyre wall and an alloy face with spokes on the outer side `s`. */
   wheel(x: number, z: number, r: number, w: number, s: 1 | -1, tyre: Col, alloy: Col, spoke: Col): void {
-    const n = 8;
+    const n = 6; // hexagonal tread: reads round at street distance (Rev 40 expanded budget)
     const zi = z - (s * w) / 2;
     const zo = z + (s * w) / 2;
     for (let i = 0; i < n; i++) {
@@ -964,9 +965,9 @@ function legsGeometry(): BufferGeometry {
 /** Elegant lamp post: stone plinth, slender bronze shaft with a collar and a swan-neck arm (lantern instanced). */
 function lampGeometry(): BufferGeometry {
   const b = new Builder();
-  b.prism(0, 0, 0.17, 0, 0.5, 8, 0xffffff);
-  b.prism(0, 0, 0.065, 0.5, 4.45, 8, 0xffffff);
-  b.prism(0, 0, 0.1, 2.3, 2.42, 8, 0xffffff);
+  b.prism(0, 0, 0.17, 0, 0.5, 6, 0xffffff);
+  b.prism(0, 0, 0.065, 0.5, 4.45, 6, 0xffffff);
+  b.prism(0, 0, 0.1, 2.3, 2.42, 6, 0xffffff);
   b.box(0, 0.62, 4.36, 4.44, -0.035, 0.035, 0xffffff);
   b.box(0.58, 0.9, 4.3, 4.38, -0.035, 0.035, 0xffffff);
   return b.build();
@@ -974,8 +975,8 @@ function lampGeometry(): BufferGeometry {
 
 function bollardGeometry(): BufferGeometry {
   const b = new Builder();
-  b.prism(0, 0, 0.09, 0, 0.82, 8, C.pole);
-  b.prism(0, 0, 0.1, 0.82, 0.9, 8, C.bronze);
+  b.prism(0, 0, 0.09, 0, 0.82, 6, C.pole);
+  b.prism(0, 0, 0.1, 0.82, 0.9, 6, C.bronze);
   return b.build();
 }
 
@@ -985,6 +986,20 @@ function signalPoleGeometry(): BufferGeometry {
   b.box(-0.06, 0.06, 0, 2.2, -0.06, 0.06, 0xffffff);
   b.box(-0.1, 0.1, 2.15, 3.05, -0.16, 0.16, 0xffffff);
   return b.build();
+}
+
+/**
+ * Faceted low-poly ball (icosahedron, 12 shared vertices instead of 60): the facets come from the material's
+ * flat shading, so the look is unchanged (Rev 40: every instance counts toward the expanded vertex budget).
+ */
+function facetedBall(r: number): BufferGeometry {
+  const ico = new IcosahedronGeometry(r, 0);
+  ico.deleteAttribute('normal');
+  ico.deleteAttribute('uv');
+  const g = mergeVertices(ico);
+  g.computeVertexNormals();
+  ico.dispose();
+  return g;
 }
 
 // ---- city ----
@@ -1044,7 +1059,7 @@ export function createCity(options: CityOptions = {}): City {
 
   // Mature trees: a trunk and a two-lobed crown each.
   const trunks = add(new InstancedMesh(new CylinderGeometry(0.08, 0.12, 1, 5).translate(0, 0.5, 0), std({ color: C.trunk }), plan.trees.length), 'city-tree-trunks');
-  const crowns = add(new InstancedMesh(new IcosahedronGeometry(1, 0), std({ color: 0xffffff, flatShading: true }), plan.trees.length * 2), 'city-tree-crowns');
+  const crowns = add(new InstancedMesh(facetedBall(1), std({ color: 0xffffff, flatShading: true }), plan.trees.length * 2), 'city-tree-crowns');
   plan.trees.forEach((t, i) => {
     const g = Math.max(1, t.h / 5);
     trunks.setMatrixAt(i, compose(t.x, 0, t.z, 0, g, t.h * 0.55, g));
@@ -1081,7 +1096,7 @@ export function createCity(options: CityOptions = {}): City {
 
   // Traffic lights: a pole and housing per head, three lamps on its face.
   const sigPoles = add(new InstancedMesh(signalPoleGeometry(), std({ color: C.pole }), plan.signals.length), 'city-signal-poles');
-  const sigLamps = add(new InstancedMesh(new IcosahedronGeometry(0.1, 0), basic({ color: 0xffffff }), plan.signals.length * 3), 'city-signal-lamps');
+  const sigLamps = add(new InstancedMesh(facetedBall(0.1), basic({ color: 0xffffff }), plan.signals.length * 3), 'city-signal-lamps');
   plan.signals.forEach((h, i) => {
     const yaw = Math.atan2(-h.fz, h.fx);
     sigPoles.setMatrixAt(i, compose(h.x, 0, h.z, yaw));
@@ -1141,7 +1156,7 @@ export function createCity(options: CityOptions = {}): City {
   const people = walkers.length + sim.cyclists.length + plan.sitters.length + 1;
   const peds = add(new InstancedMesh(new CylinderGeometry(0.14, 0.2, 0.95, 7).translate(0, 1.025, 0), std({ color: 0xffffff }), people), 'city-pedestrians');
   const legs = add(new InstancedMesh(legsGeometry(), std({ color: 0xffffff }), people), 'city-ped-legs');
-  const heads = add(new InstancedMesh(new IcosahedronGeometry(0.115, 0).translate(0, 1.6, 0), std({ color: C.skin }), people), 'city-ped-heads');
+  const heads = add(new InstancedMesh(facetedBall(0.115).translate(0, 1.6, 0), std({ color: C.skin, flatShading: true }), people), 'city-ped-heads');
   for (const m of [peds, legs, heads]) m.frustumCulled = false;
   const dress = (i: number, tone: number): void => {
     peds.setColorAt(i, col.setHex(pick(C.clothes, tone)));
