@@ -1,9 +1,15 @@
-// Corner settings menu (KARARLAR Rev 31 UI pass): an icon button opens a non-modal popover with the
-// former toolbar controls (Gündüz/Gece/Otomatik, Organizasyon şeması, Hareketi durdur, Kısayollar) and
-// a read-only "Senaryo" section. Esc closes and returns focus to the button. Text nodes only (REQ-16).
+// Corner settings menu (KARARLAR Rev 31 UI pass, Rev 35 modular rework): an icon button opens a
+// non-modal dialog, a side panel on desktop and a bottom sheet on phones, with one tab per section
+// module (src/ui/settings/*). Only the floor panel stays on screen. Esc closes and returns focus to the
+// button; a badge (shape + number) on the button shows the active job count while it is closed.
+// Text nodes only (REQ-16).
 import { tr } from '../i18n/tr';
 import { el } from './dom';
-import type { KeyHandler } from './keymap';
+import type { SettingsSection } from './settings/section';
+
+export type { SettingsSection } from './settings/section';
+export { createScenarioInfo, type ScenarioInfo } from './settings/scenario';
+export { createShortcutToggle } from './settings/accessibility';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
@@ -14,18 +20,12 @@ export interface SettingsMenu {
   isOpen(): boolean;
   open(): void;
   close(returnFocus?: boolean): void;
+  /** Active job count for the badge on the closed menu's button (0 hides it). */
+  setBadge(n: number): void;
 }
 
 export interface SettingsMenuOptions {
-  controls: readonly HTMLElement[];
-  scenario: HTMLElement;
-}
-
-export interface ScenarioInfo {
-  seed: number;
-  laneWeights: readonly number[];
-  quality: 'low' | 'high';
-  maxJobs: { low: number; high: number };
+  sections: readonly SettingsSection[];
 }
 
 /** Sliders icon, built with createElementNS (no markup strings). Decorative: the button has a label. */
@@ -60,28 +60,74 @@ function slidersIcon(): SVGSVGElement {
 }
 
 export function createSettingsMenu(o: SettingsMenuOptions): SettingsMenu {
+  const t = tr.settings;
   const wrap = el('div', { class: 'settings' });
   const button = el('button', {
     type: 'button',
     class: 'settings-button',
-    'aria-label': tr.settings.title,
+    'aria-label': t.title,
     'aria-expanded': 'false',
     'aria-controls': 'settings-panel',
     'aria-haspopup': 'dialog',
   });
-  button.append(slidersIcon());
+  const badge = el('span', { class: 'settings-badge', 'aria-hidden': 'true' });
+  badge.hidden = true;
+  button.append(slidersIcon(), badge);
   const panel = el('div', { class: 'settings-panel', id: 'settings-panel', role: 'dialog', 'aria-labelledby': 'settings-title' });
   panel.hidden = true;
-  const controls = el('div', { class: 'settings-controls', role: 'group', 'aria-label': tr.settings.view });
-  controls.append(...o.controls);
-  panel.append(el('h2', { class: 'settings-title', id: 'settings-title' }, tr.settings.title), controls, o.scenario);
+  const tablist = el('div', { class: 'settings-tabs', role: 'tablist', 'aria-label': t.sections });
+  const panels = el('div', { class: 'settings-panels' });
+  panel.append(el('h2', { class: 'settings-title', id: 'settings-title' }, t.title), tablist, panels);
   wrap.append(button, panel);
 
+  const tabs = o.sections.map((sec) => {
+    const tab = el(
+      'button',
+      { type: 'button', role: 'tab', class: 'settings-tab', id: `settings-tab-${sec.id}`, 'aria-controls': `settings-tabpanel-${sec.id}` },
+      sec.title,
+    );
+    const tp = el('div', { role: 'tabpanel', class: 'settings-tabpanel', id: `settings-tabpanel-${sec.id}`, 'aria-labelledby': tab.id });
+    tp.append(sec.element);
+    tablist.append(tab);
+    panels.append(tp);
+    return { sec, tab, tp };
+  });
+  let current = 0;
+  const select = (i: number, focus: boolean): void => {
+    current = i;
+    tabs.forEach(({ tab, tp }, j) => {
+      const on = j === i;
+      tab.setAttribute('aria-selected', String(on));
+      tab.setAttribute('tabindex', on ? '0' : '-1');
+      tp.hidden = !on;
+    });
+    tabs[i]?.sec.onShow?.();
+    if (focus) tabs[i]?.tab.focus();
+  };
+  tabs.forEach(({ tab }, i) => {
+    tab.addEventListener('click', () => select(i, false));
+    tab.addEventListener('keydown', (e) => {
+      const n = tabs.length;
+      const to = e.key === 'ArrowRight' ? (i + 1) % n : e.key === 'ArrowLeft' ? (i - 1 + n) % n : e.key === 'Home' ? 0 : e.key === 'End' ? n - 1 : -1;
+      if (to < 0) return;
+      e.preventDefault();
+      select(to, true);
+    });
+  });
+  if (tabs.length) select(0, false);
+
   let open = false;
+  let count = 0;
+  const applyBadge = (): void => {
+    badge.hidden = open || count === 0;
+    badge.textContent = count > 0 ? String(count) : '';
+    button.setAttribute('aria-label', count > 0 ? t.badge(count) : t.title);
+  };
   const set = (on: boolean): void => {
     open = on;
     panel.hidden = !on;
     button.setAttribute('aria-expanded', String(on));
+    applyBadge();
   };
   const menu: SettingsMenu = {
     element: wrap,
@@ -90,12 +136,17 @@ export function createSettingsMenu(o: SettingsMenuOptions): SettingsMenu {
     isOpen: () => open,
     open() {
       set(true);
-      panel.querySelector<HTMLElement>('button:not([disabled])')?.focus();
+      if (tabs.length) select(current, true);
     },
     close(returnFocus = true) {
       if (!open) return;
       set(false);
       if (returnFocus) button.focus();
+    },
+    setBadge(n) {
+      if (n === count) return;
+      count = n;
+      applyBadge();
     },
   };
   button.addEventListener('click', () => (open ? menu.close() : menu.open()));
@@ -108,40 +159,4 @@ export function createSettingsMenu(o: SettingsMenuOptions): SettingsMenu {
     if (open && e.target instanceof Node && !wrap.contains(e.target)) menu.close(false);
   });
   return menu;
-}
-
-/** Read-only scenario facts from the loaded data (labelled as a simulation). */
-export function createScenarioInfo(s: ScenarioInfo): HTMLElement {
-  const t = tr.settings;
-  const section = el('section', { class: 'settings-scenario', 'aria-labelledby': 'settings-scenario-title' });
-  section.append(el('h3', { id: 'settings-scenario-title' }, t.scenario), el('p', { class: 'settings-note' }, t.readOnly));
-  const dl = el('dl');
-  const list = (items: readonly string[]): HTMLElement => {
-    const ul = el('ul');
-    ul.append(...items.map((x) => el('li', {}, x)));
-    return ul;
-  };
-  const row = (term: string, value: HTMLElement): void => {
-    const dd = el('dd');
-    dd.append(value);
-    dl.append(el('dt', {}, term), dd);
-  };
-  row(t.seed, el('span', { class: 'settings-seed' }, String(s.seed)));
-  row(t.laneWeights, list(s.laneWeights.map((w, i) => `${tr.strip.lane} ${i} · %${w}`)));
-  const tiers = (['low', 'high'] as const).map((q) => `${t.tiers[q]}: ${t.maxJobs(s.maxJobs[q])}${q === s.quality ? ` ${t.current}` : ''}`);
-  row(t.limit, list(tiers));
-  section.append(dl);
-  return section;
-}
-
-/** "Kısayollar: açık / kapalı" toggle (REQ-14), aria-pressed plus text. */
-export function createShortcutToggle(keys: KeyHandler): HTMLButtonElement {
-  const b = el('button', { type: 'button', class: 'shortcut-toggle', 'aria-pressed': String(keys.isEnabled()) }, keys.isEnabled() ? tr.shortcutsOn : tr.shortcutsOff);
-  b.addEventListener('click', () => {
-    const on = !keys.isEnabled();
-    keys.setEnabled(on);
-    b.setAttribute('aria-pressed', String(on));
-    b.textContent = on ? tr.shortcutsOn : tr.shortcutsOff;
-  });
-  return b;
 }

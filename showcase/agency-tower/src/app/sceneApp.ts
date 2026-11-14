@@ -44,7 +44,12 @@ import { createUnitList } from '../ui/unitList';
 import { applyInitialCamera, projectToScreen } from './initialCamera';
 import { createFpsMeter, createLoop } from './loop';
 import { maxJobsFor, qualitySettings, resolveQuality, type Params } from './params';
-import { createScenarioInfo, createSettingsMenu, createShortcutToggle } from '../ui/settingsMenu';
+import { createSettingsMenu } from '../ui/settingsMenu';
+import { createAppearanceSection, readStoredQuality, toLegacyQuality, type OnQuality, type QualityTier } from '../ui/settings/appearance';
+import { createActiveJobsSection } from '../ui/settings/activeJobs';
+import { createOfficeSection, PLACEHOLDER_SCHEDULE } from '../ui/settings/office';
+import { createScenarioSection } from '../ui/settings/scenario';
+import { createAccessibilitySection } from '../ui/settings/accessibility';
 import { MASTER_SEED } from '../sim/workflow';
 import { framePose, shouldStepSim } from './frameUpdate';
 import { createSelectionFlow } from './selection';
@@ -82,7 +87,12 @@ function brighten(floor: number): number {
 export function startSceneApp(ctx: SceneContext, params: Params): void {
   const { root, data, card, scenarios, titles } = ctx;
   const coarse = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
-  const quality = qualitySettings(resolveQuality(params, coarse), window.devicePixelRatio || 1);
+  // Rev 35: a stored "Görüntü kalitesi" choice applies when the URL has no ?quality (mapped onto the
+  // existing tiers until src/app/quality.ts exists).
+  const storedTier = readStoredQuality();
+  const legacy = params.quality ?? (storedTier ? toLegacyQuality(storedTier) : null);
+  const quality = qualitySettings(resolveQuality({ ...params, quality: legacy }, coarse), window.devicePixelRatio || 1);
+  const currentTier: QualityTier = params.quality ?? storedTier ?? quality.quality;
 
   const canvas = el('canvas', { class: 'tower-canvas', tabindex: '-1', 'aria-label': tr.title });
   root.prepend(canvas);
@@ -397,8 +407,21 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
   // ---- day / night (REQ-18); the former toolbar lives in the corner settings menu ----
   const dayNight = createDayNight();
   const dnControl = createDayNightControl(dayNight);
-  const scenarioInfo = createScenarioInfo({ seed: MASTER_SEED, laneWeights: scenarios.laneWeights, quality: quality.quality, maxJobs: { low: maxJobsFor('low'), high: maxJobsFor('high') } });
-  const settings = createSettingsMenu({ controls: [dnControl.element, orgBtn, runtime.pauseButton, createShortcutToggle(keys)], scenario: scenarioInfo });
+  // Rev 35: interim quality hook (pixel ratio now; shadows and job limit follow on the next load).
+  const onQuality: OnQuality = (tier) => {
+    renderer.setPixelRatio(qualitySettings(toLegacyQuality(tier), window.devicePixelRatio || 1).pixelRatio);
+    resize();
+  };
+  const settings = createSettingsMenu({
+    sections: [
+      createAppearanceSection({ dayNight: dnControl.element, current: currentTier, onQuality }),
+      createActiveJobsSection({ strip: runtime.strip.element }),
+      createOfficeSection({ controls: [runtime.pauseButton, orgBtn], schedule: PLACEHOLDER_SCHEDULE }),
+      createScenarioSection({ seed: MASTER_SEED, laneWeights: scenarios.laneWeights, quality: quality.quality, maxJobs: { low: maxJobsFor('low'), high: maxJobsFor('high') } }),
+      createAccessibilitySection({ keys }),
+    ],
+  });
+  runtime.strip.onCount((n) => settings.setBadge(n));
   const toolbar = settings.element; // org framing keeps the name pills clear of the corner button
 
   // ---- reduced motion (REQ-20), on load and on live change ----
@@ -444,8 +467,8 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
   );
   const fpsEl = el('div', { class: 'fps' }, '');
   fpsEl.hidden = !params.debug;
-  // Tab order: floor panel, then the strip (§4), then the rest. The rail keeps panel and strip apart.
-  mountHud(root, { menu: toolbar, panel: panel.element, legend, strip: runtime.strip.element });
+  // Tab order: settings button, floor panel, then the rest. Rev 35: the strip lives in the settings menu.
+  mountHud(root, { menu: toolbar, panel: panel.element, legend });
   root.append(unitList.element, labels, fpsEl);
 
   let hoverId: string | null = null;

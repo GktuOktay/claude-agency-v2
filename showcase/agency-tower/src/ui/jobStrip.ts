@@ -47,6 +47,8 @@ export interface JobStrip {
   element: HTMLElement;
   header: HTMLElement;
   update(entries: readonly StripEntry[]): void;
+  /** Rev 35: called with the number of active (not finished) jobs whenever it changes. */
+  onCount(cb: (active: number) => void): void;
 }
 
 interface Row {
@@ -114,6 +116,8 @@ export function createJobStrip(opts: JobStripOptions): JobStrip {
   });
 
   let order: number[] = [];
+  const countListeners: ((active: number) => void)[] = [];
+  let activeCount = -1;
   function applyNarrow(): void {
     const narrow = opts.isNarrow();
     const hiddenCount = narrow ? Math.max(0, order.length - 1) : 0;
@@ -188,6 +192,9 @@ export function createJobStrip(opts: JobStripOptions): JobStrip {
   return {
     element: section,
     header,
+    onCount(cb) {
+      countListeners.push(cb);
+    },
     update(entries) {
       const active = document.activeElement;
       const hadFocus = active instanceof HTMLElement && section.contains(active) && active !== header;
@@ -227,6 +234,11 @@ export function createJobStrip(opts: JobStripOptions): JobStrip {
       if (count !== entries.length) {
         count = entries.length;
         applyCollapsed();
+      }
+      const act = entries.reduce((k, e) => (e.done ? k : k + 1), 0);
+      if (act !== activeCount) {
+        activeCount = act;
+        for (const cb of countListeners) cb(act);
       }
       if (hadFocus && (!active.isConnected || active.closest('[hidden]'))) header.focus();
     },
