@@ -316,6 +316,27 @@ describe('pause texts and "Hareketi durdur" (AC-15 UI)', () => {
     expect(entry(rt, n)!.querySelector('.job-pause')).toBeNull();
   });
 
+  it('selection of a caller (kind call): its job reads "Duraklatıldı · seçili robot" until released', () => {
+    const rt = makeRuntime();
+    let c: { job: number; units: string[] } | undefined;
+    frames(rt, 600, () => {
+      c = rt.workflow.running().find((x) => x.kind === 'call' && x.units.length === 1);
+      return c !== undefined;
+    });
+    expect(c).toBeDefined();
+    const n = c!.job;
+    const caller = c!.units[0]!;
+    expect(entry(rt, n)!.querySelector('.job-pause')).toBeNull();
+    rt.select(caller);
+    rt.frame(100);
+    expect(rt.workflow.running().find((x) => x.job === n && x.kind === 'call' && x.units[0] === caller)?.paused).toBe(true);
+    expect(rt.workflow.jobs().find((j) => j.n === n)!.pausedBySelection).toBe(true);
+    expect(entry(rt, n)!.querySelector('.job-pause')!.textContent).toBe('Duraklatıldı · seçili robot');
+    rt.release(caller);
+    rt.frame(100);
+    expect(entry(rt, n)!.querySelector('.job-pause')).toBeNull();
+  });
+
   it('the toggle sets aria-pressed, switches its text, pauses; org + toggle: turning one off keeps paused; no camera move', () => {
     const rt = makeRuntime();
     const rig = new CameraRig();

@@ -72,7 +72,7 @@ function shown(o: Object3D): boolean {
   return true;
 }
 
-const LABELS = ['YEMEKHANE', 'SNACK BAR', 'SPOR SALONU', 'OYUN ALANI', 'UYKU ODALARI', 'AR-GE', 'ARŞİV'];
+const LABELS = ['YEMEKHANE', 'SNACK BAR', 'SPOR SALONU', 'OYUN ALANI', 'UYKU ODALARI', 'AR-GE ★', 'ARŞİV'];
 
 describe('campus nav: bridges and amenity spots (wing levels 0-2)', () => {
   const d = data();

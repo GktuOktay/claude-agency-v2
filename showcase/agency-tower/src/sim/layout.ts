@@ -566,8 +566,74 @@ export const BRIDGE_DOOR = { z0: CORRIDOR_Z - 0.6, z1: CORRIDOR_Z + 0.6 } as con
 /** Level-0 door in the wing south wall onto the cafeteria terrace (x range). */
 export const TERRACE_DOOR = { x0: wingX(0.4), x1: wingX(1.6) } as const;
 export const TERRACE = { x0: wingX(-5.0), x1: wingX(5.0), z0: WING.halfD, z1: WING.halfD + 2.8 } as const;
-/** Whole campus footprint (tower, shafts, wing, terrace) for camera framing. */
-export const CAMPUS_BOUNDS = { x0: WING_WEST_X - 0.4, x1: STAFF_SHAFT.x + 0.9, z0: -HALF_DEPTH, z1: TERRACE.z1 } as const;
+
+// ---------------------------------------------------------------- campus parking (KARARLAR rev 35)
+// Ground-level car park north of the wing and the tower: the far side from the overview camera (azimuth
+// 35 deg from +z), so it never stands between the camera and the tower. One row of bays nose-in to the
+// north curb, a one-way aisle along the lawn edge, and the gate (barrier + booth) at the west end where
+// cars come in from the west ring road. Coordinates are ground x/z (floor 0), pure numbers.
+
+export type CarStyle = 'sedan' | 'gt' | 'suv';
+export interface ParkingBay extends XZ {
+  readonly id: string;
+  /** Paint index (PARKING_CAR_TONES), or null for an empty bay. */
+  readonly car: number | null;
+  /** Body style of the parked car (executive sedan, grand tourer, electric SUV). */
+  readonly style: CarStyle;
+  /** EV bay with a charging station at its head (under the planted canopy). */
+  readonly ev: boolean;
+}
+
+/** Lot surface (asphalt) rectangle; the aisle runs along its south edge, the bays along its north edge. */
+export const PARKING_LOT: Rect = { name: 'parking-lot', x0: WING_WEST_X - 0.5, x1: 2.4, z0: -16.0, z1: -WING.halfD - 1.4 };
+/** Bay size (x width, z depth) and the bay row's south edge (the aisle's north edge). */
+export const PARKING_BAY = { w: 2.45, d: 4.6, z0: -10.5, x0: WING_WEST_X + 1.6 } as const;
+/** Refined car paints (KARARLAR rev 37). */
+export const PARKING_CAR_TONES: readonly { readonly name: string; readonly hex: number }[] = [
+  { name: 'pearl', hex: 0xf0eee8 },
+  { name: 'graphite', hex: 0x464b52 },
+  { name: 'navy', hex: 0x1f2e4a },
+  { name: 'champagne', hex: 0xcbb58f },
+  { name: 'silver', hex: 0xb8bdc3 },
+];
+const BAY_CARS: readonly (readonly [number | null, CarStyle])[] = [[0, 'suv'], [2, 'sedan'], [null, 'sedan'], [1, 'gt'], [3, 'sedan'], [4, 'suv'], [null, 'sedan'], [2, 'gt'], [0, 'sedan']];
+const BAY_EV: readonly boolean[] = [true, true, false, false, false, false, false, false, false];
+export const PARKING_BAYS: readonly ParkingBay[] = BAY_CARS.map(([car, style], i) => ({
+  id: `bay-${i}`,
+  x: PARKING_BAY.x0 + (i + 0.5) * PARKING_BAY.w,
+  z: PARKING_BAY.z0 - PARKING_BAY.d / 2,
+  car,
+  style,
+  ev: BAY_EV[i] ?? false,
+}));
+/** Gate at the aisle's west end: barrier arm, attendant booth, valet stand; EV charging canopy over bays 0-1. */
+export const PARKING_GATE = {
+  barrier: { x: WING_WEST_X + 0.6, z0: -10.4, z1: -7.0 },
+  booth: { name: 'parking-booth', x0: WING_WEST_X + 0.1, x1: WING_WEST_X + 1.3, z0: -12.4, z1: -11.0 } as Rect,
+  valet: { x: WING_WEST_X + 1.4, z: -6.55 },
+  canopy: { name: 'ev-canopy', x0: WING_WEST_X + 1.6, x1: WING_WEST_X + 1.6 + 2 * 2.45, z0: -15.15, z1: -10.6 } as Rect,
+} as const;
+/** Bicycle racks (centre x, z; along x) on the lawn strip by the wing north wall. */
+export const BIKE_RACKS: readonly (readonly [number, number])[] = [
+  [WING.x - 3.0, -6.2],
+  [WING.x - 1.6, -6.2],
+  [WING.x - 0.2, -6.2],
+];
+/** Lamp posts (x, z) on the north curb and tree pits (x, z, scale) between the bays and the curb. */
+export const PARKING_LAMPS: readonly (readonly [number, number])[] = [
+  [PARKING_BAY.x0 - 0.3, -15.5],
+  [PARKING_BAY.x0 + 4 * PARKING_BAY.w, -15.5],
+  [PARKING_BAY.x0 + 8 * PARKING_BAY.w + 0.6, -15.5],
+];
+export const PARKING_TREES: readonly (readonly [number, number, number])[] = [
+  [PARKING_BAY.x0 + 2 * PARKING_BAY.w, -15.55, 0.85],
+  [PARKING_BAY.x0 + 6 * PARKING_BAY.w, -15.55, 0.95],
+  [PARKING_BAY.x0 + 9 * PARKING_BAY.w + 0.9, -15.5, 0.85],
+  [WING_WEST_X + 0.3, -14.6, 1.0],
+];
+
+/** Whole campus footprint (tower, shafts, wing, terrace, car park) for camera framing and the city ring. */
+export const CAMPUS_BOUNDS = { x0: WING_WEST_X - 0.8, x1: STAFF_SHAFT.x + 0.9, z0: PARKING_LOT.z0 - 0.2, z1: TERRACE.z1 } as const;
 
 export type AmenityZoneId = 'yemekhane' | 'snack-bar' | 'terrace' | 'gym' | 'game-room' | 'sleep-pods' | 'rnd-lab' | 'archive' | 'roof-garden';
 
@@ -591,7 +657,7 @@ export const CAMPUS_ZONES: readonly AmenityZone[] = [
   { id: 'gym', floor: 1, label: 'SPOR SALONU', bounds: wingRect('gym', -5.5, -5.5, 5.5, -1.3), labelAt: wingAt(-2.7, -3.4) },
   { id: 'game-room', floor: 1, label: 'OYUN ALANI', bounds: wingRect('game-room', -5.5, -0.5, 5.5, 5.5), labelAt: wingAt(-1.0, 2.9) },
   { id: 'sleep-pods', floor: 2, label: 'UYKU ODALARI', bounds: wingRect('sleep-pods', -5.5, -5.5, -0.3, -1.6), labelAt: wingAt(-2.95, -3.0) },
-  { id: 'rnd-lab', floor: 2, label: 'AR-GE', bounds: wingRect('rnd-lab', -0.3, -5.5, 5.5, 5.5), labelAt: wingAt(2.9, -3.8) },
+  { id: 'rnd-lab', floor: 2, label: 'AR-GE ★', bounds: wingRect('rnd-lab', -0.3, -5.5, 5.5, 5.5), labelAt: wingAt(2.9, -1.9) },
   { id: 'archive', floor: 2, label: 'ARŞİV', bounds: wingRect('archive', -5.5, -0.2, 0.6, 5.5), labelAt: wingAt(-2.4, 2.7) },
   { id: 'roof-garden', floor: ROOF_GARDEN_FLOOR, label: null, bounds: wingRect('roof-garden', -5.5, -5.5, 5.5, 5.5), labelAt: wingAt(0, 0) },
 ];
@@ -629,7 +695,9 @@ const FACE_S = 0;
 const FACE_E = Math.PI / 2;
 const FACE_W = -Math.PI / 2;
 
-type SpotRow = readonly [kind: AmenityKind, zone: AmenityZoneId, via: string, facing: number, z: number, xs: readonly number[]];
+/** Role of a spot in the R&D lab (KARARLAR rev 35); all lab spots are seated 'lab-bench' spots. */
+export type LabStation = 'workstation' | 'bench' | 'wall' | 'devices' | 'pod';
+type SpotRow = readonly [kind: AmenityKind, zone: AmenityZoneId, via: string, facing: number, z: number, xs: readonly number[], station?: LabStation];
 const SPOT_ROWS: Readonly<Record<number, readonly SpotRow[]>> = {
   0: [
     ['serving', 'yemekhane', 'wing-spine', FACE_N, -2.35, [-3.8, -2.5, -1.2]],
@@ -652,20 +720,28 @@ const SPOT_ROWS: Readonly<Record<number, readonly SpotRow[]>> = {
   ],
   2: [
     ['pod', 'sleep-pods', 'wing-spine', FACE_S, -4.3, [-4.6, -3.5, -2.4, -1.3]],
-    ['lab-bench', 'rnd-lab', 'wing-spine', FACE_N, -2.1, [1.4, 2.2, 3.6, 4.4]],
+    ['lab-bench', 'rnd-lab', 'wing-spine', FACE_N, -2.1, [1.1, 1.9], 'workstation'],
+    ['lab-bench', 'rnd-lab', 'wing-spine', FACE_N, -2.1, [3.9, 4.7], 'bench'],
+    ['lab-bench', 'rnd-lab', 'lab-wall', FACE_N, -4.5, [1.2, 2.2, 3.6, 4.6], 'wall'],
+    ['lab-bench', 'rnd-lab', 'lab-arm', FACE_E, 0.45, [4.4], 'devices'],
+    ['lab-bench', 'rnd-lab', 'lab-arm', FACE_E, 2.05, [4.4], 'devices'],
+    ['lab-bench', 'rnd-lab', 'lab-arm', FACE_S, 3.9, [1.9, 3.05], 'pod'],
     ['archive', 'archive', 'archive-1', FACE_W, 1.9, [-4.85]],
     ['archive', 'archive', 'archive-2', FACE_W, 3.5, [-4.85]],
   ],
 };
 
+const stations = new Map<string, LabStation>();
 function amenitySpotsOf(floor: number): AmenitySpot[] {
   const out: AmenitySpot[] = [];
   const count = new Map<AmenityKind, number>();
-  for (const [kind, zone, via, facing, z, xs] of SPOT_ROWS[floor] ?? []) {
+  for (const [kind, zone, via, facing, z, xs, station] of SPOT_ROWS[floor] ?? []) {
     for (const lx of xs) {
       const i = count.get(kind) ?? 0;
       count.set(kind, i + 1);
-      out.push({ id: `amenity:${kind}:${i}`, floor, zone, kind, facing, via, x: wingX(lx), z });
+      const id = `amenity:${kind}:${i}`;
+      if (station) stations.set(id, station);
+      out.push({ id, floor, zone, kind, facing, via, x: wingX(lx), z });
     }
   }
   // The second arcade cabinet is reached through the first one's spot (spur of a spur).
@@ -676,6 +752,25 @@ function amenitySpotsOf(floor: number): AmenitySpot[] {
 
 /** Break spots per wing level (floor 0: cafeteria, snack bar, terrace; 1: gym, game room; 2: pods, lab, archive). */
 export const AMENITY_SPOTS: readonly AmenitySpot[] = WING_LEVELS.flatMap(amenitySpotsOf);
+/** R&D lab spot id -> station role (workstations, prototype bench, video-wall viewing, device lab, pods). */
+export const LAB_STATIONS: ReadonlyMap<string, LabStation> = stations;
+
+/** Showpiece elements of the R&D lab (KARARLAR rev 35), floor-local footprints on wing level 2. */
+export type LabFeatureId = 'video-wall' | 'workstations' | 'prototype-bench' | 'whiteboard-wall' | 'device-wall' | 'gpu-cluster' | 'collab-pod';
+export interface LabFeature extends Rect {
+  readonly name: LabFeatureId;
+}
+const labRect = (name: LabFeatureId, lx0: number, lz0: number, lx1: number, lz1: number): LabFeature => ({ ...wingRect(name, lx0, lz0, lx1, lz1), name });
+export const RND_LAB_FEATURES: readonly LabFeature[] = [
+  labRect('video-wall', 0.25, -5.45, 5.05, -4.85),
+  labRect('workstations', 0.7, -3.2, 2.3, -2.7),
+  labRect('prototype-bench', 3.5, -3.2, 5.1, -2.7),
+  labRect('whiteboard-wall', -0.3, -5.45, -0.15, -2.9),
+  labRect('device-wall', 5.0, -0.1, 5.45, 2.6),
+  labRect('gpu-cluster', 3.7, 3.0, 5.45, 5.45),
+  labRect('collab-pod', 1.35, 3.4, 2.45, 5.45),
+  labRect('collab-pod', 2.5, 3.4, 3.6, 5.45),
+];
 
 /** Aisles of one wing level, floor-local: the wing spine on the corridor line plus zone aisles. */
 export function wingAisles(floor: number): Aisle[] {
@@ -688,7 +783,15 @@ export function wingAisles(floor: number): Aisle[] {
     case 1:
       return [spine, a('gym-arm', 0.3, z, 0.3, -2.7), a('gym-w', 0.3, -2.7, -4.6, -2.7), a('gym-e', 0.3, -2.7, 4.2, -2.7), a('game-arm', 2.0, z, 2.0, 4.1), a('game-lounge', 2.0, 3.5, -4.0, 3.5)];
     case 2:
-      return [spine, a('archive-arm', 0.9, z, 0.9, 3.5), a('archive-1', 0.9, 1.9, -4.2, 1.9), a('archive-2', 0.9, 3.5, -4.2, 3.5)];
+      return [
+        spine,
+        a('archive-arm', 0.9, z, 0.9, 3.5),
+        a('archive-1', 0.9, 1.9, -4.2, 1.9),
+        a('archive-2', 0.9, 3.5, -4.2, 3.5),
+        a('lab-north', 2.9, z, 2.9, -3.75),
+        a('lab-wall', 0.7, -3.75, 5.0, -3.75),
+        a('lab-arm', 0.9, 1.25, 3.9, 1.25),
+      ];
     default:
       return [];
   }
@@ -749,12 +852,14 @@ export function wingFurniture(floor: number): { footprints: Rect[]; seatZones: R
         f.push(r('pod-shell', lx - 0.5, -5.45, lx + 0.5, -4.95), r('pod-side', lx - 0.5, -4.95, lx - 0.4, -3.55), r('pod-side', lx + 0.4, -4.95, lx + 0.5, -3.55));
         s.push(r('pod-bed', lx - 0.4, -4.95, lx + 0.4, -3.55));
       }
-      f.push(r('planter-divider', -0.5, -5.45, -0.1, -2.3));
-      f.push(r('lab-bench', 1.0, -3.3, 2.6, -2.7), r('lab-bench', 3.2, -3.3, 4.8, -2.7), r('screen-wall', 0.4, -5.5, 5.1, -5.3));
-      for (const lx of [1.2, 2.5, 3.8]) f.push(r('prototype-stand', lx - 0.22, -4.52, lx + 0.22, -4.08));
+      f.push(r('planter', -0.5, -2.85, -0.1, -2.3));
       for (const z of [1.1, 2.7, 4.3]) f.push(r('archive-shelf', -4.42, z - 0.22, -0.38, z + 0.22));
-      for (const [lx, z] of [[2.6, 1.6], [4.0, 3.2], [2.6, 4.6]] as const) f.push(r('prototype-stand', lx - 0.3, z - 0.3, lx + 0.3, z + 0.3));
-      f.push(r('planter', 4.6, 4.6, 5.4, 5.4), r('planter', 4.6, 0.0, 5.4, 0.8));
+      // R&D lab (rev 35): the showpiece footprints; the pods are open shells (back and two sides).
+      for (const feat of RND_LAB_FEATURES) {
+        if (feat.name !== 'collab-pod') f.push(feat);
+        else f.push(span('pod-back', feat.x0, feat.z1 - 0.85, feat.x1, feat.z1), span('pod-side', feat.x0, feat.z0, feat.x0 + 0.1, feat.z1), span('pod-side', feat.x1 - 0.1, feat.z0, feat.x1, feat.z1));
+      }
+      f.push(r('planter', 1.4, -0.3, 3.8, 0.15), r('planter', 4.95, -4.7, 5.45, -4.15));
       seats('lab-stool', 0.2, ['lab-bench']);
       break;
   }

@@ -281,3 +281,15 @@ Eski kurulum: ~/.claude-backup-2026-11-01 (silme işlemi henüz yapılmadı).
 - **Ruling (bütçe):** giriş dosyası sınırı 1 000 000 B (sayfa açıldıktan sonra ağ isteği yasak, tembel yükleme yok). Yanlışsa maliyet: ilk açılış biraz yavaşlar.
 - **Ruling:** tabelada kurgusal marka ("Ajans") kullanılır; gerçek şirket adı ya da logosu yok.
 - Açık risk, CEO işi: Node 22 bu makinede yok; `npx node@22` izin sisteminde engellendi. Kurulum CEO'da (Beklenenler).
+
+## Revizyon 36: QA 1. tur düzeltmeleri (2026-11-14)
+- AC-16 düzeldi (`0229cda`): azaltılmış hareket artık yalnız görüntüyü etkiliyor; iz özdeş. `campus-breaks.test` maddesi "azaltılmış harekette yeni mola başlamaz" REQ-19 ile çelişiyordu; ikiz koşuya karşı tam eşitlik ile değiştirildi (daha sıkı).
+- Mühür masada (`e6a6ea0`): kod yanlıştı, düzeltildi; 0.05 u kontrolü geri geldi.
+- AC-17 (`ad39764`): `limits.test.ts` eklendi. **Ruling:** "toplantı oturumda" = adımın ayrıldığı andan itibaren (toplanma dahil), çünkü yük en yüksek o arada. Pencere 115.8–146.3 s (30.5 s). Oturma anından sayılırsa 127.2–146.3 s olur ve "120 s'den önce başlar" maddesi 7 s ile kalır. Yanlışsa maliyet: senaryolu başlangıç gecikmeleri değişir.
+- Açık: eşyalar gölge düşürmüyor (§7.7 yüksek kalite satırı uygulanmadı).
+
+## Revizyon 37: Lüks ve gerçekçilik turu (2026-11-14)
+- CEO: "biraz lüks istiyorum. arabalar, odalar, bina, şehir her şey daha lüks olmalı. dünyanın en iyi yazılım şirketi olduğunu düşün ve buna göre kurgula. gerçekçi olsun. dünyadan bir parça gibi gözüksün."
+- Paketler: L1 şehir lüksü (lüks araçlar, üst segment cadde ve mimari, gerçek ölçekler); L2 bina dış cephesi ve peyzaj (cam giydirme cephe, giriş meydanı, yansıma havuzu, peyzaj). Çalışan P4a (Ar-Ge, otopark) ve P4b (iç mekân) paketlerine lüks yönü eklendi.
+- **Ruling:** gerçek bir şirketin kampüsü, binası ya da logosu kopyalanmaz; özgün tasarım, gerçek dünya ölçek ve malzeme mantığıyla. Yanlışsa maliyet: yok (taklit riski kapalı).
+- **Ruling:** prosedürel geometri ilkesi korunur (görsel dosya yok, ağ isteği yok); gerçekçilik ölçek, malzeme, ışık ve ayrıntıyla sağlanır.
