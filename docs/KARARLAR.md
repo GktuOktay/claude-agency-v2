@@ -238,3 +238,9 @@ Eski kurulum: ~/.claude-backup-2026-11-01 (silme işlemi henüz yapılmadı).
 - Bağlam: spec 0001 (imzalı) "doku yok" (R-1) ve "flat shaded" diyor. CEO 2026-11-13'te örnek bir izometrik ofis görseli gösterip tasarımın o kalitede olmasını istedi; görsel yenileme bu yönle yapıldı ve CEO beğendi.
 - Sapmalar (Type 3, davranış değişmedi): (1) dokular kodla çizilen `CanvasTexture`; görsel dosya ve ağ isteği yok. (2) Yumuşak gölgelendirme, flat değil. (3) Şehir silueti soluk bir ufuk çizgisine indi. (4) Robot zoom'unda FOV geçici 50'ye açılıyor. (5) Test zaman aşımı 5 s → 15 s (yük altında zamanlama; assertion değişmedi).
 - **Ruling:** spec metni değiştirilmedi (imza düşmesin); sapmalar burada kayıtlı. Yanlışsa maliyet: Faz 2 spec'inde R-1 ve shading satırları güncellenmeli.
+
+## Revizyon 29: Ajans Kulesi "yaşayan ofis" spec'leri 0002/0003 (2026-11-14)
+- CEO: kuleyi bir üst seviyeye taşı; iş akışları, diyaloglar, sub-agent'lar, beraber çalışma, spec yazılırken toplantı odası. Model: opus, high (şerit 2 varsayılanı sonnet'ten sapma, CEO tercihi).
+- Bölme (spec-critic önerisi): 0002 = iş akışı motoru, yürüme/asansör, beraber çalışma, toplantı odası; 0003 = yardımcı robotlar (sub-agent), diyaloglar, pozlar; 0004 = görsel cila ve sinematik tur.
+- Q-1 (CEO, sohbette): "Yalnız chief-of-staff". Yardımcı robotları yalnız ana oturum çıkarır (4. kat); etiket hizmet ettiği birimi gösterir. Gerçek ajans yapısıyla tutarlı.
+- **İtiraz (kural 6):** genel amaçlı kaynak planlayıcısı her spec-critic turunda yeni kilitlenme/sıra bulgusu üretiyor. Alternatif: elle yazılmış sabit zaman çizelgeleri. 3. tur toparlanmazsa CEO'ya sorulacak.

@@ -26,3 +26,6 @@ Notes: CEO by-eye accepted look 2026-11-13. AC-12 fps = host reading pending.
 | 17 | activity.test | PASS, but "<=4 bubbles" vacuous (cap 4->1 uncaught) |
 | 18 | CEO by-eye accepted 2026-11-13 | by-eye accepted |
 Result: UNPROVEN CRITERIA: AC-12 fps (host reading). Weak tests: bubble cap (AC-17), org freeze (AC-14).
+
+## AC-12 host reading (2026-11-14)
+CEO read the `?debug=1` overlay on the host Mac in overview: >= 30 fps. AC-12 PASS. All ACs closed.
