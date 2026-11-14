@@ -16,7 +16,10 @@ function makeMenu() {
   b.textContent = 'Hareketi durdur';
   b.setAttribute('aria-pressed', 'true');
   const scenario = createScenarioInfo({ seed: 42, laneWeights: [15, 35, 30, 20], quality: 'high', maxJobs: { low: 2, high: 3 } });
-  const menu = createSettingsMenu({ controls: [a, b], scenario });
+  // Rev 35: the menu takes section modules; the old toolbar controls sit in the first section.
+  const controls = document.createElement('div');
+  controls.append(a, b);
+  const menu = createSettingsMenu({ sections: [{ id: 'controls', title: 'Görünüm', element: controls }, { id: 'scenario', title: 'Senaryo', element: scenario }] });
   document.body.append(menu.element);
   const outside = document.createElement('button');
   document.body.append(outside);

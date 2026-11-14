@@ -75,15 +75,18 @@ describe('job strip collapse', () => {
 });
 
 describe('HUD layout rail', () => {
-  it('stacks the floor panel, the legend and the strip in one rail, in that tab order', () => {
+  it('stacks the floor panel and the legend in one rail, in that tab order; the strip lives in the settings menu (Rev 35)', () => {
     const root = document.createElement('div');
     const panel = document.createElement('nav');
     const legend = document.createElement('div');
     const strip = document.createElement('section');
     const menu = document.createElement('div');
-    const rail = mountHud(root, { menu, panel, legend, strip });
+    menu.append(strip); // Rev 35: the strip is mounted inside the menu's "Aktif işler" section
+    const rail = mountHud(root, { menu, panel, legend });
     expect(rail.classList.contains('hud-rail')).toBe(true);
-    expect([...rail.children]).toEqual([panel, legend, strip]);
+    expect([...rail.children]).toEqual([panel, legend]);
+    expect(rail.contains(strip)).toBe(false);
+    expect(menu.contains(strip)).toBe(true);
     expect(root.firstElementChild).toBe(menu);
     expect(root.contains(rail)).toBe(true);
   });
