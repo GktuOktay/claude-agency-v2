@@ -202,6 +202,8 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     data.units.map((u) => ({ id: u.id, phrases: u.phrasesTr })),
     createRng(SEED + 1),
   );
+  /** The bubbles shown now; stepped in the runtime's ambient hook (frozen while paused). */
+  let activeBubbles: readonly Bubble[] = [];
   const robotById = new Map<string, RobotEntry>(model.robots.map((r) => [r.unit.id, r]));
 
   // ---- 0002: simulation clock, workflow engine (nav + staff elevator movement), director, job strip ----
@@ -218,6 +220,12 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     titles,
     maxJobs: maxJobsFor(quality.quality),
     unitName: ctx.nameOf,
+    // AC-15: the ambient cycle and the bubbles advance on the simulation dt; the runtime skips this hook while a
+    // global reason (org / user / hidden) pauses the clock, so they freeze with no draws.
+    onAmbient: (dt) => {
+      if (shouldStepSim(orgOn)) sim.step(dt * 1000); // org mode: robots freeze in place
+      activeBubbles = bubbles.step(dt);
+    },
     onStep: (dt, events) => {
       director?.ingest(events);
       board.ingest(events);
@@ -633,8 +641,9 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     last = now;
     clock += dt;
 
-    if (shouldStepSim(orgOn)) sim.step(dt * 1000); // org mode: robots freeze in place
-    runtime.frame(dt * 1000); // simulation clock (≤ 100 ms steps, frozen by org / user / hidden), engine, director, strip
+    // Simulation clock (≤ 100 ms steps, frozen by org / user / hidden), then on its dt: the ambient cycle and the
+    // bubbles (onAmbient), the engine, the director and the strip.
+    runtime.frame(dt * 1000);
     syncStaffCabinFrom(runtime.workflow.movement, model.staffCabin);
     boardTex?.render(board.state(runtime.workflow, motion.active()));
     staffRt?.frame(dt); // staff NPCs: paused with the clock's global reasons (org / user / hidden)
@@ -763,7 +772,7 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     }
 
     // speech bubbles (above the name pill when one is shown)
-    const active: readonly Bubble[] = bubbles.step(dt);
+    const active: readonly Bubble[] = activeBubbles;
     active.forEach((b, i) => {
       let e = bubbleEls[i];
       if (!e) {

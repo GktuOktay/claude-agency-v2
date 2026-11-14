@@ -1,7 +1,9 @@
 // QA round 2 reproduction (spec 0002 AC-15, R-4): a global pause must freeze the ambient cycle and stop all draws.
-// Mirrors the sceneApp frame order: `if (shouldStepSim(orgOn)) sim.step(ms)`, then `runtime.frame(ms)`, then
-// `bubbles.step(frameDt)`; the ambient sim gets `paused: () => runtime.clock.paused` as in sceneApp.
-// Expected to FAIL until the ambient cycle and the bubble scheduler follow the simulation clock.
+// Mirrors the sceneApp wiring: `runtime.frame(ms)` calls `onAmbient(simDt)` (skipped while the clock is paused),
+// which runs `if (shouldStepSim(orgOn)) sim.step(simDt * 1000)` and `bubbles.step(simDt)`; the ambient sim gets
+// `paused: () => runtime.clock.paused` as in sceneApp.
+// Fix round 2: the harness used to mirror the old frame-dt order (ambient and bubbles on frame dt); only the
+// harness wiring changed with sceneApp, the assertions are unchanged.
 import { describe, expect, it } from 'vitest';
 import { shouldStepSim } from '../src/app/frameUpdate';
 import { createSimRuntime } from '../src/app/simRuntime';
@@ -24,17 +26,20 @@ function app() {
     const y = floorY(d.floor);
     return { id, home: { x: d.place.home.x, y, z: d.place.home.z }, work: { x: d.place.seat.x, y, z: d.place.seat.z }, coffee: { x: d.place.coffee.x, y, z: d.place.coffee.z } };
   });
-  const rt = createSimRuntime({ scenarios: scenarioSet(), units, titles: ['A', 'B', 'C', 'D', 'E'], maxJobs: 3, isNarrow: () => false, reducedMotion: () => false, rideTo: () => undefined });
+  let ambient: (dt: number) => void = () => undefined;
+  const rt = createSimRuntime({ scenarios: scenarioSet(), units, titles: ['A', 'B', 'C', 'D', 'E'], maxJobs: 3, isNarrow: () => false, reducedMotion: () => false, rideTo: () => undefined, onAmbient: (dt) => ambient(dt) });
   const nav = rt.workflow.movement;
   if (!isNavMovement(nav)) throw new Error('nav movement expected');
   const sim = createActivitySim(specs, SEED, { campus: { movement: nav, floors: units, paused: () => rt.clock.paused, canRide: () => nav.elevator.queue().length === 0, maxAway: 0 } });
   let bubbleDraws = 0;
   const base = createRng(SEED + 1);
   const bubbles = createBubbleScheduler(ids.map((id) => ({ id, phrases: ['merhaba'] })), () => (bubbleDraws++, base()));
+  ambient = (dt) => {
+    if (shouldStepSim(false)) sim.step(dt * 1000);
+    bubbles.step(dt);
+  };
   const frame = (): void => {
-    if (shouldStepSim(false)) sim.step(100);
     rt.frame(100);
-    bubbles.step(0.1);
   };
   const state = (): string => JSON.stringify({ t: sim.time, robots: ids.map((id) => sim.get(id)) });
   return { rt, sim, frame, state, bubbleDraws: () => bubbleDraws };
