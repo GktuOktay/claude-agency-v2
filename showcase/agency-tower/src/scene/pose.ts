@@ -1,8 +1,8 @@
-import type { ActivityKind } from './activity';
+import type { PoseKind } from './activity';
 import type { RobotParts } from './robot';
 
 // Procedural limb animation per activity state.
-export function applyPose(p: RobotParts, kind: ActivityKind, walkPhase: number, timeSec: number): void {
+export function applyPose(p: RobotParts, kind: PoseKind, walkPhase: number, timeSec: number): void {
   p.armL.rotation.set(0, 0, 0);
   p.armR.rotation.set(0, 0, 0);
   p.legL.rotation.set(0, 0, 0);
@@ -33,7 +33,17 @@ export function applyPose(p: RobotParts, kind: ActivityKind, walkPhase: number, 
       p.head.rotation.x = -0.1;
       break;
     case 'raise':
-      p.armR.rotation.z = -2.7; // static raised arm (reduced motion)
+      p.armR.rotation.z = -2.7; // static raised arm (reduced motion; stamp raised)
+      break;
+    case 'press':
+      p.armR.rotation.x = -1.0; // stamp press / call button: arm forward and down, static
+      break;
+    case 'reach':
+      p.armR.rotation.x = -1.4; // hand-over: arm held out, static
+      p.armL.rotation.x = -1.4;
+      break;
+    case 'sit':
+      p.body.position.y = 0.07; // seated still (meeting)
       break;
     case 'wave':
       p.armR.rotation.z = -2.7 + Math.sin(timeSec * 10) * 0.35;

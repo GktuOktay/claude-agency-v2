@@ -6,6 +6,7 @@ import { loadData } from '../src/data/loader';
 import { createActivitySim, type ActivitySim } from '../src/scene/activity';
 import { createAnchors, createDirector, type Director } from '../src/scene/director';
 import { floorLayout, floorY, FLOOR_COUNT, type FloorLayout } from '../src/sim/layout';
+import { isNavMovement } from '../src/sim/navMovement';
 import type { WfEvent, Workflow, WorkflowOptions } from '../src/sim/workflow';
 import { sortUnits } from '../src/ui/unitList';
 import { makeWorkflow, scenarioSet, unitFloors } from './workflowHelpers';
@@ -48,7 +49,9 @@ export function harness(over: Partial<WorkflowOptions> = {}, ambientSeed = 7): H
   });
   const ambient = createActivitySim(specs, ambientSeed);
   const wf = makeWorkflow(over);
-  const dir = createDirector({ scenarios: scenarioSet(), layouts, homeFloors: units, ambient });
+  const m = wf.movement;
+  const position = isNavMovement(m) ? (u: string) => m.renderPosition(u, false) : undefined;
+  const dir = createDirector({ scenarios: scenarioSet(), layouts, homeFloors: units, ambient, position });
   const h: Harness = {
     wf,
     ambient,

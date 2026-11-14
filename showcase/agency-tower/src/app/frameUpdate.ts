@@ -1,7 +1,7 @@
-import type { ActivityKind } from '../scene/activity';
+import type { PoseKind } from '../scene/activity';
 
 export interface FramePose {
-  kind: ActivityKind;
+  kind: PoseKind;
   walkPhase: number;
   timeSec: number;
 }
@@ -12,7 +12,7 @@ export function shouldStepSim(orgOn: boolean): boolean {
 }
 
 /** Pose arguments for one robot this frame; org mode forces a static idle pose (AC-14). */
-export function framePose(orgOn: boolean, kind: ActivityKind, walkPhase: number, clock: number, still: boolean, idLen: number): FramePose {
+export function framePose(orgOn: boolean, kind: PoseKind, walkPhase: number, clock: number, still: boolean, idLen: number): FramePose {
   if (orgOn) return { kind: 'idle', walkPhase: 0, timeSec: 0 };
   return { kind, walkPhase: still ? 0 : walkPhase, timeSec: still ? 0 : clock + idLen };
 }

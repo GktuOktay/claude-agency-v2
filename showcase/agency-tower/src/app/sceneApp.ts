@@ -19,7 +19,7 @@ import {
 } from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { tr } from '../i18n/tr';
-import { createActivitySim, createBubbleScheduler, type Bubble } from '../scene/activity';
+import { createActivitySim, createBubbleScheduler, type ActivityView, type Bubble } from '../scene/activity';
 import { CAMERA_FOV, CameraRig, FLOOR_TARGET_Y, classifyPointer, configureOrbit, setFrameAspect, setFrameInsets, setOrgInsets } from '../scene/camera';
 import { createDayNight, lightingFor } from '../scene/daynight';
 import { buildOrgLines, orgLines } from '../scene/org';
@@ -43,12 +43,26 @@ import { qualitySettings, resolveQuality, type Params } from './params';
 import { framePose, shouldStepSim } from './frameUpdate';
 import { createSelectionFlow } from './selection';
 import { createSimRuntime } from './simRuntime';
+import { syncStaffCabinFrom } from './elevatorView';
+import { createDirector, type Director, type RobotView } from '../scene/director';
+import { isNavMovement } from '../sim/navMovement';
 import { createStaffRuntime, type StaffRuntime } from './staffRuntime';
 import { createStaff, type StaffModel } from '../scene/staff';
 import { rideToFloor } from './stripActivation';
 import type { SceneContext } from './bootstrap';
 
 const SEED = 20261113;
+
+/** Render view of an ambient-only robot (no director). */
+const ambientView = (a: ActivityView): Pick<RobotView, 'x' | 'y' | 'z' | 'facing' | 'walkPhase' | 'pose' | 'screenScroll'> => ({
+  x: a.x,
+  y: a.y,
+  z: a.z,
+  facing: a.facing,
+  walkPhase: a.walkPhase,
+  pose: a.kind,
+  screenScroll: a.kind === 'work',
+});
 
 /** Line colour for org mode: the department accent, lifted toward white so it glows softly. */
 function brighten(floor: number): number {
@@ -140,7 +154,8 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
   );
   const robotById = new Map<string, RobotEntry>(model.robots.map((r) => [r.unit.id, r]));
 
-  // ---- 0002: simulation clock, workflow engine (timed movement stand-in until T-6), job strip ----
+  // ---- 0002: simulation clock, workflow engine (nav + staff elevator movement), director, job strip ----
+  let director: Director | null = null;
   const narrowMq = typeof matchMedia === 'function' ? matchMedia('(max-width: 767px)') : null;
   const reducedMq = typeof matchMedia === 'function' ? matchMedia('(prefers-reduced-motion: reduce)') : null;
   const runtime = createSimRuntime({
@@ -149,6 +164,10 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     titles,
     maxJobs: quality.quality === 'low' ? 2 : 3,
     unitName: ctx.nameOf,
+    onStep: (dt, events) => {
+      director?.ingest(events);
+      director?.update(dt, runtime.workflow);
+    },
     isNarrow: () => narrowMq?.matches ?? false,
     reducedMotion: () => reducedMq?.matches ?? false,
     rideTo: (floor) =>
@@ -157,6 +176,18 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
         floor,
       ),
   });
+  {
+    // T-6: robots reserved by a job step leave the ambient cycle and follow the engine's movement.
+    const mv = runtime.workflow.movement;
+    director = createDirector({
+      scenarios,
+      layouts: model.layouts,
+      homeFloors: new Map(data.units.map((u) => [u.id, u.floor])),
+      ambient: sim,
+      position: isNavMovement(mv) ? (u) => mv.renderPosition(u, reducedMq?.matches ?? false) : undefined,
+      still: () => reducedMq?.matches ?? false,
+    });
+  }
   document.addEventListener('visibilitychange', () => runtime.setHidden(document.hidden));
   runtime.setHidden(document.hidden);
 
@@ -439,18 +470,19 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     clock += dt;
 
     if (shouldStepSim(orgOn)) sim.step(dt * 1000); // org mode: robots freeze in place
-    runtime.frame(dt * 1000); // simulation clock (≤ 100 ms steps, frozen by org / user / hidden), engine, strip
+    runtime.frame(dt * 1000); // simulation clock (≤ 100 ms steps, frozen by org / user / hidden), engine, director, strip
+    syncStaffCabinFrom(runtime.workflow.movement, model.staffCabin);
     staffRt?.frame(dt); // staff NPCs: paused with the clock's global reasons (org / user / hidden)
     const selected = flow.selectedId();
     const still = motion.active();
     for (const r of model.robots) {
       if (r.unit.id === selected) sim.faceToward(r.unit.id, camera.position.x, camera.position.z);
-      const a = sim.get(r.unit.id);
-      r.group.position.set(a.x, a.y, a.z);
-      r.group.rotation.y = a.facing;
-      const fp = framePose(orgOn, a.kind, a.walkPhase, clock, still, r.unit.id.length);
+      const v = director ? director.view(r.unit.id) : ambientView(sim.get(r.unit.id));
+      r.group.position.set(v.x, v.y, v.z);
+      r.group.rotation.y = v.facing;
+      const fp = framePose(orgOn, v.pose, v.walkPhase, clock, still, r.unit.id.length);
       applyPose(r.parts, fp.kind, fp.walkPhase, fp.timeSec);
-      r.screen.scrolling = a.kind === 'work';
+      r.screen.scrolling = v.screenScroll;
       r.screen.update(dt);
     }
 

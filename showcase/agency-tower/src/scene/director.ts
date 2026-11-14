@@ -193,6 +193,8 @@ export function createDirector(o: DirectorOptions): Director {
   const evidence = new Map<string, number>();
   const progress = new Map<string, { pct: number; until?: number }>();
   const awaited = new Map<string, number>(); // recipient → open waits for it
+  const claims = new Set<string>();
+  const hands = new Map<string, string>(); // copy key → recipient, hand-over pending a shared floor
   const log: Transition[] = [];
   let now = 0;
   let copyCounter = 0;
@@ -228,11 +230,25 @@ export function createDirector(o: DirectorOptions): Director {
     return c;
   }
   function retire(pred: (c: PropCopy) => boolean): void {
-    for (let i = copies.length - 1; i >= 0; i--) if (pred(copies[i]!)) copies.splice(i, 1);
+    for (let i = copies.length - 1; i >= 0; i--) {
+      if (!pred(copies[i]!)) continue;
+      claims.delete(copies[i]!.key);
+      hands.delete(copies[i]!.key);
+      copies.splice(i, 1);
+    }
   }
   function find(job: number, holder: string | undefined, kind: string | undefined, copy: number | undefined, step?: string): PropCopy | undefined {
     const pool = copies.filter((c) => c.job === job && c.holder === holder && (kind === undefined || c.kind === kind));
     return pool.find((c) => c.copy === copy && c.step === step) ?? pool.find((c) => c.copy === copy) ?? pool[0];
+  }
+
+  function fileHeld(u: string, job?: number): void {
+    for (const c of copies) {
+      if (c.holder === u && (job === undefined || c.job === job)) {
+        c.holder = null;
+        c.tray = u;
+      }
+    }
   }
 
   function onStepStart(e: WfEvent, s: Step): void {
@@ -281,15 +297,13 @@ export function createDirector(o: DirectorOptions): Director {
         }
         break;
       }
-      case 'review':
-        // Each reviewer keeps its copy, filed in its tray (REQ-10).
-        for (const c of copies) {
-          if (c.job === e.job && c.holder === actor) {
-            c.holder = null;
-            c.tray = actor;
-          }
-        }
+      case 'review': {
+        // Each reviewer keeps its copy, filed in its tray (REQ-10); away from its desk floor it keeps
+        // holding it until it is home (a prop changes floor only with its holder, AC-6).
+        const b = bots.get(actor);
+        if (b && b.floor === b.homeFloor) fileHeld(actor, e.job);
         break;
+      }
       case 'test':
         if (jobScenario.get(e.job)?.lane === 0) evidence.set(actor, e.t + EVIDENCE_S);
         else lamps.set(actor, { outcome: e.outcome ?? 'pass', until: e.t + LAMP_S });
@@ -299,6 +313,40 @@ export function createDirector(o: DirectorOptions): Director {
         break;
       default:
         break;
+    }
+  }
+
+  /**
+   * Hand a copy over. If the two robots are not on one floor (the engine's escort exception does not
+   * wait for the escort to arrive), the giver keeps it until both are on one floor, so the copy
+   * never changes floor outside a ride (AC-6).
+   */
+  function handTo(c: PropCopy, to: string): void {
+    const from = c.holder ? bots.get(c.holder) : undefined;
+    const rec = bots.get(to);
+    if (!from || !rec || from.floor === rec.floor) {
+      c.holder = to;
+      hands.delete(c.key);
+    } else hands.set(c.key, to);
+  }
+  function settleHands(): void {
+    for (const [key, to] of hands) {
+      const c = copies.find((x) => x.key === key);
+      if (!c) hands.delete(key);
+      else if (c.holder && bots.get(c.holder)?.floor === bots.get(to)?.floor) handTo(c, to);
+    }
+  }
+
+  /** Tray copies whose owner's step has started: picked up as soon as the owner is on its desk floor. */
+  function pickUp(): void {
+    for (const c of copies) {
+      if (!claims.has(c.key) || !c.tray) continue;
+      const b = bots.get(c.tray);
+      if (b && b.floor === anchors.deskOf(c.tray)?.floor) {
+        c.holder = c.tray;
+        c.tray = null;
+        claims.delete(c.key);
+      }
     }
   }
 
@@ -333,7 +381,7 @@ export function createDirector(o: DirectorOptions): Director {
           break;
         case 'handover': {
           const c = find(e.job, e.from, e.prop, e.copy, e.step);
-          if (c && e.to) c.holder = e.to;
+          if (c && e.to) handTo(c, e.to);
           unawait(e.to);
           break;
         }
@@ -347,12 +395,10 @@ export function createDirector(o: DirectorOptions): Director {
           break;
         }
         case 'tray-take':
-          for (const c of copies) {
-            if (c.job === e.job && c.tray === e.to && e.to) {
-              c.tray = null;
-              c.holder = e.to;
-            }
-          }
+          // Taken when the step starts; a robot away from its desk floor picks it up once it is back
+          // on that floor (a prop changes floor only with its holder, AC-6).
+          for (const c of copies) if (c.job === e.job && c.tray === e.to && e.to) claims.add(c.key);
+          pickUp();
           break;
         case 'wait-start':
           if (e.to) awaited.set(e.to, (awaited.get(e.to) ?? 0) + 1);
@@ -437,27 +483,31 @@ export function createDirector(o: DirectorOptions): Director {
 
   function follow(b: Bot, goal: Anchor | 'hold', dt: number, exact: Point | null): void {
     const prev = { x: b.pos.x, z: b.pos.z };
-    if (exact) {
-      b.pos = { ...exact };
-    } else if (goal !== 'hold') {
-      const dx = goal.x - b.pos.x;
-      const dz = goal.z - b.pos.z;
+    // Exact mode chases the movement adapter's position (closing the gap left by the ambient cycle,
+    // which the movement does not know); anchor mode walks to the goal anchor.
+    const aim: { x: number; z: number } | null = exact ?? (goal === 'hold' ? null : goal);
+    if (aim) {
+      const dx = aim.x - b.pos.x;
+      const dz = aim.z - b.pos.z;
       const d = Math.hypot(dx, dz);
-      const step = o.still?.() ? d : Math.min(Math.max(d / 2, WALK_SPEED), FOLLOW_MAX) * dt;
-      if (d <= step + EPS) b.pos = { x: goal.x, y: floorY(b.floor), z: goal.z };
-      else b.pos = { x: b.pos.x + (dx / d) * step, y: floorY(b.floor), z: b.pos.z + (dz / d) * step };
+      const speed = exact ? Math.min(Math.max(d * 2, WALK_SPEED * 1.5), 6) : Math.min(Math.max(d / 2, WALK_SPEED), FOLLOW_MAX);
+      const step = o.still?.() ? d : speed * dt;
+      const y = exact ? exact.y : floorY(b.floor);
+      if (d <= step + EPS) b.pos = { x: aim.x, y, z: aim.z };
+      else b.pos = { x: b.pos.x + (dx / d) * step, y, z: b.pos.z + (dz / d) * step };
     }
     const mx = b.pos.x - prev.x;
     const mz = b.pos.z - prev.z;
     b.moving = Math.hypot(mx, mz) > 1e-5;
+    const near = goal !== 'hold' && Math.hypot(goal.x - b.pos.x, goal.z - b.pos.z) < (exact ? 0.6 : 1e-3);
     if (b.moving) {
       b.facing = Math.atan2(mx, mz);
       b.walkPhase += dt * 6;
-    } else if (goal !== 'hold' && Math.hypot(goal.x - b.pos.x, goal.z - b.pos.z) < 1e-3) {
-      b.facing = goal.facing;
+      b.sit = false;
+    } else if (goal !== 'hold') {
+      if (near) b.facing = goal.facing;
+      b.sit = near && goal.sit;
     }
-    if (goal !== 'hold') b.sit = goal.sit && !b.moving;
-    else if (b.moving) b.sit = false;
   }
 
   /** Floor routing: a goal on another floor first sends the robot to the landing; rides cut floors. */
@@ -481,6 +531,7 @@ export function createDirector(o: DirectorOptions): Director {
 
   function update(dt: number, eng: EnginePort): void {
     now = eng.time;
+    if (claims.size) pickUp();
     for (const b of bots.values()) {
       const st = eng.unitState(b.id);
       const amb = o.ambient.get(b.id);
@@ -525,9 +576,11 @@ export function createDirector(o: DirectorOptions): Director {
       const goal = route(b, target, eng);
       follow(b, goal, dt, o.position?.(b.id) ?? null);
       const home = anchors.home(b.id);
-      const arrived = b.floor === b.homeFloor && Math.hypot(b.pos.x - home.x, b.pos.z - home.z) < 1e-3;
+      const exactHome = o.position?.(b.id) ?? null;
+      const arrived = b.floor === b.homeFloor && !b.moving && Math.hypot(b.pos.x - (exactHome?.x ?? home.x), b.pos.z - (exactHome?.z ?? home.z)) < 1e-3;
       if (arrived && mv.isAt(b.id, homeTarget(b))) {
         setState(b, 'idle');
+        fileHeld(b.id); // home again: what it still holds goes into its desk tray
         o.ambient.resume(b.id);
         b.mode = 'ambient';
         b.moving = false;
@@ -535,6 +588,7 @@ export function createDirector(o: DirectorOptions): Director {
         setState(b, b.moving ? 'walk' : 'idle');
       }
     }
+    if (hands.size) settleHands();
   }
 
   function poseOf(b: Bot, selected: ActivityKind | null): PoseKind {

@@ -1,6 +1,6 @@
-// Simulation runtime (spec 0002 T-7): one simulation clock (§7.8 reasons), the workflow engine on the
-// timed movement stand-in, the job strip, the "Hareketi durdur" toggle and the card lines. DOM only;
-// no WebGL, so it is unit-tested in jsdom. The director (T-6) will consume the drained events.
+// Simulation runtime (spec 0002 T-7): one simulation clock (§7.8 reasons), the workflow engine on real
+// waypoint + staff-elevator movement (navMovement.ts), the job strip, the "Hareketi durdur" toggle and
+// the card lines. DOM only; no WebGL, so it is unit-tested in jsdom. The director (T-6) gets `onStep`.
 import { createTitleSequence } from '../data/jobTitles';
 import type { ScenarioSet, UnitFloors } from '../data/scenarios';
 import { tr } from '../i18n/tr';
@@ -28,6 +28,8 @@ export interface SimRuntimeOptions {
   workflow?: Partial<WorkflowOptions>;
   /** Receives the events drained every frame (T-6 director). */
   onEvents?: (events: WfEvent[]) => void;
+  /** Every frame after the engine: the simulation dt (0 while paused) and the drained events (T-6 director). */
+  onStep?: (dt: number, events: WfEvent[]) => void;
 }
 
 export interface SimRuntime {
@@ -102,6 +104,7 @@ export function createSimRuntime(o: SimRuntimeOptions): SimRuntime {
       if (dt > 0) workflow.step(dt);
       const events = workflow.drainEvents();
       if (events.length) o.onEvents?.(events);
+      o.onStep?.(dt, events);
       render();
     },
     setOrg: (on) => clock.setReason('org', on),

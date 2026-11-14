@@ -2,6 +2,7 @@
 // lane-0 evidence / evidence sheet (AC-7). Pure simulation, no three.js.
 import { describe, expect, it } from 'vitest';
 import { DIRECTED_STATES, isWaiting, type DirectedKind } from '../src/scene/activity';
+import { MEETING_ROOM } from '../src/sim/layout';
 import { createAnchors, LAMP_S, EVIDENCE_S, type RobotView } from '../src/scene/director';
 import type { DirectedState } from '../src/sim/workflow';
 import { harness, roundT } from './directorHelpers';
@@ -118,7 +119,7 @@ describe('sign, build, lamp and evidence (AC-7)', () => {
     const places = new Map<number, string>();
     let signs = 0;
     let before = new Map<string, RobotView>();
-    h.run(500, (x) => {
+    h.run(900, (x) => {
       for (const e of x.last) {
         if (e.type === 'sign') places.set(e.job, e.place ?? '');
         if (e.type !== 'step-end' || e.kind !== 'sign') continue;
@@ -134,9 +135,16 @@ describe('sign, build, lamp and evidence (AC-7)', () => {
         const v = before.get('ceo')!;
         expect(v.state).toBe('stamp-press');
         const lane = x.wf.jobs().find((j) => j.n === e.job)!.lane;
-        const spot = lane === 3 ? anchors.signTable() : anchors.desk('ceo');
-        expect(v.floor).toBe(spot.floor);
-        expect(Math.hypot(v.x - spot.x, v.z - spot.z)).toBeLessThan(0.05);
+        if (lane === 3) {
+          // In the meeting room on floor 3 (the movement picks the free table spot).
+          const r = MEETING_ROOM.bounds;
+          expect(v.floor).toBe(MEETING_ROOM.floor);
+          expect(v.x > r.x0 && v.x < r.x1 && v.z > r.z0 && v.z < r.z1, `${v.x},${v.z}`).toBe(true);
+        } else {
+          const spot = anchors.desk('ceo');
+          expect(v.floor).toBe(spot.floor);
+          expect(Math.hypot(v.x - spot.x, v.z - spot.z)).toBeLessThan(0.05);
+        }
       }
       before = new Map([['ceo', x.dir.view('ceo')]]);
     });
@@ -150,7 +158,7 @@ describe('sign, build, lamp and evidence (AC-7)', () => {
   it('shows the stamp in the CEO hand exactly while stamping', () => {
     const h = harness();
     let stamping = 0;
-    h.run(200, (x) => {
+    h.run(500, (x) => {
       const st = x.wf.unitState('ceo')?.state;
       const v = x.dir.view('ceo');
       expect(v.stamp).toBe(st === 'stamp-raise' || st === 'stamp-press');
@@ -167,7 +175,17 @@ describe('sign, build, lamp and evidence (AC-7)', () => {
       for (const e of x.last) {
         if (e.type !== 'step-start' && e.type !== 'step-end') continue;
         if (e.kind !== 'build') continue;
-        const owner = e.step === 'build' || e.step === 'rebuild' ? (x.wf.jobs().find((j) => j.n === e.job)?.lane === 3 ? 'react-engineer' : e.type === 'step-start' ? e.units![0]! : 'react-engineer') : '';
+        const variant = x.wf.jobs().find((j) => j.n === e.job)?.variant;
+        const st = scenarioSet().scenarios.find((v) => v.id === variant)?.steps.find((y) => y.id === e.step);
+        if (!st) continue;
+        const owner = st.place === 'pair-desk' ? st.actors[1]! : st.actors[0]!;
+        // A build of another job may start at the same desk in the same simulation step.
+        const restarted = e.type === 'step-end' && x.last.some((y) => y !== e && y.type === 'step-start' && y.kind === 'build' && x.last.indexOf(y) > x.last.indexOf(e) && (y.units ?? []).includes(owner));
+        if (restarted) {
+          open.delete(owner);
+          builds++;
+          continue;
+        }
         const sc = x.dir.screen(owner);
         expect(sc.mode).toBe('progress');
         if (sc.mode !== 'progress') continue;
