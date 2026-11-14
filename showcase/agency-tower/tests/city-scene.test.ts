@@ -1,7 +1,7 @@
 // City around the campus (KARARLAR rev 31): meshes, budgets, day/night, org dim and freeze, reduced motion,
 // not pickable, never covering the tower or the wing from the camera views.
 import { describe, it, expect } from 'vitest';
-import { Box3, InstancedMesh, Matrix4, Mesh, MeshStandardMaterial, Raycaster, Vector3, type Material, type Object3D } from 'three';
+import { Box3, Color, InstancedMesh, Matrix4, Mesh, MeshStandardMaterial, Raycaster, SRGBColorSpace, Vector3, type Material, type Object3D } from 'three';
 import { createCity, type City } from '../src/scene/city';
 import { buildTower, FLOOR_COUNT, FLOOR_HEIGHT } from '../src/scene/model';
 import { floorPose, orgPose, overviewPose, viewDirection } from '../src/scene/camera';
@@ -125,6 +125,65 @@ describe('city meshes', () => {
     expect(std(city.group, 'city-windows-lit').emissiveIntensity).toBeGreaterThan(0);
   });
 
+  it('reads warm, light and calm (rev 33): materials stay above a lightness and saturation floor; the day fade is light and warm', () => {
+    // Floors in sRGB HSL: the old gray city sat at a mean saturation of about 0.1 and a road lightness of 0.56.
+    const L_MEAN = 0.68;
+    const S_MEAN = 0.2;
+    const L_MIN = 0.55;
+    const hsl = { h: 0, s: 0, l: 0 };
+    const c = new Color();
+    const mean = (name: string): { l: number; s: number; minL: number } => {
+      const m = city.group.getObjectByName(name);
+      if (!(m instanceof Mesh)) throw new Error(name);
+      const colors = m.geometry.attributes.color;
+      if (!colors) throw new Error(`${name} colors`);
+      let l = 0;
+      let s = 0;
+      let minL = 1;
+      for (let i = 0; i < colors.count; i++) {
+        c.setRGB(colors.getX(i), colors.getY(i), colors.getZ(i)).getHSL(hsl, SRGBColorSpace);
+        l += hsl.l;
+        s += hsl.s;
+        minL = Math.min(minL, hsl.l);
+      }
+      return { l: l / colors.count, s: s / colors.count, minL };
+    };
+    const city = createCity({ seed: 7 });
+    for (const name of ['city-ground', 'city-buildings', 'city-props']) {
+      const m = mean(name);
+      console.info(`[mood] ${name} mean L=${m.l.toFixed(3)} S=${m.s.toFixed(3)} min L=${m.minL.toFixed(3)}`);
+      expect(m.l, `${name} lightness`).toBeGreaterThanOrEqual(L_MEAN);
+      expect(m.s, `${name} saturation`).toBeGreaterThanOrEqual(S_MEAN);
+      expect(m.minL, `${name} darkest colour`).toBeGreaterThanOrEqual(L_MIN);
+    }
+    // Instance colours (trees, umbrellas, cars, clothes) are never dark or gray either.
+    for (const name of ['city-tree-crowns', 'city-umbrellas', 'city-cars', 'city-pedestrians']) {
+      const m = city.group.getObjectByName(name);
+      if (!(m instanceof InstancedMesh) || !m.instanceColor) throw new Error(name);
+      for (let i = 0; i < m.count; i++) {
+        c.setRGB(m.instanceColor.getX(i), m.instanceColor.getY(i), m.instanceColor.getZ(i)).getHSL(hsl, SRGBColorSpace);
+        expect(hsl.l, `${name} ${i}`).toBeGreaterThanOrEqual(L_MIN);
+      }
+    }
+    expect(std(city.group, 'city-windows-lit').color.getHSL(hsl, SRGBColorSpace).s, 'sky-blue glass').toBeGreaterThanOrEqual(0.3);
+    const haze = (): Vector3 => {
+      const u: unknown = materialsOf(city.group)[0]?.userData.cityHaze;
+      if (!u || typeof u !== 'object' || !('uHaze' in u)) throw new Error('haze');
+      const v: unknown = (u as { uHaze: { value: unknown } }).uHaze.value;
+      if (!(v instanceof Vector3)) throw new Error('haze value');
+      return v.clone();
+    };
+    city.setNight(false);
+    const day = haze();
+    expect(new Color(day.x, day.y, day.z).getHSL(hsl, SRGBColorSpace).l, 'light day fade').toBeGreaterThanOrEqual(0.85);
+    expect(day.x, 'warm day fade (red over blue)').toBeGreaterThan(day.z);
+    city.setNight(true);
+    expect(new Color(haze().x, haze().y, haze().z).getHSL(hsl, SRGBColorSpace).l, 'cozy night, not black').toBeGreaterThanOrEqual(0.18);
+    expect(city.group.getObjectByName('city-lamp-pools')?.visible, 'warm lamp pools at night').toBe(true);
+    city.setNight(false);
+    expect(city.group.getObjectByName('city-lamp-pools')?.visible).toBe(false);
+  });
+
   it('signal lamps change as the lights cycle', () => {
     const city = createCity({ seed: 7 });
     const lamps = city.group.getObjectByName('city-signal-lamps');
@@ -181,6 +240,9 @@ describe('the city never covers the tower or the wing', () => {
   const boxes: Box3[] = [
     ...plan.buildings.map((b) => new Box3(new Vector3(b.x0, 0, b.z0), new Vector3(b.x1, b.h, b.z1))),
     ...plan.trees.map((t) => new Box3(new Vector3(t.x - t.h * 0.3, t.h * 0.38, t.z - t.h * 0.3), new Vector3(t.x + t.h * 0.3, t.h, t.z + t.h * 0.3))),
+    // Rev 33 extras: café umbrellas and the park kiosk.
+    ...plan.tables.map((t) => new Box3(new Vector3(t.x - 1.05, 0, t.z - 1.05), new Vector3(t.x + 1.05, 2.45, t.z + 1.05))),
+    new Box3(new Vector3(plan.kiosk.x0 - 0.2, 0, plan.kiosk.z0 - 0.9), new Vector3(plan.kiosk.x1 + 0.2, 2.7, plan.kiosk.z1 + 0.2)),
   ];
   // Sample points on the tower and wing walls (bottom, middle, top edges) and the terrace edge.
   const targets: Vector3[] = [];
