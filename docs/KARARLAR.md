@@ -251,3 +251,10 @@ Eski kurulum: ~/.claude-backup-2026-11-01 (silme işlemi henüz yapılmadı).
 - **Ruling:** AC-1 diff tabanı = 0001 son commit'i `dfb7413` (PR #31 henüz main'e girmedi; `merge-base main` 0001 öncesini veriyor).
 - **Ruling:** oda tutma: l2 yalnız toplantı, l3 toplantıdan imzaya; kullanımdaki imza masası R-3(1)'deki tutulmuş oda gibi bekletir; adım süreleri `engine` akışında beşinci amaç `duration` olarak sayılır.
 - Not: testler bu makinede Node 25.9.0 ile koştu (.nvmrc 22); QA Node 22'de yeniden koşmalı.
+
+## Revizyon 31: Kule "kampüs" genişlemesi, imzasız kodlama yetkisi (2026-11-14)
+- CEO (sohbette, aynen): "Tüm işleri subagentlara böl. Paralelde hızlıca çıksın. Sana bu konuda tam yetki veriyorum. İmza ve onay beklemeden kodla."
+- Kapsam: (1) CEO insan karakter; (2) robotlara çalışma alanına göre özellik (frontend tasarımsal, backend analitik), statüye göre giyim; (3) kurumsal ama esnek, yeşil, Silikon Vadisi tarzı çalışma alanı: snack bar, oyun alanı, uyku odaları, araştırma alanı, spor salonu (molada robotlar kullanır), arşiv (kapanan projeler), yemekhane/restoran; bina yatay ve dikey büyüyebilir; işlevsiz karakterler: temizlik, çaycı, güvenlik; (4) konuşma balonları daha küçük punto; (5) adlar Türkçe görünür, kartta özgün ad kalır.
+- **İtiraz (kural 6):** imzasız kod değişmez kural 1'e aykırı; ölçüt belirsizliği ve kapsam kayması riski. CEO ısrar etti, uyuldu. Kural 2 (taze kanıt) ve kural 3 (yapan doğrulamaz) korunur: iş sonunda qa-engineer ve internal-auditor çalışır. Spec 0002 imzalı kalır; bu kapsam onun dışında "CEO yetkili genişleme" olarak izlenir, sonradan istenirse spec 0005'e dökülür.
+- **Ruling:** 0001 REQ-8 "altı kat" korunur; büyüme yatayda (kuleye köprüyle bağlı yan kanat) ve çatıda (çatı bahçesi). Yanlışsa maliyet: kat sayısı değişirse kat paneli, asansör ve 0001 testleri yeniden yazılır.
+- **Ruling:** bütçeler korunur (vertex < 700 000, mesh < 1000, JS ≤ 748 000 B); paketlere pay verilir, birleştirme ve instancing zorunlu.
