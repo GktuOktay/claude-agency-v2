@@ -3,7 +3,7 @@
 // Each wing level is built with the kit and materials of the tower floor of the same index and added to
 // that floor's group, so it ghosts, casts shadows, glows at night and merges exactly like the floor.
 import { BoxGeometry, BufferAttribute, Color, CylinderGeometry, Group, IcosahedronGeometry, SphereGeometry, InstancedMesh, Matrix4, Mesh, MeshStandardMaterial, PlaneGeometry, Quaternion, Vector3, type BufferGeometry, type Material } from 'three';
-import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import { mergeGeometries, mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { PALETTE, plant, type Kit, type KitTextures } from './furniture';
 import type { FloorMaterials, RoomLabel } from './model';
 import { anchorInstances, buildAmenities } from './amenities';
@@ -214,10 +214,19 @@ function buildEnvelope(floor: number, kit: Kit, materials: FloorMaterials, level
   kit.place(level, new PlaneGeometry(W * 2, D * 2).rotateX(-Math.PI / 2), kit.surface(PALETTE.floorOak, kit.textures.wood), WING.x, FLOOR_TOP + 0.002, WING.z, 'surface');
 }
 
+/** Smooth low-poly crown (icosahedron, detail 1) with shared vertices: 42 instead of 240, same look (Rev 40). */
+function crownGeometry(): BufferGeometry {
+  const ico = new IcosahedronGeometry(0.5, 1);
+  ico.deleteAttribute('uv');
+  const g = mergeVertices(ico);
+  ico.dispose();
+  return g;
+}
+
 /** Instanced trees (trunks + low-poly crowns) at floor-local points; `y` is the ground height. */
 function trees(parent: Group, points: readonly (readonly [number, number, number])[], y: number, trunkMat: Material, crownMat: Material, prefix: string): void {
   const trunk = new InstancedMesh(new CylinderGeometry(0.06, 0.09, 1, 8).translate(0, 0.5, 0), trunkMat, points.length);
-  const crown = new InstancedMesh(new IcosahedronGeometry(0.5, 1), crownMat, points.length * 2);
+  const crown = new InstancedMesh(crownGeometry(), crownMat, points.length * 2);
   const m = new Matrix4();
   const q = new Quaternion();
   const leaf = [new Color(PALETTE.leaf), new Color(PALETTE.leafDark), new Color(0x7fae5c)];
@@ -338,8 +347,8 @@ function car(p: Painter, x: number, z: number, tone: number, style: CarStyle): v
   // Wheels with bright rims, slim LED head and tail lights.
   const r = suv ? 0.38 : 0.34;
   for (const dx of [-half + 0.06, half - 0.06]) for (const dz of [-len + 0.72, len - 0.68]) {
-    p.add(new CylinderGeometry(r, r, 0.24, 14).rotateZ(Math.PI / 2).translate(x + dx, r, z + dz), TYRE);
-    p.add(new CylinderGeometry(r * 0.6, r * 0.6, 0.02, 14).rotateZ(Math.PI / 2).translate(x + dx + Math.sign(dx) * 0.125, r, z + dz), 0xc9ccd0);
+    p.add(new CylinderGeometry(r, r, 0.24, 10).rotateZ(Math.PI / 2).translate(x + dx, r, z + dz), TYRE);
+    p.add(new CylinderGeometry(r * 0.6, r * 0.6, 0.02, 10).rotateZ(Math.PI / 2).translate(x + dx + Math.sign(dx) * 0.125, r, z + dz), 0xc9ccd0);
   }
   p.box(x - half + 0.12, x + half - 0.12, belt - 0.24, belt - 0.2, z - len - 0.01, z - len + 0.02, 0xfdf6e0);
   p.box(x - half + 0.08, x + half - 0.08, belt - 0.22, belt - 0.18, z + len - 0.02, z + len + 0.01, 0xb0302a);
@@ -402,7 +411,7 @@ function buildParking(p: Painter, l: Painter): void {
   for (const cx of [cn.x0 + 0.1, cn.x1 - 0.1]) p.box(cx - 0.06, cx + 0.06, 0, 2.3, cn.z0 + 0.1, cn.z0 + 0.22, 0x8a6a45);
   p.box(cn.x0, cn.x1, 2.3, 2.42, cn.z0, cn.z1, 0xf2efe8);
   p.box(cn.x0 + 0.08, cn.x1 - 0.08, 2.42, 2.5, cn.z0 + 0.08, cn.z1 - 0.08, 0x7fa463);
-  for (let i = 0; i < 6; i++) p.add(new SphereGeometry(0.16, 8, 6).scale(1, 0.55, 1).translate(cn.x0 + 0.5 + i * 0.78, 2.53, (cn.z0 + cn.z1) / 2 + ((i % 2) - 0.5) * 1.6), 0x6a9150);
+  for (let i = 0; i < 6; i++) p.add(new SphereGeometry(0.16, 6, 4).scale(1, 0.55, 1).translate(cn.x0 + 0.5 + i * 0.78, 2.53, (cn.z0 + cn.z1) / 2 + ((i % 2) - 0.5) * 1.6), 0x6a9150);
   l.box(cn.x0 + 0.2, cn.x1 - 0.2, 2.27, 2.3, cn.z1 - 0.4, cn.z1 - 0.3, 0xfff1d6);
   const v = g.valet;
   p.box(v.x - 0.25, v.x + 0.25, 0, 1.05, v.z - 0.18, v.z + 0.18, 0x5a4330);
@@ -414,7 +423,7 @@ function buildParking(p: Painter, l: Painter): void {
   if (ix1 - ix0 > 0.4) {
     p.box(ix0, ix1, 0, 0.12, head + 0.2, b.z0 - 0.3, CURB);
     p.box(ix0 + 0.05, ix1 - 0.05, 0.12, 0.13, head + 0.25, b.z0 - 0.35, LAWN);
-    for (let i = 0; i < 4; i++) p.add(new SphereGeometry(0.26, 8, 6).scale(1, 0.7, 1).translate((ix0 + ix1) / 2, 0.3, head + 0.8 + i * 0.9), i % 2 ? 0x6a9150 : 0x7fa463);
+    for (let i = 0; i < 4; i++) p.add(new SphereGeometry(0.26, 6, 4).scale(1, 0.7, 1).translate((ix0 + ix1) / 2, 0.3, head + 0.8 + i * 0.9), i % 2 ? 0x6a9150 : 0x7fa463);
   }
   // Bicycle racks (hoops) with a few pastel bikes, on the lawn strip by the wing.
   BIKE_RACKS.forEach(([cx, cz], r) => {
@@ -424,7 +433,7 @@ function buildParking(p: Painter, l: Painter): void {
       p.box(x - 0.015, x + 0.015, 0.5, 0.53, cz - 0.215, cz + 0.215, STEEL);
       if ((i + r) % 2 === 0) {
         const tone = PARKING_CAR_TONES[(i + r * 2) % PARKING_CAR_TONES.length]?.hex ?? 0xb8bdc3;
-        for (const dz of [-0.36, 0.36]) p.add(new CylinderGeometry(0.22, 0.22, 0.03, 12).rotateZ(Math.PI / 2).translate(x + 0.08, 0.23, cz + dz), TYRE);
+        for (const dz of [-0.36, 0.36]) p.add(new CylinderGeometry(0.22, 0.22, 0.03, 8).rotateZ(Math.PI / 2).translate(x + 0.08, 0.23, cz + dz), TYRE);
         p.box(x + 0.065, x + 0.095, 0.3, 0.36, cz - 0.36, cz + 0.36, tone);
         p.box(x + 0.065, x + 0.095, 0.36, 0.5, cz + 0.08, cz + 0.12, tone);
       }

@@ -278,7 +278,7 @@ describe('campus scene: wing, zones, bridges, ghosting', () => {
 });
 
 describe('campus budgets', () => {
-  it('the campus share of the real scene: <= 150k vertices and <= 60 meshes', () => {
+  it('the campus share of the real scene: <= 120k vertices and <= 60 meshes', () => {
     // Share = every vertex west of the tower wall (wing, bridges, grounds) and every mesh that lies wholly
     // there; wing parts merged into a tower floor mesh add vertices but no draw call.
     const m = buildTower(data());
@@ -303,7 +303,7 @@ describe('campus budgets', () => {
       if (west === pos.count || (west > 0 && o.name !== 'merged' && o.name !== '')) meshes++; // own draw call (bridge-spanning named meshes included)
     });
     console.info(`[budget] campus share vertices=${verts} meshes=${meshes}`);
-    expect(verts).toBeLessThanOrEqual(150_000);
+    expect(verts).toBeLessThanOrEqual(120_000); // Rev 40: was 150 000
     expect(meshes).toBeLessThanOrEqual(60);
   });
 
