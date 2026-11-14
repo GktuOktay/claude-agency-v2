@@ -19,6 +19,8 @@ export interface SelectionDeps {
   /** 0002 REQ-17: step-scoped selection pause on the simulation clock. */
   onSelect?: (id: string) => void;
   onRelease?: (id: string) => void;
+  /** 0002 T-6: where the robot is drawn now (director/nav), and on which floor; null = ambient position. */
+  renderPosition?: (id: string) => { x: number; y: number; z: number; floor: number } | null;
 }
 
 export interface SelectionFlow {
@@ -44,13 +46,15 @@ export function createSelectionFlow(deps: SelectionDeps): SelectionFlow {
       selected = unit.id;
       deps.sim.select(unit.id);
       deps.onSelect?.(unit.id);
-      deps.model.setView({ mode: 'floor', focusFloor: unit.floor });
-
-      const a = deps.sim.get(unit.id);
-      const pose = robotPose(new Vector3(a.x, a.y, a.z), floorPose(unit.floor).cabinY, tierStyle(unit.tier).scale);
+      // Zoom to the rendered robot: a directed robot may be away from its ambient spot, even on another floor.
+      const rp = deps.renderPosition?.(unit.id) ?? null;
+      const a = rp ?? deps.sim.get(unit.id);
+      const floor = rp ? rp.floor : unit.floor;
+      deps.model.setView({ mode: 'floor', focusFloor: floor });
+      const pose = robotPose(new Vector3(a.x, a.y, a.z), floorPose(floor).cabinY, tierStyle(unit.tier).scale);
       const shown = lines;
       const open = (): void => deps.getCard().open(unit, opener, shown);
-      deps.rig.goToFloor(unit.floor, [{ pose, duration: ZOOM_DURATION, onDone: open }]);
+      deps.rig.goToFloor(floor, [{ pose, duration: ZOOM_DURATION, onDone: open }]);
     },
     onCardClosed() {
       if (selected) {
