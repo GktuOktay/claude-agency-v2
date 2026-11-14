@@ -3,9 +3,10 @@
 // glass mid-rises (vertical fins, boutique arcades with awnings and warm interiors, setback terraces, roof
 // gardens), glass towers further back, a grand hotel with a porte-cochère and a doorman, a landscaped plaza
 // with a sculpture and a reflecting pool, premium cars, well-dressed people, café terraces.
-// Warm, light diorama palette under a light, warm atmospheric fade toward the page background: lighter and
-// lower in contrast than the campus, so the tower and the wing stay the focus. Procedural geometry only,
-// merged static meshes and instancing; nothing here is pickable and nothing casts or receives shadows.
+// Warm, light diorama palette in clear air (art direction after rev 38): the city near the campus shows its
+// real colours and contrast, a touch below the campus; only the far edge fades gently into the page
+// background. Procedural geometry only, merged static meshes and instancing; nothing here is pickable and
+// nothing casts or receives shadows.
 //
 // Ruling: the fade is a per-material shader mix (onBeforeCompile) keyed on the distance to the campus
 // footprint, not scene.fog — the scene (src/app) owns the fog slot and the tower must stay unfogged — if
@@ -154,9 +155,20 @@ const C = {
 /** Light, warm fade toward the page background (day bottom / night bottom of src/scene/daynight.ts, a touch warmer). */
 const HAZE_DAY = [240, 233, 220] as const;
 const HAZE_NIGHT = [62, 53, 66] as const;
-const HAZE_NEAR = 12;
-const HAZE_FAR = 52;
-const SHADE = 0.1;
+/**
+ * Fade amount by distance from the campus footprint (art direction after rev 38): `shade` everywhere (a touch of
+ * air, so the city sits just below the campus), then a squared smoothstep from `near` to `far` up to `max`.
+ * The boulevard, the first building rows, the hotel and the park plaza (within ~40) keep their real colours;
+ * the outer edge of the city (~58) feathers into the background.
+ */
+export const CITY_HAZE = { near: 36, far: 64, shade: 0.04, max: 0.85 } as const;
+/** Pure mirror of the fade in the city shader (before the org dim); see `hazed`. */
+export function cityHazeAt(distance: number): number {
+  const { near, far, shade, max } = CITY_HAZE;
+  const t = Math.min(1, Math.max(0, (distance - near) / (far - near)));
+  const s = t * t * (3 - 2 * t);
+  return Math.min(0.92, shade + (max - shade) * s * s);
+}
 const ORG_DIM = 0.55;
 const LIT_SHARE = 0.55;
 
@@ -358,6 +370,7 @@ interface HazeUniforms {
   uCampus: { value: [number, number, number, number] };
   uHazeRange: { value: [number, number] };
   uShade: { value: number };
+  uHazeMax: { value: number };
   uDim: { value: number };
 }
 
@@ -372,10 +385,10 @@ function hazed<T extends Material>(m: T, u: HazeUniforms): T {
         '#include <project_vertex>\n{ vec4 cw = vec4(transformed, 1.0);\n#ifdef USE_INSTANCING\ncw = instanceMatrix * cw;\n#endif\nvCityWorld = (modelMatrix * cw).xyz; }',
       );
     shader.fragmentShader = shader.fragmentShader
-      .replace('#include <common>', '#include <common>\nvarying vec3 vCityWorld;\nuniform vec3 uHaze;\nuniform vec4 uCampus;\nuniform vec2 uHazeRange;\nuniform float uShade;\nuniform float uDim;')
+      .replace('#include <common>', '#include <common>\nvarying vec3 vCityWorld;\nuniform vec3 uHaze;\nuniform vec4 uCampus;\nuniform vec2 uHazeRange;\nuniform float uShade;\nuniform float uHazeMax;\nuniform float uDim;')
       .replace(
         '#include <fog_fragment>',
-        '#include <fog_fragment>\n{ vec2 q = vCityWorld.xz; float hx = max(max(uCampus.x - q.x, q.x - uCampus.y), 0.0); float hz = max(max(uCampus.z - q.y, q.y - uCampus.w), 0.0);\nfloat f = uShade + (1.0 - uShade) * smoothstep(uHazeRange.x, uHazeRange.y, length(vec2(hx, hz)));\nf = mix(f, 1.0, uDim); gl_FragColor.rgb = mix(gl_FragColor.rgb, uHaze, clamp(f, 0.0, 0.92)); }',
+        '#include <fog_fragment>\n{ vec2 q = vCityWorld.xz; float hx = max(max(uCampus.x - q.x, q.x - uCampus.y), 0.0); float hz = max(max(uCampus.z - q.y, q.y - uCampus.w), 0.0);\nfloat s = smoothstep(uHazeRange.x, uHazeRange.y, length(vec2(hx, hz)));\nfloat f = uShade + (uHazeMax - uShade) * s * s;\nf = mix(f, 1.0, uDim); gl_FragColor.rgb = mix(gl_FragColor.rgb, uHaze, clamp(f, 0.0, 0.92)); }',
       );
   };
   m.customProgramCacheKey = () => 'city-haze';
@@ -988,8 +1001,9 @@ export function createCity(options: CityOptions = {}): City {
   const uniforms: HazeUniforms = {
     uHaze: { value: new Vector3(HAZE_DAY[0] / 255, HAZE_DAY[1] / 255, HAZE_DAY[2] / 255) },
     uCampus: { value: [bounds.x0, bounds.x1, bounds.z0, bounds.z1] },
-    uHazeRange: { value: [HAZE_NEAR, HAZE_FAR] },
-    uShade: { value: SHADE },
+    uHazeRange: { value: [CITY_HAZE.near, CITY_HAZE.far] },
+    uShade: { value: CITY_HAZE.shade },
+    uHazeMax: { value: CITY_HAZE.max },
     uDim: { value: 0 },
   };
   const std = (params: ConstructorParameters<typeof MeshStandardMaterial>[0]): MeshStandardMaterial => hazed(new MeshStandardMaterial({ roughness: 0.95, metalness: 0, ...params }), uniforms);
