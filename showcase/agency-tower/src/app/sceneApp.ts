@@ -40,6 +40,7 @@ import { createUnitList } from '../ui/unitList';
 import { applyInitialCamera, projectToScreen } from './initialCamera';
 import { createFpsMeter, createLoop } from './loop';
 import { qualitySettings, resolveQuality, type Params } from './params';
+import { framePose, shouldStepSim } from './frameUpdate';
 import { createSelectionFlow } from './selection';
 import type { SceneContext } from './bootstrap';
 
@@ -377,7 +378,7 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     last = now;
     clock += dt;
 
-    if (!orgOn) sim.step(dt * 1000); // org mode: robots freeze in place
+    if (shouldStepSim(orgOn)) sim.step(dt * 1000); // org mode: robots freeze in place
     const selected = flow.selectedId();
     const still = motion.active();
     for (const r of model.robots) {
@@ -385,8 +386,8 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
       const a = sim.get(r.unit.id);
       r.group.position.set(a.x, a.y, a.z);
       r.group.rotation.y = a.facing;
-      if (orgOn) applyPose(r.parts, 'idle', 0, 0);
-      else applyPose(r.parts, a.kind, still ? 0 : a.walkPhase, still ? 0 : clock + r.unit.id.length);
+      const fp = framePose(orgOn, a.kind, a.walkPhase, clock, still, r.unit.id.length);
+      applyPose(r.parts, fp.kind, fp.walkPhase, fp.timeSec);
       r.screen.scrolling = a.kind === 'work';
       r.screen.update(dt);
     }

@@ -220,3 +220,24 @@ describe('screen code source (AC-17)', () => {
     expect(new Screen().lines).toBe(CODE_LINES);
   });
 });
+
+describe('bubble cap (AC-17)', () => {
+  it('saturates at exactly 4 visible bubbles with many sources', () => {
+    const sources = Array.from({ length: 20 }, (_, i) => ({ id: `u${i}`, phrases: ['x'] }));
+    // Deterministic rng: spawn interval ~1s, lifetime ~4.9s => demand of ~5 concurrent bubbles.
+    // Call order per spawn: source, phrase, lifetime, next interval (after one initial timer call).
+    const cycle = [0.1, 0.1, 0.99, 0];
+    let calls = 0;
+    const rng = () => (calls++ === 0 ? 0 : (cycle[(calls - 2) % 4] as number));
+    const s = createBubbleScheduler(sources, rng);
+    let max = 0;
+    let atMax = 0;
+    for (let i = 0; i < 4000; i++) {
+      const n = s.step(0.1).length;
+      max = Math.max(max, n);
+      if (n === 4) atMax++;
+    }
+    expect(max).toBe(4);
+    expect(atMax).toBeGreaterThan(0);
+  });
+});
