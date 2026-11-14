@@ -149,3 +149,46 @@ describe('selection flow (AC-10)', () => {
     expect(readFileSync(join(appRoot, 'index.html'), 'utf8')).toContain('<html lang="tr">');
   });
 });
+
+describe('selection targets the rendered robot (spec 0002 T-6)', () => {
+  function rendered() {
+    const r = loadData(roster, hierarchy);
+    if (!r.ok) throw new Error('data');
+    const data = r.data;
+    const model = buildTower(data);
+    const sim = createActivitySim(
+      model.robots.map((x) => ({ id: x.unit.id, home: x.homePoint, work: x.workPoint, coffee: x.coffeePoint })),
+      7,
+    );
+    const rig = new CameraRig();
+    const host = document.createElement('div');
+    document.body.replaceChildren(host);
+    // a directed robot away from its ambient spot, on another floor (scout's home is floor 3)
+    const at = { x: 5.5, y: 1 * 3 + 0.14, z: 1.5, floor: 1 };
+    let cardRef: ReturnType<typeof createCard> | null = null;
+    const flow = createSelectionFlow({
+      rig,
+      sim,
+      model,
+      getCard: () => cardRef as NonNullable<typeof cardRef>,
+      renderPosition: (id) => (id === 'scout' ? at : null),
+    });
+    cardRef = createCard(host, { resolveName: (id) => id, onClose: () => flow.onCardClosed() });
+    return { data, model, sim, rig, flow, at };
+  }
+
+  it('zooms to the rendered position and floor, not the ambient position', () => {
+    const s = rendered();
+    s.flow.select(s.data.units.find((u) => u.id === 'scout')!, document.createElement('button'));
+    let t = 0;
+    while (s.rig.busy && t < 10) {
+      s.rig.update(DT);
+      t += DT;
+    }
+    expect(s.model.view).toEqual({ mode: 'floor', focusFloor: 1 });
+    expect(s.rig.floor).toBe(1);
+    expect(s.rig.position.distanceTo(new Vector3(s.at.x, s.at.y, s.at.z))).toBeLessThanOrEqual(3.5);
+    const a = s.sim.get('scout');
+    expect(s.rig.position.distanceTo(new Vector3(a.x, a.y, a.z))).toBeGreaterThan(3.5);
+  });
+});

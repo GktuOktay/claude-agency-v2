@@ -10,6 +10,8 @@ import {
   HemisphereLight,
   PCFSoftShadowMap,
   PerspectiveCamera,
+  MeshBasicMaterial,
+  Mesh,
   Ray,
   Scene,
   Vector2,
@@ -34,17 +36,24 @@ import { pickRobot } from '../scene/picking';
 import { applyPose } from '../scene/pose';
 import { createRng } from '../scene/rng';
 import { createFloorPanel } from '../ui/floorPanel';
+import { CAMPUS_ITEMS, campusItem, nextCampus, type CampusKey } from '../ui/campusNav';
 import { createKeyHandler } from '../ui/keymap';
 import { el } from '../ui/dom';
+import { mountHud } from '../ui/hudLayout';
 import { createUnitList } from '../ui/unitList';
 import { applyInitialCamera, projectToScreen } from './initialCamera';
 import { createFpsMeter, createLoop } from './loop';
-import { qualitySettings, resolveQuality, type Params } from './params';
+import { maxJobsFor, qualitySettings, resolveQuality, type Params } from './params';
+import { createScenarioInfo, createSettingsMenu, createShortcutToggle } from '../ui/settingsMenu';
+import { MASTER_SEED } from '../sim/workflow';
 import { framePose, shouldStepSim } from './frameUpdate';
 import { createSelectionFlow } from './selection';
 import { createSimRuntime } from './simRuntime';
 import { syncStaffCabinFrom } from './elevatorView';
 import { createDirector, type Director, type RobotView } from '../scene/director';
+import { createProps, propRobotsOf } from '../scene/props';
+import { createWhiteboard, createWhiteboardTexture } from '../scene/whiteboard';
+import { whiteboardTextureSize } from '../sim/layout';
 import { isNavMovement } from '../sim/navMovement';
 import { createStaffRuntime, type StaffRuntime } from './staffRuntime';
 import { createStaff, type StaffModel } from '../scene/staff';
@@ -116,7 +125,7 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
       cam.top = half;
       cam.bottom = -half;
       cam.near = 0.5;
-      cam.far = mode === 'floor' ? 45 : 110;
+      cam.far = mode === 'floor' ? 90 : 110; // 90: city ground must not end in a visible edge in floor views
       cam.updateProjectionMatrix();
     }
   };
@@ -158,14 +167,19 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
   let director: Director | null = null;
   const narrowMq = typeof matchMedia === 'function' ? matchMedia('(max-width: 767px)') : null;
   const reducedMq = typeof matchMedia === 'function' ? matchMedia('(prefers-reduced-motion: reduce)') : null;
+  // T-8: meeting-room whiteboard, filled from the engine's meeting progress (§7.7 texture size per tier).
+  const board = createWhiteboard(scenarios);
+  const boardTex = createWhiteboardTexture(whiteboardTextureSize(quality.quality));
+  if (boardTex) model.meetingRoom.setWhiteboardTexture(boardTex.texture);
   const runtime = createSimRuntime({
     scenarios,
     units: new Map(data.units.map((u) => [u.id, u.floor])),
     titles,
-    maxJobs: quality.quality === 'low' ? 2 : 3,
+    maxJobs: maxJobsFor(quality.quality),
     unitName: ctx.nameOf,
     onStep: (dt, events) => {
       director?.ingest(events);
+      board.ingest(events);
       director?.update(dt, runtime.workflow);
     },
     isNarrow: () => narrowMq?.matches ?? false,
@@ -188,6 +202,21 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
       still: () => reducedMq?.matches ?? false,
     });
   }
+  // T-6 visible layer: markers, carried copies, stamp, QA lamps, screen overlays (src/scene/props.ts).
+  {
+    const faceOf = new Map<unknown, MeshBasicMaterial>();
+    model.root.traverse((o) => {
+      if (o instanceof Mesh && o.material instanceof MeshBasicMaterial && o.material.map) faceOf.set(o.material.map, o.material);
+    });
+    for (const r of model.robots) {
+      const face = r.screen.texture ? faceOf.get(r.screen.texture) : undefined;
+      if (face) r.screen.bind(face);
+    }
+  }
+  const props = createProps({ robots: propRobotsOf(model), model });
+  /** R-5: the floor each robot is on now (labels, bubbles, picking), refreshed every frame. */
+  const floorNow = new Map<string, number>(model.robots.map((r) => [r.unit.id, r.floor]));
+  const floorOf = (r: RobotEntry): number => floorNow.get(r.unit.id) ?? r.floor;
   document.addEventListener('visibilitychange', () => runtime.setHidden(document.hidden));
   runtime.setHidden(document.hidden);
 
@@ -266,7 +295,7 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     model.setOrg(false);
     syncStaff();
     rig.exitOrg();
-    panel.setCurrent(model.view.mode === 'floor' ? model.view.focusFloor : 'all');
+    panel.setCurrent(campusAt ?? (model.view.mode === 'floor' ? model.view.focusFloor : 'all'));
   }
   orgBtn.addEventListener('click', () => (orgOn ? exitOrg() : enterOrg()));
 
@@ -279,6 +308,10 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     linesFor: (id) => runtime.cardLinesFor(id, sim.get(id).kind),
     onSelect: (id) => runtime.select(id),
     onRelease: (id) => runtime.release(id),
+    renderPosition: (id) => {
+      const v = director?.view(id);
+      return v ? { x: v.x, y: v.y, z: v.z, floor: v.floor } : null;
+    },
   });
   ctx.hooks.onCardClosed = () => flow.onCardClosed();
   const closeCard = (): void => {
@@ -293,16 +326,33 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     dropOrg();
     if (v === 'all') goOverview();
     else goFloor(v);
+  }, {
+    items: CAMPUS_ITEMS,
+    onSelect: (k) => {
+      closeCard();
+      dropOrg();
+      goCampus(k);
+    },
   });
   panel.setCurrent('all');
 
+  let campusAt: CampusKey | null = null;
+  function goCampus(k: CampusKey): void {
+    const c = campusItem(k);
+    model.setView({ mode: 'floor', focusFloor: c.focusFloor }); // ghosting follows the same tower floor
+    syncStaff();
+    rig.goToWing(c.level, c.focusFloor);
+    panel.setCurrent((campusAt = k));
+  }
   function goFloor(n: number): void {
+    campusAt = null;
     model.setView({ mode: 'floor', focusFloor: n });
     syncStaff();
     rig.goToFloor(n);
     panel.setCurrent(n);
   }
   function goOverview(): void {
+    campusAt = null;
     model.setView({ mode: 'overview', focusFloor: 0 });
     syncStaff();
     rig.goOverview();
@@ -318,22 +368,17 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     toggleOrg: () => (orgOn ? exitOrg() : enterOrg()),
     exitOrg,
     closeCard,
+    cycleCampus: () => goCampus(nextCampus(campusAt)),
     orgEnabled: true,
   });
   window.addEventListener('keydown', (e) => keys.handle(e));
 
-  const toolbar = el('div', { class: 'toolbar', role: 'toolbar', 'aria-label': tr.title });
-  const shortcutBtn = el('button', { type: 'button', 'aria-pressed': 'true' }, tr.shortcutsOn);
-  shortcutBtn.addEventListener('click', () => {
-    const on = !keys.isEnabled();
-    keys.setEnabled(on);
-    shortcutBtn.setAttribute('aria-pressed', String(on));
-    shortcutBtn.textContent = on ? tr.shortcutsOn : tr.shortcutsOff;
-  });
-  // ---- day / night (REQ-18) ----
+  // ---- day / night (REQ-18); the former toolbar lives in the corner settings menu ----
   const dayNight = createDayNight();
   const dnControl = createDayNightControl(dayNight);
-  toolbar.append(dnControl.element, orgBtn, runtime.pauseButton, shortcutBtn);
+  const scenarioInfo = createScenarioInfo({ seed: MASTER_SEED, laneWeights: scenarios.laneWeights, quality: quality.quality, maxJobs: { low: maxJobsFor('low'), high: maxJobsFor('high') } });
+  const settings = createSettingsMenu({ controls: [dnControl.element, orgBtn, runtime.pauseButton, createShortcutToggle(keys)], scenario: scenarioInfo });
+  const toolbar = settings.element; // org framing keeps the name pills clear of the corner button
 
   // ---- reduced motion (REQ-20), on load and on live change ----
   const rmq = typeof matchMedia === 'function' ? matchMedia('(prefers-reduced-motion: reduce)') : null;
@@ -350,10 +395,12 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     screens: model.robots.map((r) => r.screen),
     onChange: (on) => {
       staff?.setReducedMotion(on);
+      model.city?.setReducedMotion(on);
       dnControl.refresh();
     },
   });
   staff?.setReducedMotion(motion.active());
+  model.city?.setReducedMotion(motion.active());
   syncStaff();
 
   const unitList = createUnitList(data.units, (u, opener) => flow.select(u, opener, { fromOrg: orgOn }), { visible: false });
@@ -376,8 +423,9 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
   );
   const fpsEl = el('div', { class: 'fps' }, '');
   fpsEl.hidden = !params.debug;
-  // Tab order: floor panel, then the strip (§4), then the rest.
-  root.append(toolbar, panel.element, runtime.strip.element, unitList.element, labels, legend, fpsEl);
+  // Tab order: floor panel, then the strip (§4), then the rest. The rail keeps panel and strip apart.
+  mountHud(root, { menu: toolbar, panel: panel.element, legend, strip: runtime.strip.element });
+  root.append(unitList.element, labels, fpsEl);
 
   let hoverId: string | null = null;
   let focusId: string | null = null;
@@ -397,7 +445,7 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     const origin = new Vector3().setFromMatrixPosition(camera.matrixWorld);
     const dir = new Vector3(ndc.x, ndc.y, 0.5).unproject(camera).sub(origin).normalize();
     model.root.updateMatrixWorld(true);
-    return pickRobot(model, new Ray(origin, dir));
+    return pickRobot(model, new Ray(origin, dir), floorOf);
   };
   canvas.addEventListener('pointerdown', (e) => {
     down = { x: e.clientX, y: e.clientY };
@@ -472,19 +520,27 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     if (shouldStepSim(orgOn)) sim.step(dt * 1000); // org mode: robots freeze in place
     runtime.frame(dt * 1000); // simulation clock (≤ 100 ms steps, frozen by org / user / hidden), engine, director, strip
     syncStaffCabinFrom(runtime.workflow.movement, model.staffCabin);
+    boardTex?.render(board.state(runtime.workflow, motion.active()));
     staffRt?.frame(dt); // staff NPCs: paused with the clock's global reasons (org / user / hidden)
+    if (!runtime.clock.paused) model.city?.step(dt); // city life: same global pause reasons
     const selected = flow.selectedId();
     const still = motion.active();
     for (const r of model.robots) {
       if (r.unit.id === selected) sim.faceToward(r.unit.id, camera.position.x, camera.position.z);
-      const v = director ? director.view(r.unit.id) : ambientView(sim.get(r.unit.id));
+      const dv = director ? director.view(r.unit.id) : null;
+      const v = dv ?? ambientView(sim.get(r.unit.id));
       r.group.position.set(v.x, v.y, v.z);
       r.group.rotation.y = v.facing;
       const fp = framePose(orgOn, v.pose, v.walkPhase, clock, still, r.unit.id.length);
       applyPose(r.parts, fp.kind, fp.walkPhase, fp.timeSec);
       r.screen.scrolling = v.screenScroll;
       r.screen.update(dt);
+      if (dv) {
+        floorNow.set(r.unit.id, dv.floor);
+        props.robot(r.unit.id, dv, model.view, orgOn); // marker, stamp, current-floor visibility (R-5)
+      }
     }
+    if (director) props.frame(director, model.view, orgOn);
 
     rig.update(dt);
     if (Math.abs(camera.fov - rig.fov) > 1e-3) {
@@ -513,7 +569,7 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     for (const r of model.robots) {
       const e = robotEls.get(r.unit.id);
       if (!e) continue;
-      const on = orgOn || robotLabelVisible({ id: r.unit.id, floor: r.floor }, model.view, highlighted);
+      const on = orgOn || robotLabelVisible({ id: r.unit.id, floor: floorOf(r) }, model.view, highlighted);
       const p = on ? project(headPos(r)) : null;
       if (!p?.visible) {
         show(e, false);
@@ -558,7 +614,7 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
       if (!r) return;
       const p = project(headPos(r));
       if (e.textContent !== b.text) e.textContent = b.text;
-      show(e, p.visible && !orgOn && bubbleVisible(r.floor, model.view), p.x, p.y, labelShown.has(b.unitId) ? 30 : 4);
+      show(e, p.visible && !orgOn && bubbleVisible(floorOf(r), model.view), p.x, p.y, labelShown.has(b.unitId) ? 30 : 4);
     });
     const staffActive = staffRt?.bubbles(active.length) ?? [];
     staffActive.forEach((b, j) => {

@@ -29,3 +29,8 @@ export function qualitySettings(quality: Quality, devicePixelRatio: number): Qua
   if (quality === 'low') return { quality, shadows: false, pixelRatio: 1 };
   return { quality, shadows: true, pixelRatio: Math.min(devicePixelRatio, 1.5) };
 }
+
+/** Active-job limit per quality tier (spec 0002; shown read-only in the settings menu). */
+export function maxJobsFor(quality: Quality): number {
+  return quality === 'low' ? 2 : 3;
+}

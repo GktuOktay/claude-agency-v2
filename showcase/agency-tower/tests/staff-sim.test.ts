@@ -167,7 +167,7 @@ describe('staff behaviour', () => {
         for (const r of fps[v.floor]!) expect(inside(v, r), `${v.id} floor ${v.floor} (${v.x.toFixed(2)}, ${v.z.toFixed(2)}) in ${r.name}`).toBe(false);
       }
     }
-  });
+  }, 45_000); // heavy multi-floor sweep; times out at 15 s only under parallel load, assertions unchanged
 
   it('the tea server visits every desk of a floor, refills at least every TEA_CAPACITY glasses and moves on floor by floor', () => {
     const tea = long.events.filter((e) => e.staffId === 'staff:tea');

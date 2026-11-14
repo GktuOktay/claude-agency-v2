@@ -3,7 +3,7 @@ import { TOUCH, Vector3 } from 'three';
 import type { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { FLOOR_COUNT, FLOOR_HEIGHT, HALF_DEPTH, HALF_WIDTH, SHAFT_X } from './model';
 import { STAFF_SHAFT } from '../sim/layout';
-import { CAMPUS_BOUNDS } from '../sim/layout';
+import { CAMPUS_BOUNDS, TERRACE, WING } from '../sim/layout';
 
 export const OVERVIEW_DURATION = 1.2;
 export const ZOOM_DURATION = 0.6;
@@ -148,10 +148,28 @@ export function floorPlanPoints(floor: number): Vector3[] {
   return boxCorners(-HALF_WIDTH, HALF_WIDTH, base, base + FLOOR_LABEL_HEADROOM, -HALF_DEPTH, HALF_DEPTH);
 }
 
+/** Wing level `level` (0-2), or the wing roof garden (3), with label headroom; level 0 adds the terrace. */
+export function wingPlanPoints(level: number): Vector3[] {
+  const base = level * FLOOR_HEIGHT;
+  const z1 = level === 0 ? TERRACE.z1 : WING.halfD;
+  return boxCorners(WING.x - WING.halfW, WING.x + WING.halfW, base, base + FLOOR_LABEL_HEADROOM, -WING.halfD, z1);
+}
+
 export function floorPose(floor: number): CamPose {
-  const y = cabinYFor(floor);
+  return framePlan(floorPlanPoints(floor), new Vector3(0, cabinYFor(floor), 0));
+}
+
+/** Frames a whole campus wing level (or the roof garden) like a floor view, clear of the floor panel. */
+export function wingPose(level: number): CamPose {
+  const pts = wingPlanPoints(level);
+  const cz = pts.reduce((a, p) => a + p.z, 0) / pts.length;
+  return framePlan(pts, new Vector3(WING.x, cabinYFor(level), cz));
+}
+
+/** Plan view of `pts` (with headroom); the target keeps height `start.y` (the elevator reference). */
+function framePlan(pts: readonly Vector3[], start: Vector3): CamPose {
+  const y = start.y;
   const dir = viewDirection(14, 44);
-  const pts = floorPlanPoints(floor);
   const forward = dir.clone().negate();
   const right = new Vector3().crossVectors(forward, new Vector3(0, 1, 0)).normalize();
   const up = new Vector3().crossVectors(right, forward);
@@ -164,7 +182,7 @@ export function floorPose(floor: number): CamPose {
   const wantY = -inset.top;
   const tanV = Math.tan(deg(CAMERA_FOV) / 2);
   const tanH = tanV * frameAspect;
-  const target = new Vector3(0, y, 0);
+  const target = start.clone();
   let d = fitDistance(pts, target, dir, CAMERA_FOV, frameAspect, 0.85, 0.96);
   for (let i = 0; i < 8; i++) {
     const b = projectedBounds(pts, target, dir, d, CAMERA_FOV, frameAspect);
@@ -224,7 +242,7 @@ export function orgPose(): CamPose {
 export interface Step {
   pose: CamPose;
   duration: number;
-  enter?: { mode: RigMode; floor: number }; // applied when the step completes
+  enter?: { mode: RigMode; floor: number; wing?: number | null }; // applied when the step completes
   onDone?: () => void;
 }
 
@@ -233,9 +251,11 @@ const ease = (t: number): number => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 *
 export class CameraRig {
   mode: RigMode = 'overview';
   floor = 0;
+  /** Campus wing level framed in a floor-mode view (ghosting follows `floor`), or null for the tower. */
+  wing: number | null = null;
   /** prefers-reduced-motion: every move is a cut (all pending steps complete in one frame). */
   reducedMotion = false;
-  private beforeOrg: { mode: RigMode; floor: number; pose: CamPose } | null = null;
+  private beforeOrg: { mode: RigMode; floor: number; wing: number | null; pose: CamPose } | null = null;
   doors: 'open' | 'closed' = 'open';
   doorsOpenness = 1;
   cabinY = cabinYFor(0);
@@ -261,13 +281,23 @@ export class CameraRig {
 
   /** Ride (or fly from overview) to a floor view, then run `after` (e.g. a zoom). */
   goToFloor(floor: number, after: Step[] = []): void {
-    if (this.mode === 'floor' && this.floor === floor && !this.busy && !after.length) return;
+    const atTower = this.wing === null;
+    if (this.mode === 'floor' && this.floor === floor && atTower && !this.busy && !after.length) return;
     const pose = floorPose(floor);
-    const here = this.mode === 'floor' && this.floor === floor && !this.busy;
+    const here = this.mode === 'floor' && this.floor === floor && atTower && !this.busy;
     const travelled = Math.abs(this.cabinY - pose.cabinY) / FLOOR_HEIGHT;
     const duration = this.mode !== 'floor' ? OVERVIEW_DURATION : rideDuration(travelled);
     const first: Step = { pose, duration, enter: { mode: 'floor', floor } };
     this.run(here ? after : [first, ...after]);
+  }
+
+  /** Fly (or ride) to a campus wing level; the view ghosts like tower floor `focusFloor`. */
+  goToWing(level: number, focusFloor = level): void {
+    if (this.mode === 'floor' && this.wing === level && !this.busy) return;
+    const pose = wingPose(level);
+    const travelled = Math.abs(this.cabinY - pose.cabinY) / FLOOR_HEIGHT;
+    const duration = this.mode !== 'floor' ? OVERVIEW_DURATION : Math.max(ZOOM_DURATION, rideDuration(travelled));
+    this.run([{ pose, duration, enter: { mode: 'floor', floor: focusFloor, wing: level } }]);
   }
 
   goOverview(): void {
@@ -278,16 +308,16 @@ export class CameraRig {
   goOrg(): void {
     if (this.mode !== 'org') {
       const pose: CamPose = { cabinY: this.cabinY, pos: this.position.clone(), target: this.target.clone(), fov: this.fov };
-      this.beforeOrg = { mode: this.mode, floor: this.floor, pose };
+      this.beforeOrg = { mode: this.mode, floor: this.floor, wing: this.wing, pose };
     }
     this.run([{ pose: orgPose(), duration: OVERVIEW_DURATION, enter: { mode: 'org', floor: 0 } }]);
   }
 
   /** Leave org mode back to the remembered pose and floor (1.2 s). */
   exitOrg(): void {
-    const back = this.beforeOrg ?? { mode: 'overview' as const, floor: 0, pose: overviewPose() };
+    const back = this.beforeOrg ?? { mode: 'overview' as const, floor: 0, wing: null, pose: overviewPose() };
     this.beforeOrg = null;
-    this.run([{ pose: back.pose, duration: OVERVIEW_DURATION, enter: { mode: back.mode, floor: back.floor } }]);
+    this.run([{ pose: back.pose, duration: OVERVIEW_DURATION, enter: { mode: back.mode, floor: back.floor, wing: back.wing } }]);
   }
 
   zoomTo(pose: CamPose, onDone?: () => void): void {
@@ -295,7 +325,7 @@ export class CameraRig {
   }
 
   returnToFloor(): void {
-    this.run([{ pose: floorPose(this.floor), duration: ZOOM_DURATION }]);
+    this.run([{ pose: this.wing === null ? floorPose(this.floor) : wingPose(this.wing), duration: ZOOM_DURATION }]);
   }
 
   update(dt: number): void {
@@ -330,6 +360,7 @@ export class CameraRig {
       if (step.enter) {
         this.mode = step.enter.mode;
         this.floor = step.enter.floor;
+        this.wing = step.enter.wing ?? null;
       }
       step.onDone?.();
       if (this.steps.length) this.begin();
