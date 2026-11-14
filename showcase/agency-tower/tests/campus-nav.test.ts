@@ -22,13 +22,13 @@ describe('campus group in the floor panel', () => {
     return { p, onFloor, onCampus };
   };
 
-  it('has a "Kule" and a "Kampüs" group; the campus group lists the four areas in order', () => {
+  it('has a "Bina" and a "Kampüs" group; the campus group lists the four areas in order', () => {
     const { p } = make();
     const groups = [...p.element.querySelectorAll<HTMLElement>('[role="group"]')];
     expect(groups).toHaveLength(2);
     const name = (g: HTMLElement): string => document.getElementById(g.getAttribute('aria-labelledby') ?? '')?.textContent ?? g.querySelector('.panel-group-label')?.textContent ?? '';
     document.body.replaceChildren(p.element);
-    expect(groups.map(name)).toEqual(['Kule', 'Kampüs']);
+    expect(groups.map(name)).toEqual(['Bina', 'Kampüs']);
     const campus = [...groups[1]!.querySelectorAll('button')];
     expect(campus.map((b) => b.getAttribute('data-floor'))).toEqual(['wing-0', 'wing-1', 'wing-2', 'roof']);
     expect(campus[0]?.textContent).toContain('Yemekhane & Snack bar');

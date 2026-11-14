@@ -1,10 +1,11 @@
 // All visible UI text lives here (Turkish). Floor names come from the overlay data.
 export const tr = {
-  loading: 'Kule yükleniyor…',
+  loading: 'Şirket yükleniyor…',
   noWebgl: 'Bu tarayıcı 3B görünümü desteklemiyor.',
   dataError: 'Kadro verisi okunamadı.',
   title: 'Ajans Kulesi',
-  allTower: 'Tüm kule',
+  allTower: 'Tüm şirket',
+  allTowerShort: 'Şirket',
   orgChart: 'Organizasyon şeması',
   day: 'Gündüz',
   night: 'Gece',
@@ -14,7 +15,7 @@ export const tr = {
   shortcutsOff: 'Kısayollar: kapalı',
   close: 'Kapat',
   floorPanel: 'Kat seçimi',
-  panelGroups: { tower: 'Kule', campus: 'Kampüs' },
+  panelGroups: { tower: 'Bina', campus: 'Kampüs' },
   unitList: 'Birim listesi',
   currentMarker: '● ',
   card: {

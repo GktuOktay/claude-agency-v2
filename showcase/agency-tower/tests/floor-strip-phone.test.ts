@@ -1,5 +1,5 @@
-// Phone floor strip (KARARLAR Rev 38 polish): at 375 px the "Kule" floors, "Tüm kule" and the "Kampüs" areas
-// are all reachable without a hidden horizontal scroll. Two rows: floors 5..0 on top; "Tüm kule" and the campus
+// Phone floor strip (KARARLAR Rev 38 polish): at 375 px the "Bina" floors, "Tüm şirket" and the "Kampüs" areas
+// are all reachable without a hidden horizontal scroll. Two rows: floors 5..0 on top; "Tüm şirket" and the campus
 // areas below. jsdom has no layout, so the phone rules are checked in the stylesheet plus a width budget.
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
@@ -35,7 +35,7 @@ describe('phone floor strip: two rows, no hidden horizontal scroll', () => {
     const p = createFloorPanel(hierarchy.floors, () => undefined, { items: CAMPUS_ITEMS, onSelect: () => undefined });
     expect(p.element.classList.contains('has-groups')).toBe(true);
     expect(createFloorPanel(hierarchy.floors, () => undefined).element.classList.contains('has-groups')).toBe(false);
-    // Desktop order and grouping unchanged: floors 5..0 then "Tüm kule" in Kule, campus areas in Kampüs.
+    // Desktop order and grouping unchanged: floors 5..0 then "Tüm şirket" in Bina, campus areas in Kampüs.
     const groups = [...p.element.querySelectorAll('[role="group"]')];
     expect(groups).toHaveLength(2);
     expect([...groups[0]!.querySelectorAll('button')].map((b) => b.dataset.floor)).toEqual(['5', '4', '3', '2', '1', '0', 'all']);
@@ -50,7 +50,7 @@ describe('phone floor strip: two rows, no hidden horizontal scroll', () => {
     expect(rulesFor(block, '.floor-panel:not(.has-groups)').join(';')).toMatch(/flex-wrap:\s*wrap/);
   });
 
-  it('places the tower group over two rows with "Tüm kule" wrapping to the second row beside the campus areas', () => {
+  it('places the tower group over two rows with "Tüm şirket" wrapping to the second row beside the campus areas', () => {
     const block = phoneBlock();
     const grid = rulesFor(block, '.floor-panel.has-groups').join(';');
     expect(grid).toMatch(/display:\s*grid/);
@@ -71,7 +71,7 @@ describe('phone floor strip: two rows, no hidden horizontal scroll', () => {
     const room = 375 - 16 - (TOUCH + 8) - 8;
     const row1 = 6 * TOUCH + 5 * GAP;
     expect(row1).toBeLessThanOrEqual(room);
-    // Row 2: "Tüm kule" (fixed 4.5rem) + gap + divider (1 px + 4 px) + campus buttons at a conservative 7.6 px
+    // Row 2: "Tüm şirket" (fixed 4.5rem) + gap + divider (1 px + 4 px) + campus buttons at a conservative 7.6 px
     // per glyph of 0.8rem text plus 2*8 px padding (no dot on phones), at least 44 px each.
     const allW = 4.5 * 16;
     const campusW = CAMPUS_ITEMS.reduce((s, c) => s + Math.max(TOUCH, [...c.short].length * 7.6 + 16), 0) + (CAMPUS_ITEMS.length - 1) * GAP;
