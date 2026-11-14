@@ -89,11 +89,13 @@ interface Internal {
   join: boolean;
 }
 
+export type BreakPhase = 'go' | 'stay' | 'back';
+
 interface Break {
   spot: AmenitySpot;
   /** Schedule slot the break was taken in (Rev 35), if any. */
   slot: SlotKind | null;
-  phase: 'go' | 'stay' | 'back';
+  phase: BreakPhase;
   /** Ping-pong mate (both play only while both stand at the table). */
   partner: string | null;
   /** Last rendered position, for facing and walk phase. */
@@ -176,6 +178,8 @@ export interface ActivitySim {
   isReserved(id: string): boolean;
   /** The amenity spot of a robot on a campus break (walking there, staying or walking back), else null. */
   onBreak(id: string): AmenitySpot | null;
+  /** Phase of a campus break (walking there, staying, walking back), else null. */
+  breakPhase(id: string): BreakPhase | null;
 }
 
 const dist = (a: Point, b: Point): number => Math.hypot(b.x - a.x, b.z - a.z);
@@ -514,6 +518,9 @@ export function createActivitySim(specs: readonly ActivitySpec[], seed: number, 
     },
     onBreak(id) {
       return robots.get(id)?.brk?.spot ?? null;
+    },
+    breakPhase(id) {
+      return robots.get(id)?.brk?.phase ?? null;
     },
     faceToward(id, x, z) {
       const r = robots.get(id);

@@ -54,6 +54,7 @@ import { MASTER_SEED } from '../sim/workflow';
 import { framePose, shouldStepSim } from './frameUpdate';
 import { createSelectionFlow } from './selection';
 import { createSimRuntime } from './simRuntime';
+import { breakKeyOf } from '../ui/nowLine';
 import { syncStaffCabinFrom } from './elevatorView';
 import { createDirector, type Director, type RobotView } from '../scene/director';
 import { createProps, propRobotsOf } from '../scene/props';
@@ -345,7 +346,11 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     model,
     getCard: () => card,
     exitOrg: dropOrg,
-    linesFor: (id) => runtime.cardLinesFor(id, sim.get(id).kind),
+    linesFor: (id) => {
+      const kind = sim.get(id).kind;
+      // Rev 38: a break names its venue (or the tea / coffee slot at the floor station).
+      return runtime.cardLinesFor(id, kind, breakKeyOf({ spot: sim.onBreak(id), phase: sim.breakPhase(id), kind, period: office.breakPeriod() }));
+    },
     onSelect: (id) => runtime.select(id),
     onRelease: (id) => runtime.release(id),
     renderPosition: (id) => {

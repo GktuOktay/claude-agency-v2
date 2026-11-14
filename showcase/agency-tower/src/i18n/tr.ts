@@ -157,5 +157,19 @@ export const tr = {
     'stamp-press': 'İmzalıyor',
     called: 'Çağrıldı: <adım etiketi>',
   },
+  // Rev 38 polish: break-specific "Şu an" lines, keyed by break venue (scene/breaks.ts) or the floor station slot.
+  // A separate set: the §7.6 job-step map above stays as AC-11 transcribed it.
+  breakTpl: {
+    gym: 'Spor salonunda',
+    game: 'Oyun alanında',
+    snack: "Snack bar'da",
+    cafeteria: 'Yemekhanede öğle yemeğinde',
+    terrace: 'Terasta',
+    pods: 'Uyku kabininde dinleniyor',
+    lab: "Ar-Ge'de",
+    archive: 'Arşivde',
+    tea: 'Çay molasında',
+    coffee: 'Kahve molasında',
+  },
 
 } as const;
