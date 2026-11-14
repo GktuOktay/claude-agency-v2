@@ -3,7 +3,7 @@ import { TOUCH, Vector3 } from 'three';
 import type { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { FLOOR_COUNT, FLOOR_HEIGHT, HALF_DEPTH, HALF_WIDTH, SHAFT_X } from './model';
 import { STAFF_SHAFT } from '../sim/layout';
-import { CAMPUS_BOUNDS, TERRACE, WING } from '../sim/layout';
+import { CAMPUS_BOUNDS, ROOF_GARDEN_FLOOR, TERRACE, WING } from '../sim/layout';
 
 export const OVERVIEW_DURATION = 1.2;
 export const ZOOM_DURATION = 0.6;
@@ -63,8 +63,25 @@ let insets: { left: number; top: number } | null = null;
 export function clearFrameInsets(): void {
   insets = null;
 }
-export function setFrameInsets(left: number, top: number): void {
+export function setFrameInsets(left: number, top: number, bottom = 0): void {
   insets = { left: Math.min(0.4, Math.max(0, left)), top: Math.min(0.4, Math.max(0, top)) };
+  setSheetInset(bottom);
+}
+
+/** Largest bottom-sheet fraction a floor view leaves to the sheet (the plan keeps at least a usable band). */
+export const MAX_SHEET_INSET = 0.5;
+let sheetInset = 0;
+/**
+ * Rev 38: screen fraction covered by an open bottom sheet (the settings sheet on phones). Floor and wing views
+ * fit the plan above it. 0 = none (the default, desktop).
+ */
+export function setSheetInset(bottom: number): void {
+  sheetInset = Number.isFinite(bottom) ? Math.min(MAX_SHEET_INSET, Math.max(0, bottom)) : 0;
+}
+let zoomSheet = 0;
+/** Rev 38: screen fraction the robot card covers on phones; the robot close-up sits in the area above it. */
+export function setZoomSheetInset(bottom: number): void {
+  zoomSheet = Number.isFinite(bottom) ? Math.min(0.7, Math.max(0, bottom)) : 0;
 }
 
 const deg = (d: number): number => (d * Math.PI) / 180;
@@ -155,8 +172,22 @@ export function wingPlanPoints(level: number): Vector3[] {
   return boxCorners(WING.x - WING.halfW, WING.x + WING.halfW, base, base + FLOOR_LABEL_HEADROOM, -WING.halfD, z1);
 }
 
+/**
+ * Points a tower floor view frames. Rev 38: on a portrait screen the campus wing would show as a thin sliver
+ * at the left edge; the frame takes in its whole east facade (ground to the wing level of this floor, or its
+ * roof) so the edge, the sky-bridge and the wing corner read as a whole neighbour. Wide screens: the plan only.
+ */
+export function floorFramePoints(floor: number): Vector3[] {
+  const plan = floorPlanPoints(floor);
+  if (frameAspect >= 1) return plan;
+  const level = Math.min(floor, ROOF_GARDEN_FLOOR);
+  const x = WING.x + WING.halfW;
+  const top = level * FLOOR_HEIGHT + (level === ROOF_GARDEN_FLOOR ? 0.6 : FLOOR_LABEL_HEADROOM);
+  return [...plan, ...boxCorners(x, x, level * FLOOR_HEIGHT, top, -WING.halfD, WING.halfD)];
+}
+
 export function floorPose(floor: number): CamPose {
-  return framePlan(floorPlanPoints(floor), new Vector3(0, cabinYFor(floor), 0));
+  return framePlan(floorFramePoints(floor), new Vector3(0, cabinYFor(floor), 0));
 }
 
 /** Frames a whole campus wing level (or the roof garden) like a floor view, clear of the floor panel. */
@@ -179,7 +210,8 @@ function framePlan(pts: readonly Vector3[], start: Vector3): CamPose {
   const inset = insets ?? { left: frameAspect > 1 ? PANEL_OFFSET_NDC : 0, top: 0 };
   // Free area in NDC: x in [-1 + 2*left, 1], y in [-1, 1 - 2*top].
   const wantX = inset.left;
-  const wantY = -inset.top;
+  const bottom = sheetInset;
+  const wantY = bottom - inset.top;
   const tanV = Math.tan(deg(CAMERA_FOV) / 2);
   const tanH = tanV * frameAspect;
   const target = start.clone();
@@ -189,7 +221,7 @@ function framePlan(pts: readonly Vector3[], start: Vector3): CamPose {
     const cy = (b.minY + b.maxY) / 2;
     const cx = (b.minX + b.maxX) / 2;
     // Width ~90 % (less the panel offset), height within 96 %: scale the distance toward the binding one.
-    const fill = Math.max((b.maxX - b.minX) / 2 / (0.95 * (1 - inset.left)), (b.maxY - b.minY) / 2 / (0.96 * (1 - inset.top)));
+    const fill = Math.max((b.maxX - b.minX) / 2 / (0.95 * (1 - inset.left)), (b.maxY - b.minY) / 2 / (0.96 * (1 - inset.top - bottom)));
     d *= fill;
     target.addScaledVector(horiz, ((cy - wantY) * d * tanV) / Math.max(0.2, horiz.dot(up)));
     target.addScaledVector(right, (cx - wantX) * d * tanH);
@@ -200,7 +232,19 @@ function framePlan(pts: readonly Vector3[], start: Vector3): CamPose {
 /** Frames a robot and its desk: the robot fills roughly a quarter to a third of the viewport height. */
 export function robotPose(robotFeet: Vector3, cabinY?: number, scale = 1): CamPose {
   const target = robotFeet.clone().add(new Vector3(0, ZOOM_TARGET_LIFT * scale, 0));
-  const pos = target.clone().add(viewDirection(25, 40).multiplyScalar(ZOOM_DISTANCE));
+  const dir = viewDirection(25, 40);
+  const pos = target.clone().add(dir.clone().multiplyScalar(ZOOM_DISTANCE));
+  if (zoomSheet > 0) {
+    // Rev 38: slide the view (same distance and angle) so the robot sits mid-way between the top strip and
+    // the card sheet instead of under the sheet.
+    const forward = dir.clone().negate();
+    const right = new Vector3().crossVectors(forward, new Vector3(0, 1, 0)).normalize();
+    const up = new Vector3().crossVectors(right, forward);
+    const wantY = zoomSheet - (insets?.top ?? 0);
+    const shift = up.multiplyScalar(-wantY * ZOOM_DISTANCE * Math.tan(deg(ZOOM_FOV) / 2));
+    target.add(shift);
+    pos.add(shift);
+  }
   return { cabinY: cabinY ?? target.y, pos, target, fov: ZOOM_FOV };
 }
 

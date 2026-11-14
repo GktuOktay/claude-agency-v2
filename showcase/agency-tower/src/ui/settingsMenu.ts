@@ -26,6 +26,8 @@ export interface SettingsMenu {
 
 export interface SettingsMenuOptions {
   sections: readonly SettingsSection[];
+  /** Rev 38: open / close, so the app can frame the view above the phone sheet. */
+  onToggle?: (open: boolean) => void;
 }
 
 /** Sliders icon, built with createElementNS (no markup strings). Decorative: the button has a label. */
@@ -128,6 +130,7 @@ export function createSettingsMenu(o: SettingsMenuOptions): SettingsMenu {
     panel.hidden = !on;
     button.setAttribute('aria-expanded', String(on));
     applyBadge();
+    o.onToggle?.(on);
   };
   const menu: SettingsMenu = {
     element: wrap,

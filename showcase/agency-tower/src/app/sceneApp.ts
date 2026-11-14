@@ -20,7 +20,7 @@ import {
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { tr } from '../i18n/tr';
 import { createActivitySim, BREAK_QUEUE_MAX, createBubbleScheduler, SOCIAL_MAX_AWAY, type ActivityView, type BreakMovement, type Bubble } from '../scene/activity';
-import { CAMERA_FOV, CameraRig, FLOOR_TARGET_Y, classifyPointer, configureOrbit, setFrameAspect, setFrameInsets, setOrgInsets } from '../scene/camera';
+import { CAMERA_FOV, CameraRig, FLOOR_TARGET_Y, classifyPointer, configureOrbit, setFrameAspect, setFrameInsets, setOrgInsets, setSheetInset, setZoomSheetInset } from '../scene/camera';
 import { createDayNight, isNightPhase, lightingFor, skyBrightness } from '../scene/daynight';
 import { buildOrgLines, orgLines } from '../scene/org';
 import { createDayNightControl } from '../ui/dayNightControl';
@@ -437,6 +437,8 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
       createScenarioSection({ seed: MASTER_SEED, laneWeights: scenarios.laneWeights, quality: quality.quality, maxJobs: { low: maxJobsFor('low'), high: maxJobsFor('high') } }),
       createAccessibilitySection({ keys }),
     ],
+    // Rev 38: on phones the open settings sheet is a bottom inset for floor / wing framing.
+    onToggle: (on) => frameAboveSheet(on),
   });
   runtime.strip.onCount((n) => settings.setBadge(n));
   const toolbar = settings.element; // org framing keeps the name pills clear of the corner button
@@ -570,12 +572,25 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     setFrameInsets(strip ? 0 : Math.min(0.35, (r.right + 8) / w), strip ? Math.min(0.3, (r.bottom + 8) / h) : 0);
   }
 
+  /** Rev 38: fit the floor / wing view above the phone settings sheet while it is open, and back on close. */
+  function frameAboveSheet(open: boolean): void {
+    const h = Math.max(1, root.clientHeight || window.innerHeight);
+    const narrow = narrowMq?.matches ?? false;
+    const sheet = open && narrow ? settings.panel.getBoundingClientRect().height : 0;
+    setSheetInset(sheet > 0 ? (sheet + 8) / h : 0);
+    if (narrow && rig.mode === 'floor' && !flow.selectedId() && !orgOn) rig.returnToFloor();
+  }
+
+  /** Expected card sheet share on phones (CSS max 60vh; most cards are shorter). */
+  const ZOOM_SHEET_PHONE = 0.5;
   // ---- resize ----
   const resize = (): void => {
     const w = Math.max(1, root.clientWidth || window.innerWidth);
     const h = Math.max(1, root.clientHeight || window.innerHeight);
     fitAspect();
     measureInsets();
+    // Rev 38: the robot card is a bottom sheet on phones (up to 60 % of the height): the close-up sits above it.
+    setZoomSheetInset(narrowMq?.matches ? ZOOM_SHEET_PHONE : 0);
     if (orgOn) measureOrgInsets();
     renderer.setSize(w, h, false);
     camera.aspect = w / h;
