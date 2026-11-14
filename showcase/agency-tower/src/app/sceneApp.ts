@@ -26,7 +26,8 @@ import { buildOrgLines, orgLines } from '../scene/org';
 import { createDayNightControl } from '../ui/dayNightControl';
 import { createOrgLegend } from '../ui/orgLegend';
 import { bindReducedMotion, type MediaQueryLike } from './motion';
-import { bubbleVisible, robotLabelVisible, roomLabelVisible, stackLabels, type LabelBox } from '../scene/labels';
+import { bubbleVisible, robotLabelVisible, roomLabelVisible } from '../scene/labels';
+import { bubbleLift, createDeclutter, declutterDue } from '../scene/declutter';
 import { FLOOR_HEIGHT, FLOOR_TOP, accentCss, buildTower, floorAccent, type RobotEntry } from '../scene/model';
 import { ROBOT_BASE_SCALE, ROBOT_HEIGHT } from '../scene/robot';
 import { blobTexture, hatchTexture, screenTexture, woodTexture } from '../scene/textures';
@@ -478,6 +479,37 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
   };
   const roomEls = model.rooms.map((room) => ({ room, e: pill('room-label', accentCss(room.floor), room.text) }));
   const labelWidths = new WeakMap<HTMLElement, number>();
+  const labelHeights = new WeakMap<HTMLElement, number>();
+  /** Label size, measured once after its first show. */
+  const widthOf = (e: HTMLElement): number => {
+    let w = labelWidths.get(e);
+    if (w === undefined) {
+      w = e.offsetWidth || 90;
+      labelWidths.set(e, w);
+    }
+    return w;
+  };
+  const heightOf = (e: HTMLElement): number => {
+    let h = labelHeights.get(e);
+    if (h === undefined) {
+      h = e.offsetHeight || 21;
+      labelHeights.set(e, h);
+    }
+    return h;
+  };
+  // Rev 38 de-clutter state, allocated once (no per-frame allocation in the label pass).
+  const PILL_H = 22;
+  const clutter = createDeclutter(model.robots.length, roomEls.length);
+  const robotIndex = new Map<string, number>(model.robots.map((r, i) => [r.unit.id, i]));
+  const pillX = new Float32Array(model.robots.length);
+  const pillY = new Float32Array(model.robots.length);
+  const pillLift = new Float32Array(model.robots.length);
+  const pillFade = new Uint8Array(model.robots.length);
+  const pillOn = new Uint8Array(model.robots.length);
+  const pillSlot = new Int16Array(model.robots.length);
+  const highlighted = new Set<string>();
+  const labelShown = new Set<string>();
+  let frameNo = 0;
   const robotEls = new Map<string, HTMLElement>(
     model.robots.map((r) => [r.unit.id, pill('robot-label', accentCss(r.floor), r.unit.nameTr, tr.tiers[r.unit.tier])]),
   );
@@ -624,35 +656,10 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     model.cabin.setHeight(rig.cabinY - FLOOR_TARGET_Y + FLOOR_TOP);
     model.cabin.setDoorsOpen(rig.doorsOpenness);
 
-    // robot name pills: every robot of the focused floor in floor view; hovered / focused / selected otherwise
-    const highlighted = new Set<string>();
-    for (const id of [selected, focusId, hoverId]) if (id) highlighted.add(id);
-    const labelShown = new Set<string>();
-    const placed: { e: HTMLElement; box: LabelBox }[] = [];
-    for (const r of model.robots) {
-      const e = robotEls.get(r.unit.id);
-      if (!e) continue;
-      const on = orgOn || robotLabelVisible({ id: r.unit.id, floor: floorOf(r) }, model.view, highlighted);
-      const p = on ? project(headPos(r)) : null;
-      if (!p?.visible) {
-        show(e, false);
-        continue;
-      }
-      if (e.hidden) e.hidden = false;
-      let w = labelWidths.get(e);
-      if (w === undefined) {
-        w = e.offsetWidth || 90; // measured once, after first show
-        labelWidths.set(e, w);
-      }
-      placed.push({ e, box: { x: p.x, y: p.y, w } });
-      labelShown.add(r.unit.id);
-      e.classList.toggle('is-active', highlighted.has(r.unit.id));
-    }
-    // each pill sits just above its own robot's head; close neighbours (e.g. at the coffee island) stack
-    const lifts = stackLabels(placed.map((x) => x.box), 22);
-    placed.forEach(({ e, box }, i) => show(e, true, box.x, box.y, lifts[i] ?? 0));
-
-    // department / room pills
+    // Rev 38 de-clutter: zone / floor / room pills are fixed obstacles with priority; robot pills nudge up past
+    // them or fade. A pass runs every DECLUTTER_EVERY frames; in between the pills reuse their lift / fade.
+    const pass = declutterDue(frameNo++);
+    if (pass) clutter.begin();
     for (const { room, e } of roomEls) {
       const on = !orgOn && roomLabelVisible(room, model.view) && !(selected && room.floor === model.view.focusFloor && !room.primary);
       if (!on) {
@@ -661,6 +668,51 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
       }
       const p = project(room.position);
       show(e, p.visible, p.x, p.y);
+      if (pass && p.visible) clutter.addFixed(p.x, p.y, widthOf(e), heightOf(e));
+    }
+
+    // robot name pills: every robot of the focused floor in floor view; hovered / focused / selected otherwise
+    highlighted.clear();
+    if (selected) highlighted.add(selected);
+    if (focusId) highlighted.add(focusId);
+    if (hoverId) highlighted.add(hoverId);
+    labelShown.clear();
+    for (let i = 0; i < model.robots.length; i++) {
+      const r = model.robots[i]!;
+      pillOn[i] = 0;
+      const e = robotEls.get(r.unit.id);
+      if (!e) continue;
+      const on = orgOn || robotLabelVisible({ id: r.unit.id, floor: floorOf(r) }, model.view, highlighted);
+      const p = on ? project(headPos(r)) : null;
+      if (!p?.visible) {
+        show(e, false);
+        pillLift[i] = 0;
+        pillFade[i] = 0;
+        continue;
+      }
+      if (e.hidden) e.hidden = false;
+      pillOn[i] = 1;
+      pillX[i] = p.x;
+      pillY[i] = p.y;
+      const hot = highlighted.has(r.unit.id);
+      if (pass) pillSlot[i] = clutter.addPill(p.x, p.y, widthOf(e), PILL_H, hot);
+      labelShown.add(r.unit.id);
+      e.classList.toggle('is-active', hot);
+    }
+    if (pass) {
+      clutter.solve();
+      for (let i = 0; i < model.robots.length; i++) {
+        if (!pillOn[i]) continue;
+        pillLift[i] = clutter.lift(pillSlot[i]!);
+        pillFade[i] = clutter.fade(pillSlot[i]!) ? 1 : 0;
+      }
+    }
+    for (let i = 0; i < model.robots.length; i++) {
+      if (!pillOn[i]) continue;
+      const e = robotEls.get(model.robots[i]!.unit.id);
+      if (!e) continue;
+      show(e, true, pillX[i]!, pillY[i]!, pillLift[i]!);
+      e.classList.toggle('is-faded', pillFade[i] === 1);
     }
 
     // speech bubbles (above the name pill when one is shown)
@@ -677,7 +729,7 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
       if (!r) return;
       const p = project(headPos(r));
       if (e.textContent !== b.text) e.textContent = b.text;
-      show(e, p.visible && !orgOn && bubbleVisible(floorOf(r), model.view), p.x, p.y, labelShown.has(b.unitId) ? 30 : 4);
+      show(e, p.visible && !orgOn && bubbleVisible(floorOf(r), model.view), p.x, p.y, bubbleLift(labelShown.has(b.unitId), pillLift[robotIndex.get(b.unitId) ?? -1] ?? 0));
     });
     const staffActive = staffRt?.bubbles(active.length) ?? [];
     staffActive.forEach((b, j) => {
