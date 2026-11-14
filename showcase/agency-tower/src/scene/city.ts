@@ -941,10 +941,10 @@ function dogGeometry(): BufferGeometry {
   return b.build();
 }
 
-/** Trousers and shoes: two legs (local +x forward). */
+/** Trousers and shoes: one block for both legs, read from above as a pair (local +x forward; budget, rev 37). */
 function legsGeometry(): BufferGeometry {
   const b = new Builder();
-  for (const z of [-0.08, 0.08]) b.box(-0.06, 0.06, 0, 0.62, z - 0.055, z + 0.055, 0xffffff);
+  b.box(-0.06, 0.06, 0, 0.62, -0.135, 0.135, 0xffffff);
   return b.build();
 }
 
@@ -1102,7 +1102,8 @@ export function createCity(options: CityOptions = {}): City {
       m.count = list.length;
       m.frustumCulled = false;
     }
-    list.forEach((v, i) => paint.setColorAt(i, col.setHex(pick(PAINTS[style], v.tone))));
+    // Paints rotate through each style's palette in order, so every style shows its range on the road.
+    list.forEach((_, i) => paint.setColorAt(i, col.setHex(pick(PAINTS[style], i))));
     return { paint, trim, list };
   });
   const lightsMat = basic({ vertexColors: true, transparent: true, opacity: 0, depthWrite: false });
