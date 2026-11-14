@@ -41,6 +41,17 @@ WebGL2 gerekir. URL parametreleri: `?quality=low|high`, `?debug=1` (fps gösterg
 - `npm run isolation:check` bu kuralları denetler (`src/`, `scripts/`, `index.html`, `vite.config.*` taranır).
 - Bu klasörü kuran ajans yüklemesine bir şey eklemez; `harness/` ve CI showcase testlerini çalıştırmaz.
 
+## Maksimum yük penceresi (QA için, spec 0002 AC-17)
+
+Sabit seed (`MASTER_SEED`), `high` kalite, gerçek nav hareketi; `tests/limits.test.ts` hesaplar (Node 22, 2026-11-14):
+
+| Ölçü | Başlangıç | Bitiş | Süre |
+|---|---|---|---|
+| 3 senaryolu iş çalışıyor ve l3 toplantı adımı çalışıyor (toplanma dahil) | 115.8 s | 146.3 s | 30.5 s |
+| Aynı pencerenin oturulan kısmı (toplantı ilerlemesi > 0) | 127.2 s | 146.3 s | 19.1 s |
+
+fps göz kontrolü (`?debug=1`, genel görünüm ve 3. kat) bu aralıkta yapılır; 120–146 s arası iki tanıma da uyar.
+
 ## Faz 2 (kapsam dışı)
 
 Playwright tarayıcı testleri, örnek iş/hat akışı tekrarı, canlı veri, kartlarda hat üyeliği, ay ve yıldızlar, açık/koyu arayüz teması, ses, yayınlama. Görsel kontrol (ekran görüntüsü, iki tema, telefon) göz ile yapılır; ekran görüntüleri depoya girmez.
