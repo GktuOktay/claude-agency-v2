@@ -1,14 +1,12 @@
 // Scene wiring: renderer, lights, camera, input, DOM overlays, render loop. Needs WebGL2 and a browser;
 // the logic it composes is unit-tested separately (visual behaviour is verified by eye).
 import {
-  ACESFilmicToneMapping,
   Color,
   PointLight,
   type Group,
   AmbientLight,
   DirectionalLight,
   HemisphereLight,
-  PCFSoftShadowMap,
   PerspectiveCamera,
   MeshBasicMaterial,
   Mesh,
@@ -50,6 +48,7 @@ import { createActiveJobsSection } from '../ui/settings/activeJobs';
 import { createOfficeSection, PLACEHOLDER_SCHEDULE } from '../ui/settings/office';
 import { createScenarioSection } from '../ui/settings/scenario';
 import { createAccessibilitySection } from '../ui/settings/accessibility';
+import { RENDERER_OPTIONS, applyQuality, createQualityContext, initialTier, roomEnvironment } from './quality';
 import { MASTER_SEED } from '../sim/workflow';
 import { framePose, shouldStepSim } from './frameUpdate';
 import { createSelectionFlow } from './selection';
@@ -92,17 +91,13 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
   const storedTier = readStoredQuality();
   const legacy = params.quality ?? (storedTier ? toLegacyQuality(storedTier) : null);
   const quality = qualitySettings(resolveQuality({ ...params, quality: legacy }, coarse), window.devicePixelRatio || 1);
-  const currentTier: QualityTier = params.quality ?? storedTier ?? quality.quality;
+  const currentTier: QualityTier = params.quality ?? storedTier ?? quality.quality; // the selector's initial mark
 
   const canvas = el('canvas', { class: 'tower-canvas', tabindex: '-1', 'aria-label': tr.title });
   root.prepend(canvas);
-  const renderer = new WebGLRenderer({ canvas, antialias: true, alpha: true });
-  renderer.setPixelRatio(quality.pixelRatio);
+  const renderer = new WebGLRenderer({ canvas, ...RENDERER_OPTIONS });
   renderer.setClearColor(0x000000, 0); // the page's soft off-white gradient shows through
-  renderer.toneMapping = ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.08;
-  renderer.shadowMap.enabled = quality.shadows;
-  renderer.shadowMap.type = PCFSoftShadowMap;
 
   // Fixed day lighting (M1): warm key light, soft sky/ground fill, high ambient.
   const scene = new Scene();
@@ -112,12 +107,17 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
   scene.add(hemi, ambient, interior);
   const sun = new DirectionalLight(0xfff0dc, 2.3);
   scene.add(sun, sun.target);
-  if (quality.shadows) {
-    sun.castShadow = true;
-    sun.shadow.mapSize.set(2048, 2048);
-    sun.shadow.bias = -0.0004;
-    sun.shadow.normalBias = 0.02;
-  }
+  sun.shadow.bias = -0.0004;
+  sun.shadow.normalBias = 0.02;
+  // Render quality (Rev 35): pixel ratio, shadows, tone mapping, environment; switchable at runtime.
+  const qualityCtx = createQualityContext({
+    renderer,
+    scene,
+    shadowLights: [sun],
+    devicePixelRatio: () => window.devicePixelRatio || 1,
+    createEnvironment: roomEnvironment(renderer),
+  });
+  applyQuality(qualityCtx, params.quality ? initialTier(params, coarse) : (storedTier ?? initialTier(params, coarse)));
   let shadowMode: 'overview' | 'floor' | null = null;
   const placeSun = (): void => {
     const mode = model.view.mode;
@@ -126,7 +126,7 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     sun.target.position.set(0, focusY, 0);
     sun.position.set(7 * reach, focusY + 16 * reach, 10 * reach);
     sun.target.updateMatrixWorld();
-    if (quality.shadows && shadowMode !== mode) {
+    if (shadowMode !== mode) {
       shadowMode = mode;
       const cam = sun.shadow.camera;
       const half = mode === 'floor' ? 10.5 : 24;
@@ -407,9 +407,9 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
   // ---- day / night (REQ-18); the former toolbar lives in the corner settings menu ----
   const dayNight = createDayNight();
   const dnControl = createDayNightControl(dayNight);
-  // Rev 35: interim quality hook (pixel ratio now; shadows and job limit follow on the next load).
+  // Rev 35: runtime quality switch (src/app/quality.ts); job limit and whiteboard size follow the start tier.
   const onQuality: OnQuality = (tier) => {
-    renderer.setPixelRatio(qualitySettings(toLegacyQuality(tier), window.devicePixelRatio || 1).pixelRatio);
+    applyQuality(qualityCtx, tier);
     resize();
   };
   const settings = createSettingsMenu({
@@ -692,6 +692,9 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     sun.intensity = L.sun;
     sun.color.setHex(L.sunColor);
     hemi.intensity = L.hemi;
+    hemi.color.setHex(L.hemiSky);
+    hemi.groundColor.setHex(L.hemiGround);
+    scene.environmentIntensity = L.env;
     ambient.intensity = L.ambient;
     renderer.toneMappingExposure = L.exposure;
     model.setNight(lightsOn);
@@ -709,7 +712,7 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
 
     placeSun();
     renderer.render(scene, camera);
-    if (params.debug) fpsEl.textContent = `${fps.frame(now).toFixed(0)} fps · ${quality.quality}`;
+    if (params.debug) fpsEl.textContent = `${fps.frame(now).toFixed(0)} fps · ${qualityCtx.tier ?? quality.quality}`;
   };
 
   const loop = createLoop({

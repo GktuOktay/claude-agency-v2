@@ -61,6 +61,11 @@ export interface Lighting {
   ambient: number;
   exposure: number;
   sunColor: number;
+  /** Hemisphere fill: cool sky over warm ground by day, moonlit blue at night (Rev 35). */
+  hemiSky: number;
+  hemiGround: number;
+  /** scene.environmentIntensity for the PMREM reflections (only used on tiers with an environment). */
+  env: number;
   skyTop: string;
   skyMid: string;
   skyBottom: string;
@@ -74,6 +79,19 @@ const hex = (r: number, g: number, b: number): string =>
 const mixRgb = (a: readonly number[], b: readonly number[], t: number): string =>
   hex((a[0] ?? 0) + ((b[0] ?? 0) - (a[0] ?? 0)) * t, (a[1] ?? 0) + ((b[1] ?? 0) - (a[1] ?? 0)) * t, (a[2] ?? 0) + ((b[2] ?? 0) - (a[2] ?? 0)) * t);
 
+const mixNum = (a: readonly number[], b: readonly number[], t: number): number => parseInt(mixRgb(a, b, t).slice(1), 16);
+
+// Key light colour stops (Rev 35): cool moon → golden hour → warm daylight, blended without steps.
+const MOON = [159, 178, 255] as const;
+const GOLDEN = [255, 184, 128] as const;
+const GOLDEN_AT = 0.35;
+const SUN_DAY = [255, 232, 204] as const;
+const sunColorFor = (b: number): number =>
+  b < GOLDEN_AT ? mixNum(MOON, GOLDEN, b / GOLDEN_AT) : mixNum(GOLDEN, SUN_DAY, (b - GOLDEN_AT) / (1 - GOLDEN_AT));
+
+const HEMI_DAY = { sky: [238, 243, 255], ground: [232, 220, 203] } as const;
+const HEMI_NIGHT = { sky: [74, 88, 138], ground: [44, 40, 54] } as const;
+
 const DAY = { top: [251, 250, 247], mid: [241, 238, 232], bottom: [230, 226, 218] } as const;
 const NIGHT = { top: [22, 28, 48], mid: [34, 40, 66], bottom: [58, 52, 70] } as const;
 
@@ -82,11 +100,14 @@ export function lightingFor(brightness: number, lightsOn: number): Lighting {
   const b = Math.min(1, Math.max(0, brightness));
   const dark = 1 - b;
   return {
-    sun: 0.15 + 2.15 * b,
-    hemi: 0.35 + 0.8 * b,
-    ambient: 0.22 + 0.38 * b,
+    sun: 0.12 + 2.23 * b,
+    hemi: 0.42 + 0.73 * b,
+    ambient: 0.18 + 0.42 * b,
     exposure: 1.08 + 0.12 * dark,
-    sunColor: b > 0.5 ? 0xfff0dc : b > 0.25 ? 0xffc89a : 0x9fb2ff,
+    sunColor: sunColorFor(b),
+    hemiSky: mixNum(HEMI_NIGHT.sky, HEMI_DAY.sky, b),
+    hemiGround: mixNum(HEMI_NIGHT.ground, HEMI_DAY.ground, b),
+    env: 0.08 + 0.27 * b,
     skyTop: mixRgb(NIGHT.top, DAY.top, b),
     skyMid: mixRgb(NIGHT.mid, DAY.mid, b),
     skyBottom: mixRgb(NIGHT.bottom, DAY.bottom, b),
