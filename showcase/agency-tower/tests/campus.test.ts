@@ -287,7 +287,8 @@ describe('campus budgets', () => {
     let verts = 0;
     let meshes = 0;
     m.root.traverse((o) => {
-      if (!(o instanceof Mesh) || o.name === 'skyline-building' || o.name === 'ground' || o.name === 'ground-shadow') return;
+      // The city around the campus (src/scene/city.ts) has its own share, checked in city-scene.test.ts.
+      if (!(o instanceof Mesh) || o.name === 'skyline-building' || o.name === 'ground' || o.name === 'ground-shadow' || o.parent?.name === 'city') return;
       const pos = o.geometry.attributes.position;
       if (!pos) return;
       if (o instanceof InstancedMesh) {
