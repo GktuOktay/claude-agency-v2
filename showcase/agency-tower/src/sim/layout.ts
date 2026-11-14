@@ -357,7 +357,7 @@ function meetingRects(): { footprints: Rect[]; seats: Rect[] } {
   return {
     footprints: [
       span('meeting-table', m.table.x - m.table.w / 2 - 0.02, m.table.z - m.table.d / 2 - 0.02, m.table.x + m.table.w / 2 + 0.02, m.table.z + m.table.d / 2 + 0.02),
-      span('whiteboard', wb.x - wb.w / 2 - 0.04, wb.z - 0.12, wb.x + wb.w / 2 + 0.04, wb.z + 0.12),
+      span('whiteboard', wb.x - wb.w / 2 - 0.04, wb.z - 0.22, wb.x + wb.w / 2 + 0.04, wb.z + 0.22),
       partitionRect(m.partition, 'meeting-partition'),
     ],
     seats: m.seats.map((s) => rect('meeting-chair', s.x, s.z, 0.24, 0.24)),

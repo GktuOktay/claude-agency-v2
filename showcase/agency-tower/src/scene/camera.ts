@@ -2,6 +2,7 @@
 import { TOUCH, Vector3 } from 'three';
 import type { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { FLOOR_COUNT, FLOOR_HEIGHT, HALF_DEPTH, HALF_WIDTH, SHAFT_X } from './model';
+import { STAFF_SHAFT } from '../sim/layout';
 
 export const OVERVIEW_DURATION = 1.2;
 export const ZOOM_DURATION = 0.6;
@@ -106,7 +107,7 @@ const TOWER_TOP = FLOOR_COUNT * FLOOR_HEIGHT;
 export function overviewPose(): CamPose {
   const target = new Vector3(-0.6, TOWER_TOP * 0.46, 0);
   const dir = viewDirection(35, 35);
-  const pts = boxCorners(SHAFT_X - 0.9, HALF_WIDTH, 0, TOWER_TOP, -HALF_DEPTH, HALF_DEPTH);
+  const pts = boxCorners(SHAFT_X - 0.9, STAFF_SHAFT.x + 0.9, 0, TOWER_TOP, -HALF_DEPTH, HALF_DEPTH);
   const d = fitDistance(pts, target, dir, CAMERA_FOV, frameAspect, 0.84);
   return { cabinY: cabinYFor(0), pos: target.clone().add(dir.multiplyScalar(d)), target };
 }
@@ -196,7 +197,7 @@ export function setOrgInsets(top: number | null, bottom = 0): void {
  */
 export function orgPose(): CamPose {
   const dir = viewDirection(24, 22);
-  const pts = boxCorners(SHAFT_X - 0.9, HALF_WIDTH, 0, TOWER_TOP + 2.2, -HALF_DEPTH, HALF_DEPTH);
+  const pts = boxCorners(SHAFT_X - 0.9, STAFF_SHAFT.x + 0.9, 0, TOWER_TOP + 2.2, -HALF_DEPTH, HALF_DEPTH);
   const forward = dir.clone().negate();
   const right = new Vector3().crossVectors(forward, new Vector3(0, 1, 0)).normalize();
   const up = new Vector3().crossVectors(right, forward);
