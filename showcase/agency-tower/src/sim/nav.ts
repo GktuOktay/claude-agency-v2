@@ -1,6 +1,7 @@
 // Waypoint navigation (spec 0002 REQ-13, R-2, T-5). Pure and deterministic: per-floor graphs built from
 // src/sim/layout.ts, Dijkstra shortest paths, keep-right offset lanes on aisle edges, offset path length.
 import { LANE_OFFSET, type FloorLayout, type SpotKind, type XZ } from './layout';
+import { campusLevelLayout, type AmenityKind, type AmenitySpot, type CampusLevelLayout } from './layout';
 
 export interface NavNode extends XZ {
   readonly id: string;
@@ -285,4 +286,53 @@ export function distanceToGraph(g: FloorGraph, p: XZ): number {
     if (a && b) d = Math.min(d, pointSegmentDistance(p, a, b));
   }
   return d;
+}
+
+// ---------------------------------------------------------------- campus wing (KARARLAR rev 31)
+
+/** A campus graph node; amenity break spots carry `amenity` (their `spot` is unset, see CampusGraph). */
+export interface CampusNavNode extends NavNode {
+  readonly amenity?: AmenityKind;
+}
+
+/**
+ * Tower floor graph extended with the sky-bridge and the wing level (floors 0-2): additive, every tower
+ * node and edge is kept. Amenity spots are spur nodes like tower spots; `stationary` lists both kinds.
+ */
+export interface CampusGraph extends FloorGraph {
+  readonly nodes: ReadonlyMap<string, CampusNavNode>;
+  readonly amenities: ReadonlyMap<string, AmenitySpot>;
+  /** Every stationary node id (tower spots and amenity spots). */
+  readonly stationary: ReadonlySet<string>;
+  /** The combined plan the graph was built from (tower west wall split at the bridge door). */
+  readonly layout: FloorLayout;
+}
+
+/** Combined floor plan: tower layout plus the campus level (null-safe: non-wing floors are returned as-is). */
+export function campusFloorPlan(tower: FloorLayout): { layout: FloorLayout; campus: CampusLevelLayout | null } {
+  const campus = campusLevelLayout(tower.floor, tower);
+  if (!campus) return { layout: tower, campus: null };
+  const layout: FloorLayout = {
+    ...tower,
+    aisles: [...tower.aisles, ...campus.aisles],
+    // Amenity spots enter as spur spots; buildCampusGraph relabels their nodes as amenity nodes.
+    spots: [...tower.spots, ...campus.spots.map((s) => ({ id: s.id, kind: 'seat' as const, via: s.via, x: s.x, z: s.z }))],
+    footprints: [...tower.footprints.filter((r) => r.name !== 'wall-west'), ...campus.towerWestWall, ...campus.footprints],
+    seatZones: [...tower.seatZones, ...campus.seatZones],
+  };
+  return { layout, campus };
+}
+
+/** Waypoint graph of a tower floor plus its campus wing level, so robots can walk to amenities on breaks. */
+export function buildCampusGraph(tower: FloorLayout): CampusGraph {
+  const { layout, campus } = campusFloorPlan(tower);
+  const g = buildFloorGraph(layout);
+  const amenities = new Map<string, AmenitySpot>((campus?.spots ?? []).map((s) => [s.id, s]));
+  const nodes = new Map<string, CampusNavNode>();
+  for (const [id, n] of g.nodes) {
+    const a = amenities.get(id);
+    nodes.set(id, a ? { id, x: n.x, z: n.z, amenity: a.kind } : n);
+  }
+  const stationary = new Set<string>([...nodes.values()].filter((n) => n.spot !== undefined || n.amenity !== undefined).map((n) => n.id));
+  return { floor: g.floor, nodes, edges: g.edges, adjacency: g.adjacency, amenities, stationary, layout };
 }

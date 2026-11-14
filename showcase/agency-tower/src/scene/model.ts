@@ -45,6 +45,7 @@ import {
 } from './furniture';
 import { createRobot, type MatOptions, type RobotParts } from './robot';
 import { Screen } from './screen';
+import { buildCampus } from './campus';
 
 import {
   COFFEE,
@@ -656,6 +657,11 @@ export function buildTower(data: TowerData, options: BuildOptions = {}): TowerMo
       entry.group.add(extra);
     }
   }
+
+  // Campus wing (KARARLAR rev 31): wing levels join the tower floors of the same index (ghosting, merge).
+  const campus = buildCampus({ floors, kits, textures });
+  root.add(campus.group);
+  rooms.push(...campus.rooms);
 
   for (const f of floors) mergeStatic(f.group);
   const glowMats = kits.flatMap((k) => k.glows);
