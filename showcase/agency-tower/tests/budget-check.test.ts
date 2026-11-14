@@ -20,22 +20,22 @@ function fixture(bytes: number, extra: Record<string, string> = {}): string {
 }
 
 describe('budget-check (AC-17, R-10)', () => {
-  it('the ceiling is 748 000 bytes (650.89 kB x 1.15, 1 kB = 1000 bytes, raw minified)', () => {
-    expect(BUDGET_BYTES).toBe(748_000);
+  it('the ceiling is 900 000 bytes (Rev 31 campus scope; 1 kB = 1000 bytes, raw minified)', () => {
+    expect(BUDGET_BYTES).toBe(900_000);
   });
 
-  it('passes on an entry chunk of exactly 748 000 bytes', () => {
-    const r = checkBudget(fixture(748_000));
+  it('passes on an entry chunk of exactly 900 000 bytes', () => {
+    const r = checkBudget(fixture(900_000));
     expect(r.ok).toBe(true);
-    expect(r.bytes).toBe(748_000);
+    expect(r.bytes).toBe(900_000);
     expect(r.file).toBe('assets/index-abc123.js');
   });
 
-  it('fails on an entry chunk of 749 000 bytes', () => {
-    const r = checkBudget(fixture(749_000));
+  it('fails on an entry chunk of 901 000 bytes', () => {
+    const r = checkBudget(fixture(901_000));
     expect(r.ok).toBe(false);
-    expect(r.bytes).toBe(749_000);
-    expect(r.message).toMatch(/749000/);
+    expect(r.bytes).toBe(901_000);
+    expect(r.message).toMatch(/901000/);
   });
 
   it('measures only the chunk referenced by index.html, not other JS files', () => {
@@ -64,12 +64,12 @@ describe('budget-check (AC-17, R-10)', () => {
     expect(checkBudget(missing).ok).toBe(false);
   });
 
-  it('CLI: exit 0 at 748 000 bytes, exit 1 at 749 000 bytes', () => {
+  it('CLI: exit 0 at 900 000 bytes, exit 1 at 901 000 bytes', () => {
     const script = join(appRoot, 'scripts', 'budget-check.mjs');
-    const pass = spawnSync(process.execPath, [script, fixture(748_000)], { encoding: 'utf8' });
+    const pass = spawnSync(process.execPath, [script, fixture(900_000)], { encoding: 'utf8' });
     expect(pass.status).toBe(0);
     expect(pass.stdout).toMatch(/budget OK/);
-    const fail = spawnSync(process.execPath, [script, fixture(749_000)], { encoding: 'utf8' });
+    const fail = spawnSync(process.execPath, [script, fixture(901_000)], { encoding: 'utf8' });
     expect(fail.status).toBe(1);
     expect(fail.stderr).toMatch(/over budget/);
   });

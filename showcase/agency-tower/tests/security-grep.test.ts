@@ -23,4 +23,16 @@ describe('no HTML-injection sinks in src/ (AC-13)', () => {
     }
     expect(hits).toEqual([]);
   });
+
+  it('src/ makes no request after page load: no dynamic import(), fetch(, XMLHttpRequest, WebSocket or EventSource (0001 REQ-16)', () => {
+    const hits: string[] = [];
+    for (const f of walk(join(appRoot, 'src'), [])) {
+      const text = readFileSync(f, 'utf8');
+      if (/\bimport\s*\(/.test(text)) hits.push(`${f}: import(`);
+      for (const bad of ['fetch(', 'XMLHttpRequest', 'new WebSocket', 'EventSource']) {
+        if (text.includes(bad)) hits.push(`${f}: ${bad}`);
+      }
+    }
+    expect(hits).toEqual([]);
+  });
 });

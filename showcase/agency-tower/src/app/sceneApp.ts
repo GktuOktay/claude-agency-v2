@@ -44,7 +44,7 @@ import { framePose, shouldStepSim } from './frameUpdate';
 import { createSelectionFlow } from './selection';
 import { createSimRuntime } from './simRuntime';
 import { createStaffRuntime, type StaffRuntime } from './staffRuntime';
-import type { StaffModel } from '../scene/staff';
+import { createStaff, type StaffModel } from '../scene/staff';
 import { rideToFloor } from './stripActivation';
 import type { SceneContext } from './bootstrap';
 
@@ -160,20 +160,19 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
   document.addEventListener('visibilitychange', () => runtime.setHidden(document.hidden));
   runtime.setHidden(document.hidden);
 
-  // Staff NPCs load as their own chunk (keeps the entry chunk inside the size budget).
+  // Staff NPCs: static import, no request after page load (0001 REQ-16; budget per KARARLAR Rev 31).
   let staff: StaffModel | null = null;
   let staffRt: StaffRuntime | null = null;
   function syncStaff(): void {
     staff?.setView(model.view);
     staff?.setOrg(orgOn);
   }
-  void import('../scene/staff').then(({ createStaff }) => {
-    const st = createStaff({ layouts: model.layouts, seed: 1, reducedMotion: motion.active() });
+  {
+    const st = createStaff({ layouts: model.layouts, seed: 1, reducedMotion: false }); // synced right after `motion` is bound
     model.root.add(st.group);
     staff = st;
     staffRt = createStaffRuntime({ staff: st, clock: runtime.clock });
-    syncStaff();
-  });
+  }
 
   // ---- navigation and selection ----
   // ---- org-chart mode (REQ-17) ----
@@ -323,6 +322,8 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
       dnControl.refresh();
     },
   });
+  staff?.setReducedMotion(motion.active());
+  syncStaff();
 
   const unitList = createUnitList(data.units, (u, opener) => flow.select(u, opener, { fromOrg: orgOn }), { visible: false });
   // DOM labels (textContent only): department pills per room, name pills per robot.
