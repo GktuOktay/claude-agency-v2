@@ -1,8 +1,9 @@
-// Floor strip at every width from 320 to 1280 px (live preview 748 px: "Tüm kule" under "Yemek"). jsdom has no
+// Floor strip at every width from 320 to 1280 px (live preview 748 px: "Tüm şirket" under "Yemek"). jsdom has no
 // layout, so the stylesheet's sizing rules are read and the strip is laid out with a small flex-wrap model:
 // nothing overlaps and both rows fit left of the settings button.
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
+import { tr } from '../src/i18n/tr';
 import { CAMPUS_ITEMS } from '../src/ui/campusNav';
 
 const css = readFileSync('src/ui/style.css', 'utf8').replace(/\/\*[^]*?\*\//g, '');
@@ -49,7 +50,7 @@ function wrap(widths: readonly number[], width: number, gap: number): [number, n
 }
 
 describe('floor strip widths (320-1280 px)', () => {
-  it('phone floors are fixed 44 px wide and "Tüm kule" clips inside its fixed box', () => {
+  it('phone floors are fixed 44 px wide and the "Şirket" button clips inside its fixed box', () => {
     const floors = rules(PHONE, ".floor-panel.has-groups .panel-group:first-child button:not([data-floor='all'])");
     expect(floors).toMatch(/width:\s*var\(--touch\)/);
     expect(floors).toMatch(/padding:\s*4px 0/);
@@ -57,9 +58,14 @@ describe('floor strip widths (320-1280 px)', () => {
     expect(all).toMatch(/width:\s*4\.5rem/);
     expect(all).toMatch(/overflow:\s*hidden/);
     expect(all).toMatch(/white-space:\s*nowrap/);
+    // The short phone label must really fit the 4.5rem box (7.6 px per glyph + 2 * 6 px padding); the long one is hidden.
+    expect([...tr.allTowerShort].length * 7.6 + 12).toBeLessThanOrEqual(ALL_W);
+    expect(rules(PHONE, ".floor-panel button[data-floor='all'] .short")).toMatch(/display:\s*inline/);
+    expect(rules(PHONE, '.floor-panel .name')).toMatch(/clip-path:\s*inset\(50%\)/);
+    expect(rules(PHONE, ".floor-panel button[data-floor='all'] .name")).toBe('');
   });
 
-  it('375-767 px: six floors fill row 1, "Tüm kule" and the campus areas share row 2 without touching', () => {
+  it('375-767 px: six floors fill row 1, "Tüm şirket" and the campus areas share row 2 without touching', () => {
     const tower = rules(PHONE, '.floor-panel.has-groups .panel-group:first-child');
     const towerW = Number(/width:\s*calc\(6 \* var\(--touch\) \+ 5 \* 4px \+ 2px\)/.test(tower) ? 6 * TOUCH + 5 * GAP + 2 : NaN);
     const margin = /margin-left:\s*calc\(4\.5rem \+ (\d+)px\)/.exec(rules(PHONE, '.floor-panel.has-groups .is-campus'));
@@ -69,8 +75,8 @@ describe('floor strip widths (320-1280 px)', () => {
       const boxes = wrap([...Array<number>(6).fill(TOUCH), ALL_W], towerW, GAP);
       expect(boxes.slice(0, 6).every((b) => b[2] === 0), `${w}px: floors on row 1`).toBe(true);
       const all = boxes[6]!;
-      expect(all[2], `${w}px: "Tüm kule" on row 2`).toBe(1);
-      expect(all[1] + GAP, `${w}px: "Tüm kule" clear of the campus areas`).toBeLessThanOrEqual(campusX0);
+      expect(all[2], `${w}px: "Tüm şirket" on row 2`).toBe(1);
+      expect(all[1] + GAP, `${w}px: "Tüm şirket" clear of the campus areas`).toBeLessThanOrEqual(campusX0);
       const rowW = campusX0 + 5 + campusW().reduce((s, x) => s + x, 0) + (CAMPUS_ITEMS.length - 1) * GAP;
       expect(Math.max(towerW, rowW), `${w}px: fits left of the settings button`).toBeLessThanOrEqual(room(w));
     }

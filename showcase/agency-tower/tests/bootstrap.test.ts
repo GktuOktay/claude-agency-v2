@@ -32,10 +32,10 @@ describe('app states (AC-5)', () => {
     let release: (v: { roster: unknown; overlay: unknown; scenarios: unknown; jobTitles: unknown }) => void = () => undefined;
     const { deps, root } = makeDeps({ loadRaw: () => new Promise((r) => (release = r)) });
     const p = boot(deps);
-    expect(root.textContent).toContain('Kule yükleniyor…');
+    expect(root.textContent).toContain('Şirket yükleniyor…');
     release({ roster, overlay: hierarchy, scenarios, jobTitles });
     await p;
-    expect(root.textContent).not.toContain('Kule yükleniyor…');
+    expect(root.textContent).not.toContain('Şirket yükleniyor…');
   });
 
   it('invalid data and no WebGL2: data error only, no fallback, no scene', async () => {

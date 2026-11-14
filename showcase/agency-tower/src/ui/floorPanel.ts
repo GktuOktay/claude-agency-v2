@@ -20,7 +20,7 @@ export function createFloorPanel(floors: readonly Floor[], onSelect: (v: number 
   const nav = el('nav', { class: 'floor-panel', 'aria-label': tr.floorPanel });
   const buttons = new Map<string, HTMLButtonElement>();
 
-  // With the campus group the panel has two labelled groups ("Kule", "Kampüs"); without, a flat list.
+  // With the campus group the panel has two labelled groups ("Bina", "Kampüs"); without, a flat list.
   const group = (id: string, label: string): HTMLElement => {
     const g = el('div', { class: 'panel-group', role: 'group', 'aria-labelledby': id });
     g.append(el('p', { class: 'panel-group-label', id }, label));
@@ -39,6 +39,11 @@ export function createFloorPanel(floors: readonly Floor[], onSelect: (v: number 
     // Campus: the short phone label is decorative (it is part of the full name, which stays the accessible name).
     const numAttrs: Record<string, string> = accent === undefined && key !== 'all' ? { class: 'num', 'aria-hidden': 'true' } : { class: 'num' };
     b.append(el('span', { class: 'marker', 'aria-hidden': 'true' }), dot, el('span', numAttrs, num), el('span', { class: 'name' }, label));
+    // "Tüm şirket": phones show the short visible label "Şirket" (part of the full accessible name, WCAG 2.5.3).
+    if (key === 'all') {
+      b.setAttribute('aria-label', label);
+      b.append(el('span', { class: 'short', 'aria-hidden': 'true' }, tr.allTowerShort));
+    }
     b.addEventListener('click', onClick);
     buttons.set(key, b);
     host.append(b);
