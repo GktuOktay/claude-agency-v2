@@ -66,6 +66,8 @@ export const tr = {
     evidence: 'Kanıt: test çıktısı',
     loops: '↺',
     more: (n: number): string => `+${n} diğer`,
+    collapse: 'Küçült',
+    expand: (n: number): string => `Göster · ${n} iş`,
     marks: {
       done: { symbol: '✓', word: 'bitti' },
       now: { symbol: '▶', word: 'şimdi' },

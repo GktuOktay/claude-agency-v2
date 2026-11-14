@@ -36,6 +36,7 @@ import { createRng } from '../scene/rng';
 import { createFloorPanel } from '../ui/floorPanel';
 import { createKeyHandler } from '../ui/keymap';
 import { el } from '../ui/dom';
+import { mountHud } from '../ui/hudLayout';
 import { createUnitList } from '../ui/unitList';
 import { applyInitialCamera, projectToScreen } from './initialCamera';
 import { createFpsMeter, createLoop } from './loop';
@@ -345,8 +346,9 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
   );
   const fpsEl = el('div', { class: 'fps' }, '');
   fpsEl.hidden = !params.debug;
-  // Tab order: floor panel, then the strip (§4), then the rest.
-  root.append(toolbar, panel.element, runtime.strip.element, unitList.element, labels, legend, fpsEl);
+  // Tab order: floor panel, then the strip (§4), then the rest. The rail keeps panel and strip apart.
+  mountHud(root, { menu: toolbar, panel: panel.element, legend, strip: runtime.strip.element });
+  root.append(unitList.element, labels, fpsEl);
 
   let hoverId: string | null = null;
   let focusId: string | null = null;
