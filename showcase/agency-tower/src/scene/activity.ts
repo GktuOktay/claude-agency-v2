@@ -16,8 +16,10 @@ export type DirectedKind = (typeof DIRECTED_STATES)[number];
 /** §7.5: the hourglass waiting marker is shown exactly in these states. */
 export const WAITING_STATES: ReadonlySet<DirectedKind> = new Set<DirectedKind>(['wait', 'escort-wait', 'call-hold', 'room-wait', 'call-wait', 'seat-wait']);
 export const isWaiting = (s: string): boolean => (WAITING_STATES as ReadonlySet<string>).has(s);
-/** Pose vocabulary: the ambient kinds plus the static step gestures (hand over, stamp press, sit still). */
-export type PoseKind = ActivityKind | 'reach' | 'press' | 'sit';
+/** Campus break poses (KARARLAR rev 31): treadmill, weights, ping-pong, nap pod, meal, games, lab/archive. */
+export type BreakPose = 'run' | 'lift' | 'paddle' | 'sleep' | 'eat' | 'play' | 'read';
+/** Pose vocabulary: the ambient kinds, the static step gestures (hand over, stamp press, sit still), break poses. */
+export type PoseKind = ActivityKind | 'reach' | 'press' | 'sit' | BreakPose;
 type Stay = 'idle' | 'work' | 'coffee';
 type WalkTarget = 'desk' | 'coffee' | 'home';
 
