@@ -1,7 +1,8 @@
 // Spec 0002 T-6 visible layer (AC-6 waiting marker, AC-7 meshes; R-5 current-floor ghosting):
 // src/scene/props.ts draws what the director decides. Logic is tested in director/handoff tests.
 import { describe, it, expect } from 'vitest';
-import { Mesh, MeshBasicMaterial, Object3D, Texture, type Material } from 'three';
+import { Mesh, MeshBasicMaterial, Object3D, Ray, Texture, Vector3, type Material } from 'three';
+import { pickRobot } from '../src/scene/picking';
 import { buildTower, type TowerModel } from '../src/scene/model';
 import { createStaff } from '../src/scene/staff';
 import { Screen } from '../src/scene/screen';
@@ -381,5 +382,19 @@ describe('render budget with props (AC-7, §9)', () => {
     console.info(`[budget] tower+staff+props meshes=${meshes} vertices=${verts}; props meshes=${s.props.meshCount()}`);
     expect(verts).toBeLessThan(700_000);
     expect(meshes).toBeLessThan(1000);
+  });
+});
+
+describe('R-5: picking follows the floor a robot is on', () => {
+  it('a robot visiting the focused floor is pickable there', () => {
+    const model = tower();
+    model.setView({ mode: 'floor', focusFloor: 1 });
+    const scout = model.robots.find((r) => r.unit.id === 'scout')!;
+    scout.group.position.set(6.5, 1 * 3 + 0.14, 2.5);
+    model.root.updateMatrixWorld(true);
+    const ray = new Ray(new Vector3(6.5, 1 * 3 + 3, 2.5), new Vector3(0, -1, 0));
+    expect(pickRobot(model, ray)).toBeNull(); // home floor 3 is not pickable in the floor-1 view
+    const floorOf = (r: { unit: { id: string }; floor: number }): number => (r.unit.id === 'scout' ? 1 : r.floor);
+    expect(pickRobot(model, ray, floorOf)?.unit.id).toBe('scout');
   });
 });
