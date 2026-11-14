@@ -135,16 +135,11 @@ describe('sign, build, lamp and evidence (AC-7)', () => {
         const v = before.get('ceo')!;
         expect(v.state).toBe('stamp-press');
         const lane = x.wf.jobs().find((j) => j.n === e.job)!.lane;
-        if (lane === 3) {
-          // In the meeting room on floor 3 (the movement picks the free table spot).
-          const r = MEETING_ROOM.bounds;
-          expect(v.floor).toBe(MEETING_ROOM.floor);
-          expect(v.x > r.x0 && v.x < r.x1 && v.z > r.z0 && v.z < r.z1, `${v.x},${v.z}`).toBe(true);
-        } else {
-          const spot = anchors.desk('ceo');
-          expect(v.floor).toBe(spot.floor);
-          expect(Math.hypot(v.x - spot.x, v.z - spot.z)).toBeLessThan(0.05);
-        }
+        // AC-7 / AC-14: lane 3 stamps at the meeting-room sign table, lanes 1-2 at the signing desk (0.05 u).
+        const spot = lane === 3 ? anchors.signTable() : anchors.desk('ceo');
+        expect(v.floor).toBe(spot.floor);
+        expect(Math.hypot(v.x - spot.x, v.z - spot.z), `lane ${lane} job ${e.job}: ${v.x},${v.z}`).toBeLessThan(0.05);
+        if (lane === 3) expect(v.floor).toBe(MEETING_ROOM.floor);
       }
       before = new Map([['ceo', x.dir.view('ceo')]]);
     });

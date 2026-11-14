@@ -5,7 +5,7 @@
 
 export interface Target {
   floor: number;
-  /** Named spot: `home:<id>`, `desk:<id>`, `handover:<id>`, `signing-desk`, `meeting-room`, `meeting-room:lead` (meeting lead at the whiteboard), `landing`. */
+  /** Named spot: `home:<id>`, `desk:<id>`, `handover:<id>`, `signing-desk`, `meeting-room`, `meeting-room:lead` (meeting lead at the whiteboard), `meeting-room:sign` (lane-3 signer at the sign table), `landing`. */
   spot: string;
 }
 

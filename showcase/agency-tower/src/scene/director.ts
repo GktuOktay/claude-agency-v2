@@ -183,6 +183,9 @@ interface Bot {
 
 const DESK_SCROLL = new Set<string>(['step-work', 'review', 'test']);
 
+/** Reduced motion (REQ-19): progress shown in whole 10 % steps (floor, so 100 only when done). */
+export const tenths = (pct: number): number => Math.floor(pct / 10) * 10;
+
 export function createDirector(o: DirectorOptions): Director {
   const anchors = createAnchors(o.layouts);
   const byVariant = new Map<string, Scenario>(o.scenarios.scenarios.map((s) => [s.id, s]));
@@ -541,7 +544,9 @@ export function createDirector(o: DirectorOptions): Director {
           o.ambient.reserve(b.id);
           b.pos = { x: amb.x, y: amb.y, z: amb.z };
           b.facing = amb.facing;
-          b.floor = b.homeFloor;
+          // Floor latch (Rev 35): a robot interrupted on a wing break keeps its current floor and walks back
+          // (no jump into the cabin); the engine port's movement knows where it is.
+          b.floor = eng.movement.floorOf(b.id);
           b.state = amb.kind === 'wave' || amb.kind === 'raise' ? 'idle' : amb.kind;
         }
         b.mode = 'directed';
@@ -560,7 +565,8 @@ export function createDirector(o: DirectorOptions): Director {
       if (b.mode === 'ambient') {
         b.pos = { x: amb.x, y: amb.y, z: amb.z };
         b.facing = amb.facing;
-        b.floor = b.homeFloor;
+        // A break walk changes floor through the same movement: the view (visibility, picking) follows it (R-5).
+        b.floor = eng.movement.floorOf(b.id);
         b.state = amb.kind === 'wave' || amb.kind === 'raise' ? b.state : amb.kind;
         b.moving = amb.kind === 'walk';
         continue;
@@ -660,7 +666,8 @@ export function createDirector(o: DirectorOptions): Director {
       const ev = evidence.get(u);
       if (ev !== undefined && now + EPS < ev) return { mode: 'evidence' };
       const p = progress.get(u);
-      if (p && (p.until === undefined || now + EPS < p.until)) return { mode: 'progress', pct: p.pct };
+      // Reduced motion (REQ-19): the bar moves in 10 % steps.
+      if (p && (p.until === undefined || now + EPS < p.until)) return { mode: 'progress', pct: o.still?.() ? tenths(p.pct) : p.pct };
       return { mode: 'code' };
     },
     transitions: () => log,

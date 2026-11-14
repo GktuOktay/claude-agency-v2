@@ -5,12 +5,13 @@ import { createTitleSequence } from '../data/jobTitles';
 import type { ScenarioSet, UnitFloors } from '../data/scenarios';
 import { tr } from '../i18n/tr';
 import type { ActivityKind } from '../scene/activity';
+import { tenths } from '../scene/director';
 import { createRng } from '../scene/rng';
 import { createSimClock, pauseText, type SimClock } from '../sim/clock';
 import { createWorkflow, MASTER_SEED, streamSeed, type WfEvent, type Workflow, type WorkflowOptions } from '../sim/workflow';
 import { el } from '../ui/dom';
 import { createJobStrip, type JobStrip } from '../ui/jobStrip';
-import { cardLines, type CardLines } from '../ui/nowLine';
+import { cardLines, type BreakKey, type CardLines } from '../ui/nowLine';
 
 export interface SimRuntimeOptions {
   scenarios: ScenarioSet;
@@ -44,7 +45,7 @@ export interface SimRuntime {
   select(unit: string): void;
   release(unit: string): void;
   /** Card lines for a robot, from its state now (call before the selection gesture starts). */
-  cardLinesFor(unit: string, ambient: ActivityKind): CardLines;
+  cardLinesFor(unit: string, ambient: ActivityKind, brk?: BreakKey | null): CardLines;
 }
 
 export function createSimRuntime(o: SimRuntimeOptions): SimRuntime {
@@ -111,10 +112,12 @@ export function createSimRuntime(o: SimRuntimeOptions): SimRuntime {
     setHidden: (on) => clock.setReason('hidden', on),
     select: (u) => clock.select(u),
     release: (u) => clock.release(u),
-    cardLinesFor(unit, ambient) {
-      const st = workflow.unitState(unit);
+    cardLinesFor(unit, ambient, brk = null) {
+      const raw = workflow.unitState(unit);
+      // Reduced motion (REQ-19): the card's build progress also moves in 10 % steps.
+      const st = raw && raw.progress !== undefined && o.reducedMotion() ? { ...raw, progress: tenths(raw.progress) } : raw;
       const job = st ? workflow.jobs().find((j) => j.n === st.job) : undefined;
-      return cardLines(st, ambient, job ? { n: job.n, title: job.title, lane: job.lane } : null, workflow.movement.floorOf(unit), o.unitName);
+      return cardLines(st, ambient, job ? { n: job.n, title: job.title, lane: job.lane } : null, workflow.movement.floorOf(unit), o.unitName, brk);
     },
   };
 }

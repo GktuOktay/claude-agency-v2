@@ -1,14 +1,12 @@
 // Scene wiring: renderer, lights, camera, input, DOM overlays, render loop. Needs WebGL2 and a browser;
 // the logic it composes is unit-tested separately (visual behaviour is verified by eye).
 import {
-  ACESFilmicToneMapping,
   Color,
   PointLight,
   type Group,
   AmbientLight,
   DirectionalLight,
   HemisphereLight,
-  PCFSoftShadowMap,
   PerspectiveCamera,
   MeshBasicMaterial,
   Mesh,
@@ -21,14 +19,15 @@ import {
 } from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { tr } from '../i18n/tr';
-import { createActivitySim, createBubbleScheduler, type ActivityView, type BreakMovement, type Bubble } from '../scene/activity';
-import { CAMERA_FOV, CameraRig, FLOOR_TARGET_Y, classifyPointer, configureOrbit, setFrameAspect, setFrameInsets, setOrgInsets } from '../scene/camera';
-import { createDayNight, lightingFor } from '../scene/daynight';
+import { createActivitySim, BREAK_QUEUE_MAX, createBubbleScheduler, SOCIAL_MAX_AWAY, type ActivityView, type BreakMovement, type Bubble } from '../scene/activity';
+import { CAMERA_FOV, CameraRig, FLOOR_TARGET_Y, classifyPointer, configureOrbit, setFrameAspect, setFrameInsets, setOrgInsets, setSheetInset, setZoomSheetInset } from '../scene/camera';
+import { createDayNight, isNightPhase, lightingFor, skyBrightness } from '../scene/daynight';
 import { buildOrgLines, orgLines } from '../scene/org';
 import { createDayNightControl } from '../ui/dayNightControl';
 import { createOrgLegend } from '../ui/orgLegend';
 import { bindReducedMotion, type MediaQueryLike } from './motion';
-import { bubbleVisible, robotLabelVisible, roomLabelVisible, stackLabels, type LabelBox } from '../scene/labels';
+import { bubbleCovers, bubbleSize, bubbleVisible, floorLabelColumn, robotLabelVisible, roomLabelVisible, type FloorColumnItem, type ScreenRect } from '../scene/labels';
+import { bubbleLift, createDeclutter, declutterDue } from '../scene/declutter';
 import { FLOOR_HEIGHT, FLOOR_TOP, accentCss, buildTower, floorAccent, type RobotEntry } from '../scene/model';
 import { ROBOT_BASE_SCALE, ROBOT_HEIGHT } from '../scene/robot';
 import { blobTexture, hatchTexture, screenTexture, woodTexture } from '../scene/textures';
@@ -44,16 +43,24 @@ import { createUnitList } from '../ui/unitList';
 import { applyInitialCamera, projectToScreen } from './initialCamera';
 import { createFpsMeter, createLoop } from './loop';
 import { maxJobsFor, qualitySettings, resolveQuality, type Params } from './params';
-import { createScenarioInfo, createSettingsMenu, createShortcutToggle } from '../ui/settingsMenu';
+import { createSettingsMenu } from '../ui/settingsMenu';
+import { createAppearanceSection, readStoredQuality, toLegacyQuality, type OnQuality, type QualityTier } from '../ui/settings/appearance';
+import { createActiveJobsSection } from '../ui/settings/activeJobs';
+import { createOfficeSection } from '../ui/settings/office';
+import { createOfficeSchedule, type OfficeClock } from '../sim/schedule';
+import { createScenarioSection } from '../ui/settings/scenario';
+import { createAccessibilitySection } from '../ui/settings/accessibility';
+import { RENDERER_OPTIONS, applyQuality, createQualityContext, initialTier, roomEnvironment } from './quality';
 import { MASTER_SEED } from '../sim/workflow';
 import { framePose, shouldStepSim } from './frameUpdate';
 import { createSelectionFlow } from './selection';
 import { createSimRuntime } from './simRuntime';
+import { breakKeyOf } from '../ui/nowLine';
 import { syncStaffCabinFrom } from './elevatorView';
 import { createDirector, type Director, type RobotView } from '../scene/director';
 import { createProps, propRobotsOf } from '../scene/props';
 import { createWhiteboard, createWhiteboardTexture } from '../scene/whiteboard';
-import { whiteboardTextureSize } from '../sim/layout';
+import { HALF_DEPTH, SHAFT_X, STAFF_SHAFT, whiteboardTextureSize } from '../sim/layout';
 import { isNavMovement, type NavMovement } from '../sim/navMovement';
 import { createStaffRuntime, type StaffRuntime } from './staffRuntime';
 import { createStaff, type StaffModel } from '../scene/staff';
@@ -82,17 +89,18 @@ function brighten(floor: number): number {
 export function startSceneApp(ctx: SceneContext, params: Params): void {
   const { root, data, card, scenarios, titles } = ctx;
   const coarse = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
-  const quality = qualitySettings(resolveQuality(params, coarse), window.devicePixelRatio || 1);
+  // Rev 35: a stored "Görüntü kalitesi" choice applies when the URL has no ?quality (mapped onto the
+  // existing tiers until src/app/quality.ts exists).
+  const storedTier = readStoredQuality();
+  const legacy = params.quality ?? (storedTier ? toLegacyQuality(storedTier) : null);
+  const quality = qualitySettings(resolveQuality({ ...params, quality: legacy }, coarse), window.devicePixelRatio || 1);
+  const currentTier: QualityTier = params.quality ?? storedTier ?? quality.quality; // the selector's initial mark
 
   const canvas = el('canvas', { class: 'tower-canvas', tabindex: '-1', 'aria-label': tr.title });
   root.prepend(canvas);
-  const renderer = new WebGLRenderer({ canvas, antialias: true, alpha: true });
-  renderer.setPixelRatio(quality.pixelRatio);
+  const renderer = new WebGLRenderer({ canvas, ...RENDERER_OPTIONS });
   renderer.setClearColor(0x000000, 0); // the page's soft off-white gradient shows through
-  renderer.toneMapping = ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.08;
-  renderer.shadowMap.enabled = quality.shadows;
-  renderer.shadowMap.type = PCFSoftShadowMap;
+  renderer.toneMappingExposure = lightingFor(1, 0).exposure; // the frame loop follows the day / night light
 
   // Fixed day lighting (M1): warm key light, soft sky/ground fill, high ambient.
   const scene = new Scene();
@@ -102,12 +110,17 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
   scene.add(hemi, ambient, interior);
   const sun = new DirectionalLight(0xfff0dc, 2.3);
   scene.add(sun, sun.target);
-  if (quality.shadows) {
-    sun.castShadow = true;
-    sun.shadow.mapSize.set(2048, 2048);
-    sun.shadow.bias = -0.0004;
-    sun.shadow.normalBias = 0.02;
-  }
+  sun.shadow.bias = -0.0004;
+  sun.shadow.normalBias = 0.02;
+  // Render quality (Rev 35): pixel ratio, shadows, tone mapping, environment; switchable at runtime.
+  const qualityCtx = createQualityContext({
+    renderer,
+    scene,
+    shadowLights: [sun],
+    devicePixelRatio: () => window.devicePixelRatio || 1,
+    createEnvironment: roomEnvironment(renderer),
+  });
+  applyQuality(qualityCtx, params.quality ? initialTier(params, coarse) : (storedTier ?? initialTier(params, coarse)));
   let shadowMode: 'overview' | 'floor' | null = null;
   const placeSun = (): void => {
     const mode = model.view.mode;
@@ -116,7 +129,7 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     sun.target.position.set(0, focusY, 0);
     sun.position.set(7 * reach, focusY + 16 * reach, 10 * reach);
     sun.target.updateMatrixWorld();
-    if (quality.shadows && shadowMode !== mode) {
+    if (shadowMode !== mode) {
       shadowMode = mode;
       const cam = sun.shadow.camera;
       const half = mode === 'floor' ? 10.5 : 24;
@@ -161,6 +174,12 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     phase: (u) => breakNav?.phase(u) ?? 'still',
     renderPosition: (u, reduced) => breakNav?.renderPosition(u, reduced) ?? { x: 0, y: 0, z: 0 },
   };
+  // Rev 35 P3: the office day runs on the 0002 simulation clock (bound lazily: the runtime is created below).
+  const office: OfficeClock = createOfficeSchedule({
+    get time() {
+      return runtime.clock.time;
+    },
+  });
   const sim = createActivitySim(
     model.robots.map((r) => ({ id: r.unit.id, home: r.homePoint, work: r.workPoint, coffee: r.coffeePoint })),
     SEED,
@@ -168,12 +187,14 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
       campus: {
         movement: breakMovement,
         floors: new Map(data.units.map((u) => [u.id, u.floor])),
-        // Lunch: the noon part of the automatic day cycle (START_PHASE 0.25 = noon).
-        isLunch: () => dayNight.mode() === 'auto' && dayNight.phase() >= 0.2 && dayNight.phase() < 0.32,
+        // Rev 35 P3: breaks follow the office schedule (coffee, lunch, tea slots; rare in between, none after hours).
+        period: () => office.breakPeriod(),
         paused: () => runtime.clock.paused,
-        canRide: () => (breakNav?.elevator.queue().length ?? 1) === 0,
-        // Ruling: no off-floor breaks in the app until the director keeps its floor during a wing walk-back.
-        maxAway: 0,
+        canRide: () => (breakNav?.elevator.queue().length ?? BREAK_QUEUE_MAX) < BREAK_QUEUE_MAX,
+        // Rev 35: social areas for everyone (the CEO included); the director latches the current floor on an
+        // interrupt, so off-floor breaks are safe. The elevator gate (`canRide`) still spaces the trips.
+        exclude: new Set<string>(),
+        maxAway: SOCIAL_MAX_AWAY,
       },
     },
   );
@@ -326,7 +347,11 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     model,
     getCard: () => card,
     exitOrg: dropOrg,
-    linesFor: (id) => runtime.cardLinesFor(id, sim.get(id).kind),
+    linesFor: (id) => {
+      const kind = sim.get(id).kind;
+      // Rev 38: a break names its venue (or the tea / coffee slot at the floor station).
+      return runtime.cardLinesFor(id, kind, breakKeyOf({ spot: sim.onBreak(id), phase: sim.breakPhase(id), kind, period: office.breakPeriod() }));
+    },
     onSelect: (id) => runtime.select(id),
     onRelease: (id) => runtime.release(id),
     renderPosition: (id) => {
@@ -397,8 +422,25 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
   // ---- day / night (REQ-18); the former toolbar lives in the corner settings menu ----
   const dayNight = createDayNight();
   const dnControl = createDayNightControl(dayNight);
-  const scenarioInfo = createScenarioInfo({ seed: MASTER_SEED, laneWeights: scenarios.laneWeights, quality: quality.quality, maxJobs: { low: maxJobsFor('low'), high: maxJobsFor('high') } });
-  const settings = createSettingsMenu({ controls: [dnControl.element, orgBtn, runtime.pauseButton, createShortcutToggle(keys)], scenario: scenarioInfo });
+  // Rev 35: runtime quality switch (src/app/quality.ts); job limit and whiteboard size follow the start tier.
+  const onQuality: OnQuality = (tier) => {
+    applyQuality(qualityCtx, tier);
+    resize();
+  };
+  // Rev 35 P3: live office clock on the simulation clock (src/sim/schedule.ts).
+  const officeSection = createOfficeSection({ controls: [runtime.pauseButton, orgBtn], schedule: office });
+  const settings = createSettingsMenu({
+    sections: [
+      createAppearanceSection({ dayNight: dnControl.element, current: currentTier, onQuality }),
+      createActiveJobsSection({ strip: runtime.strip.element }),
+      officeSection,
+      createScenarioSection({ seed: MASTER_SEED, laneWeights: scenarios.laneWeights, quality: quality.quality, maxJobs: { low: maxJobsFor('low'), high: maxJobsFor('high') } }),
+      createAccessibilitySection({ keys }),
+    ],
+    // Rev 38: on phones the open settings sheet is a bottom inset for floor / wing framing.
+    onToggle: (on) => frameAboveSheet(on),
+  });
+  runtime.strip.onCount((n) => settings.setBadge(n));
   const toolbar = settings.element; // org framing keeps the name pills clear of the corner button
 
   // ---- reduced motion (REQ-20), on load and on live change ----
@@ -439,13 +481,44 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
   };
   const roomEls = model.rooms.map((room) => ({ room, e: pill('room-label', accentCss(room.floor), room.text) }));
   const labelWidths = new WeakMap<HTMLElement, number>();
+  const labelHeights = new WeakMap<HTMLElement, number>();
+  /** Label size, measured once after its first show. */
+  const widthOf = (e: HTMLElement): number => {
+    let w = labelWidths.get(e);
+    if (w === undefined) {
+      w = e.offsetWidth || 90;
+      labelWidths.set(e, w);
+    }
+    return w;
+  };
+  const heightOf = (e: HTMLElement): number => {
+    let h = labelHeights.get(e);
+    if (h === undefined) {
+      h = e.offsetHeight || 21;
+      labelHeights.set(e, h);
+    }
+    return h;
+  };
+  // Rev 38 de-clutter state, allocated once (no per-frame allocation in the label pass).
+  const PILL_H = 22;
+  const clutter = createDeclutter(model.robots.length, roomEls.length);
+  const robotIndex = new Map<string, number>(model.robots.map((r, i) => [r.unit.id, i]));
+  const pillX = new Float32Array(model.robots.length);
+  const pillY = new Float32Array(model.robots.length);
+  const pillLift = new Float32Array(model.robots.length);
+  const pillFade = new Uint8Array(model.robots.length);
+  const pillOn = new Uint8Array(model.robots.length);
+  const pillSlot = new Int16Array(model.robots.length);
+  const highlighted = new Set<string>();
+  const labelShown = new Set<string>();
+  let frameNo = 0;
   const robotEls = new Map<string, HTMLElement>(
     model.robots.map((r) => [r.unit.id, pill('robot-label', accentCss(r.floor), r.unit.nameTr, tr.tiers[r.unit.tier])]),
   );
   const fpsEl = el('div', { class: 'fps' }, '');
   fpsEl.hidden = !params.debug;
-  // Tab order: floor panel, then the strip (§4), then the rest. The rail keeps panel and strip apart.
-  mountHud(root, { menu: toolbar, panel: panel.element, legend, strip: runtime.strip.element });
+  // Tab order: settings button, floor panel, then the rest. Rev 35: the strip lives in the settings menu.
+  mountHud(root, { menu: toolbar, panel: panel.element, legend });
   root.append(unitList.element, labels, fpsEl);
 
   let hoverId: string | null = null;
@@ -499,12 +572,25 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     setFrameInsets(strip ? 0 : Math.min(0.35, (r.right + 8) / w), strip ? Math.min(0.3, (r.bottom + 8) / h) : 0);
   }
 
+  /** Rev 38: fit the floor / wing view above the phone settings sheet while it is open, and back on close. */
+  function frameAboveSheet(open: boolean): void {
+    const h = Math.max(1, root.clientHeight || window.innerHeight);
+    const narrow = narrowMq?.matches ?? false;
+    const sheet = open && narrow ? settings.panel.getBoundingClientRect().height : 0;
+    setSheetInset(sheet > 0 ? (sheet + 8) / h : 0);
+    if (narrow && rig.mode === 'floor' && !flow.selectedId() && !orgOn) rig.returnToFloor();
+  }
+
+  /** Expected card sheet share on phones (CSS max 60vh; most cards are shorter). */
+  const ZOOM_SHEET_PHONE = 0.5;
   // ---- resize ----
   const resize = (): void => {
     const w = Math.max(1, root.clientWidth || window.innerWidth);
     const h = Math.max(1, root.clientHeight || window.innerHeight);
     fitAspect();
     measureInsets();
+    // Rev 38: the robot card is a bottom sheet on phones (up to 60 % of the height): the close-up sits above it.
+    setZoomSheetInset(narrowMq?.matches ? ZOOM_SHEET_PHONE : 0);
     if (orgOn) measureOrgInsets();
     renderer.setSize(w, h, false);
     camera.aspect = w / h;
@@ -512,15 +598,24 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
   };
   window.addEventListener('resize', resize);
   resize();
+  // The overview fits the campus right of the measured floor panel (or below the phone strip): re-frame the boot
+  // camera now that the panel has been measured.
+  applyInitialCamera(rig, camera, controls);
 
   // ---- per-frame ----
   const bubbleEls: HTMLElement[] = [];
+  // Overview floor label column (rebuilt every frame) and the rects bubbles must keep clear of.
+  const floorCol: FloorColumnItem[] = [];
+  const floorColEls: HTMLElement[] = [];
+  let floorRects: ScreenRect[] = [];
+  const colAnchor = new Vector3();
   const fps = createFpsMeter();
   let last = 0;
   let wasBusy = false;
   let clock = 0;
   let lightsOn = 0;
   let lastSky = '';
+  let officeTick = 0;
 
   const project = (pos: Vector3): { x: number; y: number; visible: boolean } => {
     const r = canvas.getBoundingClientRect();
@@ -584,43 +679,87 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     model.cabin.setHeight(rig.cabinY - FLOOR_TARGET_Y + FLOOR_TOP);
     model.cabin.setDoorsOpen(rig.doorsOpenness);
 
-    // robot name pills: every robot of the focused floor in floor view; hovered / focused / selected otherwise
-    const highlighted = new Set<string>();
-    for (const id of [selected, focusId, hoverId]) if (id) highlighted.add(id);
-    const labelShown = new Set<string>();
-    const placed: { e: HTMLElement; box: LabelBox }[] = [];
-    for (const r of model.robots) {
-      const e = robotEls.get(r.unit.id);
-      if (!e) continue;
-      const on = orgOn || robotLabelVisible({ id: r.unit.id, floor: floorOf(r) }, model.view, highlighted);
-      const p = on ? project(headPos(r)) : null;
-      if (!p?.visible) {
-        show(e, false);
-        continue;
-      }
-      if (e.hidden) e.hidden = false;
-      let w = labelWidths.get(e);
-      if (w === undefined) {
-        w = e.offsetWidth || 90; // measured once, after first show
-        labelWidths.set(e, w);
-      }
-      placed.push({ e, box: { x: p.x, y: p.y, w } });
-      labelShown.add(r.unit.id);
-      e.classList.toggle('is-active', highlighted.has(r.unit.id));
-    }
-    // each pill sits just above its own robot's head; close neighbours (e.g. at the coffee island) stack
-    const lifts = stackLabels(placed.map((x) => x.box), 22);
-    placed.forEach(({ e, box }, i) => show(e, true, box.x, box.y, lifts[i] ?? 0));
-
-    // department / room pills
+    // Rev 38 de-clutter: zone / floor / room pills are fixed obstacles with priority; robot pills nudge up past
+    // them or fade. A pass runs every DECLUTTER_EVERY frames; in between the pills reuse their lift / fade.
+    const pass = declutterDue(frameNo++);
+    if (pass) clutter.begin();
+    floorCol.length = 0;
+    floorColEls.length = 0;
+    const columnOn = model.view.mode === 'overview';
     for (const { room, e } of roomEls) {
       const on = !orgOn && roomLabelVisible(room, model.view) && !(selected && room.floor === model.view.focusFloor && !room.primary);
       if (!on) {
         show(e, false);
         continue;
       }
+      if (columnOn && room.primary) {
+        // Overview: the floor labels go to one column beside the tower (placed below), not over the facade.
+        const mid = room.floor * FLOOR_HEIGHT + FLOOR_HEIGHT / 2;
+        const pe = project(colAnchor.set(STAFF_SHAFT.x + 0.9, mid, HALF_DEPTH));
+        const pw = project(colAnchor.set(SHAFT_X - 0.9, mid, HALF_DEPTH));
+        if (!pe.visible || !pw.visible) {
+          show(e, false);
+          continue;
+        }
+        if (e.hidden) e.hidden = false; // measured shown (widthOf caches its first reading); placed below this frame
+        floorCol.push({ east: pe.x, west: pw.x, y: (pe.y + pw.y) / 2, w: widthOf(e), h: heightOf(e) });
+        floorColEls.push(e);
+        continue;
+      }
       const p = project(room.position);
       show(e, p.visible, p.x, p.y);
+      if (pass && p.visible) clutter.addFixed(p.x, p.y, widthOf(e), heightOf(e));
+    }
+    floorRects = floorLabelColumn(floorCol, canvas.getBoundingClientRect().width);
+    floorRects.forEach((r, k) => {
+      const e = floorColEls[k]!;
+      const x = (r.x0 + r.x1) / 2;
+      show(e, true, x, r.y1);
+      if (pass) clutter.addFixed(x, r.y1, r.x1 - r.x0, r.y1 - r.y0);
+    });
+
+    // robot name pills: every robot of the focused floor in floor view; hovered / focused / selected otherwise
+    highlighted.clear();
+    if (selected) highlighted.add(selected);
+    if (focusId) highlighted.add(focusId);
+    if (hoverId) highlighted.add(hoverId);
+    labelShown.clear();
+    for (let i = 0; i < model.robots.length; i++) {
+      const r = model.robots[i]!;
+      pillOn[i] = 0;
+      const e = robotEls.get(r.unit.id);
+      if (!e) continue;
+      const on = orgOn || robotLabelVisible({ id: r.unit.id, floor: floorOf(r) }, model.view, highlighted);
+      const p = on ? project(headPos(r)) : null;
+      if (!p?.visible) {
+        show(e, false);
+        pillLift[i] = 0;
+        pillFade[i] = 0;
+        continue;
+      }
+      if (e.hidden) e.hidden = false;
+      pillOn[i] = 1;
+      pillX[i] = p.x;
+      pillY[i] = p.y;
+      const hot = highlighted.has(r.unit.id);
+      if (pass) pillSlot[i] = clutter.addPill(p.x, p.y, widthOf(e), PILL_H, hot);
+      labelShown.add(r.unit.id);
+      e.classList.toggle('is-active', hot);
+    }
+    if (pass) {
+      clutter.solve();
+      for (let i = 0; i < model.robots.length; i++) {
+        if (!pillOn[i]) continue;
+        pillLift[i] = clutter.lift(pillSlot[i]!);
+        pillFade[i] = clutter.fade(pillSlot[i]!) ? 1 : 0;
+      }
+    }
+    for (let i = 0; i < model.robots.length; i++) {
+      if (!pillOn[i]) continue;
+      const e = robotEls.get(model.robots[i]!.unit.id);
+      if (!e) continue;
+      show(e, true, pillX[i]!, pillY[i]!, pillLift[i]!);
+      e.classList.toggle('is-faded', pillFade[i] === 1);
     }
 
     // speech bubbles (above the name pill when one is shown)
@@ -637,7 +776,9 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
       if (!r) return;
       const p = project(headPos(r));
       if (e.textContent !== b.text) e.textContent = b.text;
-      show(e, p.visible && !orgOn && bubbleVisible(floorOf(r), model.view), p.x, p.y, labelShown.has(b.unitId) ? 30 : 4);
+      const lift = bubbleLift(labelShown.has(b.unitId), pillLift[robotIndex.get(b.unitId) ?? -1] ?? 0);
+      // A bubble never covers an overview floor label.
+      show(e, p.visible && !orgOn && bubbleVisible(floorOf(r), model.view) && !bubbleCovers(p.x, p.y - lift, bubbleSize(b.text), floorRects), p.x, p.y, lift);
     });
     const staffActive = staffRt?.bubbles(active.length) ?? [];
     staffActive.forEach((b, j) => {
@@ -653,7 +794,7 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
       if (!hp) return;
       const p = project(hp);
       if (e.textContent !== b.text) e.textContent = b.text;
-      show(e, p.visible && !orgOn && bubbleVisible(b.floor, model.view), p.x, p.y, 4);
+      show(e, p.visible && !orgOn && bubbleVisible(b.floor, model.view) && !bubbleCovers(p.x, p.y - 4, bubbleSize(b.text), floorRects), p.x, p.y, 4);
     });
     for (let i = active.length + staffActive.length; i < bubbleEls.length; i++) {
       const e = bubbleEls[i];
@@ -663,12 +804,20 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     canvas.style.cursor = hoverId ? 'pointer' : '';
     // day / night: sky, sun, fill, window and floor-light glow (lights fade on over ~0.7 s, cut if reduced)
     dayNight.step(dt);
-    const lightsGoal = dayNight.night() ? 1 : 0;
+    // Rev 35 P3: in Otomatik the light follows the office clock (dark after hours); Gündüz / Gece hold.
+    const autoLight = dayNight.mode() === 'auto';
+    const lightPhase = office.lightPhase();
+    const isNight = autoLight ? isNightPhase(lightPhase) : dayNight.night();
+    const brightness = autoLight ? skyBrightness(lightPhase) : dayNight.brightness();
+    const lightsGoal = isNight ? 1 : 0;
     lightsOn = still ? lightsGoal : lightsOn + (lightsGoal - lightsOn) * Math.min(1, dt * 1.5);
-    const L = lightingFor(dayNight.brightness(), lightsOn);
+    const L = lightingFor(brightness, lightsOn);
     sun.intensity = L.sun;
     sun.color.setHex(L.sunColor);
     hemi.intensity = L.hemi;
+    hemi.color.setHex(L.hemiSky);
+    hemi.groundColor.setHex(L.hemiGround);
+    scene.environmentIntensity = L.env;
     ambient.intensity = L.ambient;
     renderer.toneMappingExposure = L.exposure;
     model.setNight(lightsOn);
@@ -679,14 +828,21 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
       st.setProperty('--bg-1', L.skyTop);
       st.setProperty('--bg-2', L.skyMid);
       st.setProperty('--bg-3', L.skyBottom);
-      document.documentElement.classList.toggle('is-night', dayNight.brightness() < 0.35);
+      document.documentElement.classList.toggle('is-night', brightness < 0.35);
     }
     interior.intensity = model.view.mode === 'floor' && !orgOn ? L.interior * 6 : 0;
     if (interior.intensity > 0) interior.position.set(0, model.view.focusFloor * FLOOR_HEIGHT + 2.2, -0.5);
 
+    // Live office clock in the settings "Ofis" tab (4 refreshes per second of wall time).
+    officeTick += dt;
+    if (officeTick >= 0.25) {
+      officeTick = 0;
+      officeSection.refresh();
+    }
+
     placeSun();
     renderer.render(scene, camera);
-    if (params.debug) fpsEl.textContent = `${fps.frame(now).toFixed(0)} fps · ${quality.quality}`;
+    if (params.debug) fpsEl.textContent = `${fps.frame(now).toFixed(0)} fps · ${qualityCtx.tier ?? quality.quality}`;
   };
 
   const loop = createLoop({

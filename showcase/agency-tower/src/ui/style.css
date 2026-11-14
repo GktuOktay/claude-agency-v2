@@ -112,16 +112,44 @@ button:hover { background: #fff; border-color: rgba(47, 102, 208, 0.35); }
 .settings-button { display: grid; place-items: center; min-height: var(--touch); min-width: var(--touch); padding: 0; border-radius: var(--radius-pill); box-shadow: var(--panel-shadow); }
 .settings-button[aria-expanded='true'] { background: var(--pill-dark); color: #fff; }
 .settings-button .knob { fill: var(--bg-1); }
-.settings-panel { position: absolute; right: 0; top: calc(var(--touch) + var(--space-2)); width: min(20rem, calc(100vw - 16px)); max-height: calc(100vh - var(--touch) - 3 * var(--space-4)); overflow-y: auto; background: var(--panel); border: 1px solid var(--panel-border); border-radius: var(--radius); box-shadow: var(--panel-shadow); padding: var(--space-3); backdrop-filter: blur(8px); }
+.settings-button { position: relative; }
+/* Desktop: side panel under the corner button, full height, internal scroll. Phones: bottom sheet (below). */
+.settings-panel { position: fixed; z-index: 15; right: var(--space-4); top: calc(var(--space-4) + var(--touch) + var(--space-2)); bottom: var(--space-4); width: min(24rem, calc(100vw - 16px)); overflow-y: auto; overscroll-behavior: contain; background: var(--panel); border: 1px solid var(--panel-border); border-radius: var(--radius); box-shadow: var(--panel-shadow); padding: var(--space-3); backdrop-filter: blur(8px); }
 .settings-panel[hidden] { display: none; }
 .settings-title { margin: 0 0 var(--space-2); font-size: 0.95rem; }
 .settings-controls { display: grid; gap: var(--space-2); }
 .settings-controls > button { min-height: var(--touch); border-radius: var(--radius-pill); text-align: left; padding: 6px var(--space-4); font-size: 0.85rem; }
 .settings-controls > button[aria-pressed='true'] { background: var(--pill-dark); color: #fff; }
 .settings-controls > button[aria-pressed='true']::before { content: '✓ '; }
-.settings-controls .segmented { box-shadow: none; justify-content: space-between; }
-.settings-controls .segmented button { min-height: var(--touch); flex: 1; }
-.settings-scenario { margin-top: var(--space-3); padding-top: var(--space-3); border-top: 1px solid var(--panel-border); font-size: 0.82rem; }
+.settings-controls .segmented, .settings-section .segmented { box-shadow: none; justify-content: space-between; display: flex; }
+.settings-controls .segmented button, .settings-section .segmented button { min-height: var(--touch); flex: 1; }
+/* Active-job badge: a bordered round shape with the number (never colour alone); hidden while open. */
+.settings-badge { position: absolute; top: -4px; right: -4px; min-width: 20px; height: 20px; padding: 0 5px; display: grid; place-items: center; border: 2px solid var(--bg-1); border-radius: var(--radius-pill); background: var(--pill-dark); color: #fff; font-size: 11px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; pointer-events: none; }
+.settings-badge[hidden] { display: none; }
+/* Tabs: wrap onto two rows on narrow screens (no horizontal scroll); selection by weight, bar and aria-selected. */
+.settings-tabs { display: flex; flex-wrap: wrap; gap: var(--space-1); margin-bottom: var(--space-3); padding-bottom: var(--space-2); border-bottom: 1px solid var(--panel-border); }
+.settings-tab { min-height: var(--touch); flex: 1 1 auto; padding: 4px var(--space-3); border-radius: var(--radius-sm); font-size: 0.82rem; background: transparent; border: 1px solid transparent; }
+.settings-tab[aria-selected='true'] { font-weight: 700; border-color: var(--pill-dark); box-shadow: inset 0 -3px 0 var(--pill-dark); }
+.settings-tabpanel[hidden] { display: none; }
+.settings-section { display: grid; gap: var(--space-3); font-size: 0.85rem; }
+.quality { margin: 0; padding: 0; border: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-2); }
+.quality legend { padding: 0; margin-bottom: var(--space-1); font-weight: 600; font-size: 0.82rem; }
+.quality-option { min-height: var(--touch); display: flex; align-items: center; gap: var(--space-2); padding: 4px var(--space-3); border: 1px solid var(--panel-border); border-radius: var(--radius-sm); cursor: pointer; }
+.quality-option input { width: 20px; height: 20px; margin: 0; accent-color: var(--pill-dark); }
+.quality-option:has(input:checked) { border-color: var(--pill-dark); font-weight: 700; }
+.quality-option:has(input:focus-visible) { outline: 3px solid var(--focus); outline-offset: 2px; }
+.schedule-box h3 { margin: 0; font-size: 0.85rem; }
+.schedule-now { margin: 2px 0 var(--space-1); font-weight: 600; font-variant-numeric: tabular-nums; }
+.schedule { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; font-variant-numeric: tabular-nums; }
+.schedule-slot { padding: 6px var(--space-2); border-left: 3px solid transparent; border-radius: 4px; }
+.schedule-slot[aria-current='true'] { border-left-color: var(--pill-dark); font-weight: 700; background: var(--accent-soft); }
+.key-list { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: var(--space-1) var(--space-3); align-items: baseline; }
+.key-list dt { margin: 0; }
+.key-list dd { margin: 0; }
+.key-list kbd { display: inline-block; min-width: 2.2em; padding: 2px 6px; text-align: center; border: 1px solid var(--panel-border); border-bottom-width: 2px; border-radius: 6px; font-family: ui-monospace, monospace; font-size: 0.8rem; }
+/* The job strip inside the menu: no card chrome of its own, the panel scrolls. */
+.settings-jobs .job-strip { margin: 0; max-height: none; overflow: visible; background: transparent; border: 0; box-shadow: none; padding: 0; }
+.settings-scenario { font-size: 0.82rem; }
 .settings-scenario h3 { margin: 0; font-size: 0.85rem; }
 .settings-note { margin: 2px 0 var(--space-2); color: var(--fg-muted); font-size: 0.75rem; }
 .settings-scenario dl { margin: 0; display: grid; grid-template-columns: 1fr; gap: 2px; }
@@ -196,9 +224,11 @@ button:hover { background: #fff; border-color: rgba(47, 102, 208, 0.35); }
   font-size: 11px;
   font-weight: 600;
   white-space: nowrap;
-  box-shadow: 0 1px 2px rgba(31, 35, 41, 0.08), 0 4px 12px rgba(31, 35, 41, 0.14);
+  box-shadow: 0 0 0 1px rgba(31, 35, 41, 0.12), 0 1px 2px rgba(31, 35, 41, 0.08), 0 4px 12px rgba(31, 35, 41, 0.14);
 }
 .robot-label.is-active { outline: 2px solid var(--accent); outline-offset: 1px; }
+/* Rev 38 de-clutter: a pill with no room near its robot fades (zone / floor labels keep priority). */
+.robot-label.is-faded { opacity: 0.22; }
 .room-label .dot, .robot-label .dot { width: 7px; height: 7px; border-radius: 50%; flex: none; }
 .robot-label .tag { color: var(--fg-muted); font-weight: 500; font-size: 10px; }
 .bubble {
@@ -212,7 +242,7 @@ button:hover { background: #fff; border-color: rgba(47, 102, 208, 0.35); }
   width: max-content;
   white-space: normal;
   overflow-wrap: anywhere;
-  box-shadow: 0 1px 2px rgba(31, 35, 41, 0.08), 0 6px 16px rgba(31, 35, 41, 0.14);
+  box-shadow: 0 0 0 1px rgba(31, 35, 41, 0.12), 0 1px 2px rgba(31, 35, 41, 0.08), 0 6px 16px rgba(31, 35, 41, 0.14);
 }
 .fps { position: absolute; left: var(--space-4); bottom: var(--space-4); background: rgba(20, 22, 26, 0.8); color: #fff; padding: 2px var(--space-2); border-radius: 6px; font: 12px ui-monospace, monospace; }
 .fps[hidden] { display: none; }
@@ -266,7 +296,8 @@ html.is-org .robot-label { box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.25), 0 4p
   /* Floor panel: compact strip at the top, 44x44 targets, number only (name stays for screen readers). */
   /* Rail spans the screen: floor strip on top, legend and job strip at the bottom. */
   .hud-rail { left: 8px; right: 8px; top: 8px; bottom: 8px; width: auto; gap: 6px; }
-  .floor-panel { flex: none; flex-direction: row; overflow-x: auto; overflow-y: hidden; gap: 4px; padding: 4px; border-radius: var(--radius-pill); scrollbar-width: none; }
+  .floor-panel { flex: none; flex-direction: row; overflow: visible; gap: 4px; padding: 4px; border-radius: var(--radius-pill); }
+  .floor-panel:not(.has-groups) { flex-wrap: wrap; border-radius: 26px; }
   .floor-panel button { min-width: var(--touch); min-height: var(--touch); justify-content: center; padding: 4px 10px; flex: none; }
   .floor-panel .name { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   .floor-panel button[data-floor='all'] .name { position: static; width: auto; height: auto; clip-path: none; }
@@ -276,7 +307,21 @@ html.is-org .robot-label { box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.25), 0 4p
   .panel-group + .panel-group { margin-top: 0; padding-top: 0; border-top: 0; margin-left: 2px; padding-left: 4px; border-left: 1px solid var(--panel-border); }
   .panel-group-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   .floor-panel .is-campus .num { display: inline; }
+  /* Rev 38: two rows at 375 px, no hidden sideways scroll: floors 5..0 on top; "Tüm kule" wraps to the second
+     row, the campus areas share that row (same grid cell, bottom-aligned, offset past "Tüm kule"). */
+  .floor-panel.has-groups { display: grid; grid-template-columns: max-content; border-radius: 26px; }
+  .floor-panel.has-groups .panel-group:first-child { grid-area: 1 / 1; flex-wrap: wrap; width: calc(6 * var(--touch) + 5 * 4px + 2px); }
+  .floor-panel.has-groups .is-campus { grid-area: 1 / 1; align-self: end; margin-left: calc(4.5rem + 6px); }
+  /* Fixed widths, never content-sized: six floors always fill row 1 exactly (a 45 px digit button would push
+     floor 0 onto row 2 and under the campus areas), "Tüm kule" never paints past its box. */
+  .floor-panel.has-groups .panel-group:first-child button:not([data-floor='all']) { width: var(--touch); padding: 4px 0; gap: 4px; }
+  .floor-panel.has-groups button[data-floor='all'] { width: 4.5rem; padding: 4px 6px; gap: 0; overflow: hidden; white-space: nowrap; }
+  .floor-panel.has-groups button[data-floor='all'] .dot { display: none; }
+  .floor-panel.has-groups .is-campus button { padding: 4px 8px; gap: 0; }
+  .floor-panel.has-groups .is-campus .dot { display: none; }
   .settings { right: 8px; top: 8px; }
+  /* Settings: bottom sheet, full width, at most 75 % of the height, internal scroll. */
+  .settings-panel { left: 0; right: 0; top: auto; bottom: 0; width: auto; max-height: 75vh; border-radius: 18px 18px 0 0; padding-bottom: calc(var(--space-4) + env(safe-area-inset-bottom, 0px)); }
   /* Floor strip leaves the top-right corner to the settings button. */
   .floor-panel { margin-right: calc(var(--touch) + 8px); }
   .segmented button { min-width: var(--touch); padding: 4px 10px; }
@@ -285,6 +330,21 @@ html.is-org .robot-label { box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.25), 0 4p
   /* Strip at the bottom (the top floors and their labels stay clear); the card sheet opens above it. */
   .job-strip { max-height: 28vh; }
 }
+
+/* Below 375 px the two-row strip does not fit beside the settings button: the floors wrap inside the free width
+   and the campus areas take their own row (no overlap, no sideways scroll, 44 px targets kept). */
+@media (max-width: 374px) {
+  .floor-panel.has-groups { grid-template-columns: minmax(0, 1fr); }
+  .floor-panel.has-groups .panel-group:first-child { width: auto; }
+  .floor-panel.has-groups .is-campus { grid-area: 2 / 1; align-self: start; flex-wrap: wrap; margin-left: 0; padding-left: 0; border-left: 0; }
+}
+
+/* The panel slides in only when motion is allowed (REQ-20). */
+@media (prefers-reduced-motion: no-preference) {
+  .settings-panel:not([hidden]) { animation: settings-in 160ms ease-out; }
+  .robot-label { transition: opacity 160ms ease-out; }
+}
+@keyframes settings-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 
 @media (prefers-reduced-motion: reduce) {
   button, html, body { transition: none; }

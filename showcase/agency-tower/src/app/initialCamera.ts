@@ -5,6 +5,9 @@ import { overviewPose, type CameraRig } from '../scene/camera';
 /** Put the camera on the overview pose at boot, with fresh matrices, so the first frame shows the tower. */
 export function applyInitialCamera(rig: CameraRig, camera: PerspectiveCamera, controls: OrbitControls): void {
   const o = overviewPose();
+  // Tall phones (aspect < ~0.55) fit the whole campus beyond MAX_DISTANCE; the orbit clamp would pull the boot
+  // camera in and cut the wing, so the clamp grows to the overview fit (with orbit room) when needed.
+  controls.maxDistance = Math.max(controls.maxDistance, o.pos.distanceTo(o.target) * 1.1);
   rig.position.copy(o.pos);
   rig.target.copy(o.target);
   camera.position.copy(o.pos);

@@ -168,7 +168,8 @@ describe('l3 CEO call-down with nav movement (AC-14)', () => {
       if (w.movement.phase('ceo') === 'ride' && ceoRides[ceoRides.length - 1] !== f) ceoRides.push(f);
       const st = w.unitState('ceo');
       if (st?.step === 'sign' && (st.state === 'stamp-raise' || st.state === 'stamp-press')) {
-        atTable = w.movement.isAt('ceo', { floor: ROOM_FLOOR, spot: 'meeting-room' });
+        // At the sign table itself (QA 0002 round 1: the stamp is at signTable(), not any room seat).
+        atTable = w.movement.isAt('ceo', { floor: ROOM_FLOOR, spot: 'meeting-room:sign' });
         signedOn = w.movement.floorOf('ceo');
       }
     });

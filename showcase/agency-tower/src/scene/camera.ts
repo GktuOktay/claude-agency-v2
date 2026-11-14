@@ -3,7 +3,8 @@ import { TOUCH, Vector3 } from 'three';
 import type { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { FLOOR_COUNT, FLOOR_HEIGHT, HALF_DEPTH, HALF_WIDTH, SHAFT_X } from './model';
 import { STAFF_SHAFT } from '../sim/layout';
-import { CAMPUS_BOUNDS, TERRACE, WING } from '../sim/layout';
+import { CAMPUS_BOUNDS, ROOF_GARDEN_FLOOR, TERRACE, WING, WING_WEST_X } from '../sim/layout';
+import { PLOT_MARGIN } from '../sim/citySim';
 
 export const OVERVIEW_DURATION = 1.2;
 export const ZOOM_DURATION = 0.6;
@@ -63,8 +64,25 @@ let insets: { left: number; top: number } | null = null;
 export function clearFrameInsets(): void {
   insets = null;
 }
-export function setFrameInsets(left: number, top: number): void {
+export function setFrameInsets(left: number, top: number, bottom = 0): void {
   insets = { left: Math.min(0.4, Math.max(0, left)), top: Math.min(0.4, Math.max(0, top)) };
+  setSheetInset(bottom);
+}
+
+/** Largest bottom-sheet fraction a floor view leaves to the sheet (the plan keeps at least a usable band). */
+export const MAX_SHEET_INSET = 0.5;
+let sheetInset = 0;
+/**
+ * Rev 38: screen fraction covered by an open bottom sheet (the settings sheet on phones). Floor and wing views
+ * fit the plan above it. 0 = none (the default, desktop).
+ */
+export function setSheetInset(bottom: number): void {
+  sheetInset = Number.isFinite(bottom) ? Math.min(MAX_SHEET_INSET, Math.max(0, bottom)) : 0;
+}
+let zoomSheet = 0;
+/** Rev 38: screen fraction the robot card covers on phones; the robot close-up sits in the area above it. */
+export function setZoomSheetInset(bottom: number): void {
+  zoomSheet = Number.isFinite(bottom) ? Math.min(0.7, Math.max(0, bottom)) : 0;
 }
 
 const deg = (d: number): number => (d * Math.PI) / 180;
@@ -105,13 +123,53 @@ function boxCorners(x0: number, x1: number, y0: number, y1: number, z0: number, 
 const cabinYFor = (floor: number): number => floor * FLOOR_HEIGHT + FLOOR_TARGET_Y;
 const TOWER_TOP = FLOOR_COUNT * FLOOR_HEIGHT;
 
+/**
+ * Overview fill (art direction after Rev 38): the framed points fit within these fractions of the free area
+ * (right of the floor panel on desktop, below the floor strip on phones). Desktop is height-bound, so the
+ * campus fills about 60-70 % of the width with the city around it; phones are width-bound and keep the wing edge
+ * clear of the screen edge.
+ */
+export const OVERVIEW_FILL = { h: 0.84, v: 0.95 } as const;
+/** Headroom over the tower roof for the top floor's department label. */
+const OVERVIEW_ROOF_HEADROOM = 1;
+
+/** What the overview is for: the tower with its shafts, the wing with its terrace and roof garden, the arrival plaza. */
+export function overviewFocusPoints(): Vector3[] {
+  const wingTop = ROOF_GARDEN_FLOOR * FLOOR_HEIGHT + 1.5; // roof garden planting and pergola
+  return [
+    ...boxCorners(SHAFT_X - 0.9, STAFF_SHAFT.x + 0.9, 0, TOWER_TOP + OVERVIEW_ROOF_HEADROOM, -HALF_DEPTH, HALF_DEPTH),
+    ...boxCorners(WING_WEST_X, WING.x + WING.halfW, 0, wingTop, -WING.halfD, TERRACE.z1),
+    // Arrival plaza: from the tower front to the allée at the south edge of the campus block (grounds.ts SITE).
+    ...boxCorners(SHAFT_X - 0.7, CAMPUS_BOUNDS.x1 + PLOT_MARGIN - 0.1, 0, 0, HALF_DEPTH, CAMPUS_BOUNDS.z1 + PLOT_MARGIN - 0.1),
+  ];
+}
+
 export function overviewPose(): CamPose {
-  // Campus wing (KARARLAR rev 31): frame the tower, both shafts and the wing with its terrace.
+  // Campus wing (KARARLAR rev 31): frame the tower, both shafts and the wing with its terrace; art direction
+  // after Rev 38: plus the arrival plaza, centred in the free area and as large as the whole campus allows.
   const c = CAMPUS_BOUNDS;
-  const target = new Vector3((c.x0 + c.x1) / 2, TOWER_TOP * 0.46, (c.z0 + c.z1) / 2);
   const dir = viewDirection(35, 35);
-  const pts = boxCorners(Math.min(SHAFT_X - 0.9, c.x0), Math.max(STAFF_SHAFT.x + 0.9, c.x1), 0, TOWER_TOP, Math.min(-HALF_DEPTH, c.z0), Math.max(HALF_DEPTH, c.z1));
-  const d = fitDistance(pts, target, dir, CAMERA_FOV, frameAspect, 0.84);
+  const pts = [
+    ...boxCorners(Math.min(SHAFT_X - 0.9, c.x0), Math.max(STAFF_SHAFT.x + 0.9, c.x1), 0, TOWER_TOP, Math.min(-HALF_DEPTH, c.z0), Math.max(HALF_DEPTH, c.z1)),
+    ...overviewFocusPoints(),
+  ];
+  const forward = dir.clone().negate();
+  const right = new Vector3().crossVectors(forward, new Vector3(0, 1, 0)).normalize();
+  const up = new Vector3().crossVectors(right, forward);
+  const tanV = Math.tan(deg(CAMERA_FOV) / 2);
+  const tanH = tanV * frameAspect;
+  const inset = insets ?? { left: frameAspect > 1 ? PANEL_OFFSET_NDC : 0, top: 0 };
+  // Free area in NDC: x in [-1 + 2*left, 1], y in [-1, 1 - 2*top]; its centre is (left, -top).
+  const halfH = OVERVIEW_FILL.h * (1 - inset.left);
+  const halfV = OVERVIEW_FILL.v * (1 - inset.top);
+  const target = new Vector3((c.x0 + c.x1) / 2, TOWER_TOP * 0.46, (c.z0 + c.z1) / 2);
+  let d = fitDistance(pts, target, dir, CAMERA_FOV, frameAspect, halfH, halfV);
+  for (let i = 0; i < 10; i++) {
+    const b = projectedBounds(pts, target, dir, d, CAMERA_FOV, frameAspect);
+    d *= Math.max((b.maxX - b.minX) / 2 / halfH, (b.maxY - b.minY) / 2 / halfV);
+    target.addScaledVector(up, ((b.minY + b.maxY) / 2 + inset.top) * d * tanV);
+    target.addScaledVector(right, ((b.minX + b.maxX) / 2 - inset.left) * d * tanH);
+  }
   return { cabinY: cabinYFor(0), pos: target.clone().add(dir.multiplyScalar(d)), target };
 }
 
@@ -155,8 +213,22 @@ export function wingPlanPoints(level: number): Vector3[] {
   return boxCorners(WING.x - WING.halfW, WING.x + WING.halfW, base, base + FLOOR_LABEL_HEADROOM, -WING.halfD, z1);
 }
 
+/**
+ * Points a tower floor view frames. Rev 38: on a portrait screen the campus wing would show as a thin sliver
+ * at the left edge; the frame takes in its whole east facade (ground to the wing level of this floor, or its
+ * roof) so the edge, the sky-bridge and the wing corner read as a whole neighbour. Wide screens: the plan only.
+ */
+export function floorFramePoints(floor: number): Vector3[] {
+  const plan = floorPlanPoints(floor);
+  if (frameAspect >= 1) return plan;
+  const level = Math.min(floor, ROOF_GARDEN_FLOOR);
+  const x = WING.x + WING.halfW;
+  const top = level * FLOOR_HEIGHT + (level === ROOF_GARDEN_FLOOR ? 0.6 : FLOOR_LABEL_HEADROOM);
+  return [...plan, ...boxCorners(x, x, level * FLOOR_HEIGHT, top, -WING.halfD, WING.halfD)];
+}
+
 export function floorPose(floor: number): CamPose {
-  return framePlan(floorPlanPoints(floor), new Vector3(0, cabinYFor(floor), 0));
+  return framePlan(floorFramePoints(floor), new Vector3(0, cabinYFor(floor), 0));
 }
 
 /** Frames a whole campus wing level (or the roof garden) like a floor view, clear of the floor panel. */
@@ -179,7 +251,8 @@ function framePlan(pts: readonly Vector3[], start: Vector3): CamPose {
   const inset = insets ?? { left: frameAspect > 1 ? PANEL_OFFSET_NDC : 0, top: 0 };
   // Free area in NDC: x in [-1 + 2*left, 1], y in [-1, 1 - 2*top].
   const wantX = inset.left;
-  const wantY = -inset.top;
+  const bottom = sheetInset;
+  const wantY = bottom - inset.top;
   const tanV = Math.tan(deg(CAMERA_FOV) / 2);
   const tanH = tanV * frameAspect;
   const target = start.clone();
@@ -189,7 +262,7 @@ function framePlan(pts: readonly Vector3[], start: Vector3): CamPose {
     const cy = (b.minY + b.maxY) / 2;
     const cx = (b.minX + b.maxX) / 2;
     // Width ~90 % (less the panel offset), height within 96 %: scale the distance toward the binding one.
-    const fill = Math.max((b.maxX - b.minX) / 2 / (0.95 * (1 - inset.left)), (b.maxY - b.minY) / 2 / (0.96 * (1 - inset.top)));
+    const fill = Math.max((b.maxX - b.minX) / 2 / (0.95 * (1 - inset.left)), (b.maxY - b.minY) / 2 / (0.96 * (1 - inset.top - bottom)));
     d *= fill;
     target.addScaledVector(horiz, ((cy - wantY) * d * tanV) / Math.max(0.2, horiz.dot(up)));
     target.addScaledVector(right, (cx - wantX) * d * tanH);
@@ -200,7 +273,19 @@ function framePlan(pts: readonly Vector3[], start: Vector3): CamPose {
 /** Frames a robot and its desk: the robot fills roughly a quarter to a third of the viewport height. */
 export function robotPose(robotFeet: Vector3, cabinY?: number, scale = 1): CamPose {
   const target = robotFeet.clone().add(new Vector3(0, ZOOM_TARGET_LIFT * scale, 0));
-  const pos = target.clone().add(viewDirection(25, 40).multiplyScalar(ZOOM_DISTANCE));
+  const dir = viewDirection(25, 40);
+  const pos = target.clone().add(dir.clone().multiplyScalar(ZOOM_DISTANCE));
+  if (zoomSheet > 0) {
+    // Rev 38: slide the view (same distance and angle) so the robot sits mid-way between the top strip and
+    // the card sheet instead of under the sheet.
+    const forward = dir.clone().negate();
+    const right = new Vector3().crossVectors(forward, new Vector3(0, 1, 0)).normalize();
+    const up = new Vector3().crossVectors(right, forward);
+    const wantY = zoomSheet - (insets?.top ?? 0);
+    const shift = up.multiplyScalar(-wantY * ZOOM_DISTANCE * Math.tan(deg(ZOOM_FOV) / 2));
+    target.add(shift);
+    pos.add(shift);
+  }
   return { cabinY: cabinY ?? target.y, pos, target, fov: ZOOM_FOV };
 }
 

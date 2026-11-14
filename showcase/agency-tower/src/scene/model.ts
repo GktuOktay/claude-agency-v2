@@ -50,6 +50,8 @@ import { createCharacter } from './human';
 import { Screen } from './screen';
 import { buildCampus } from './campus';
 import { createCity, type City } from './city';
+import { buildFacade, type Facade } from './facade';
+import { createGrounds, type Grounds } from './grounds';
 
 import {
   COFFEE,
@@ -175,6 +177,10 @@ export interface TowerModel {
   nightMaterials(): MeshStandardMaterial[];
   /** City life around the campus (src/scene/city.ts); null when built with `city: false`. */
   city: City | null;
+  /** Curtain-wall dress of every floor (src/scene/facade.ts, rev 37); empty when built with `facade: false`. */
+  facade: Facade;
+  /** Landscaped campus grounds (src/scene/grounds.ts, rev 37); null when built with `grounds: false`. */
+  grounds: Grounds | null;
 }
 
 export interface BuildOptions {
@@ -188,6 +194,10 @@ export interface BuildOptions {
   software?: boolean;
   /** City around the campus (src/scene/city.ts); default on, off for A/B budget checks. */
   city?: boolean;
+  /** Tower facade (src/scene/facade.ts); default on, off for A/B budget checks. */
+  facade?: boolean;
+  /** Campus grounds (src/scene/grounds.ts); default on, off for A/B budget checks. */
+  grounds?: boolean;
 }
 
 const WALL_OVERVIEW = 0.25;
@@ -689,8 +699,14 @@ export function buildTower(data: TowerData, options: BuildOptions = {}): TowerMo
     });
   }
 
+  // Luxury exterior (KARARLAR rev 37): the facade dresses each floor with that floor's wall materials (it
+  // ghosts with the walls); the grounds sit on the root like the city (never ghosted).
+  const facade: Facade = options.facade === false ? { groups: [], glows: [] } : buildFacade(floors);
+  const grounds = options.grounds === false ? null : createGrounds();
+  if (grounds) root.add(grounds.group);
+
   for (const f of floors) mergeStatic(f.group);
-  const glowMats = kits.flatMap((k) => k.glows);
+  const glowMats = [...kits.flatMap((k) => k.glows), ...facade.glows, ...(grounds?.glows ?? [])];
   let org = false;
   let beforeOrg: ViewState = { mode: 'overview', focusFloor: 0 };
 
@@ -851,6 +867,7 @@ export function buildTower(data: TowerData, options: BuildOptions = {}): TowerMo
     setView(v) {
       org = false;
       city?.setOrg(false);
+      grounds?.setOrg(false);
       model.view = { ...v };
       for (const f of floors) {
         let walls = WALL_OVERVIEW;
@@ -905,6 +922,7 @@ export function buildTower(data: TowerData, options: BuildOptions = {}): TowerMo
       model.setView({ mode: 'overview', focusFloor: 0 });
       org = true;
       city?.setOrg(true);
+      grounds?.setOrg(true);
       for (const f of floors) {
         for (const m of [...f.materials.walls, ...f.materials.slab, ...f.materials.contents]) setOpacity(m, ORG_SHELL);
         for (const m of f.materials.tinted) setTinted(m, ORG_SHELL);
@@ -930,6 +948,8 @@ export function buildTower(data: TowerData, options: BuildOptions = {}): TowerMo
     },
     nightMaterials: () => glowMats,
     city,
+    facade,
+    grounds,
     pickableFloors() {
       if (org) return new Set(floors.map((f) => f.id));
       return model.view.mode === 'floor' ? new Set([model.view.focusFloor]) : new Set(floors.map((f) => f.id));

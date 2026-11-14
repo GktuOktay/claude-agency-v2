@@ -89,6 +89,24 @@ export const tr = {
     tiers: { low: 'Düşük kalite', high: 'Yüksek kalite' },
     maxJobs: (n: number): string => `en çok ${n} aktif iş`,
     current: '(şu an)',
+    // Rev 35: tabbed section modules.
+    sections: 'Ayarlar bölümleri',
+    jobs: 'Aktif işler',
+    office: 'Ofis',
+    access: 'Erişilebilirlik & kısayollar',
+    badge: (n: number): string => `Ayarlar · ${n} aktif iş`,
+    quality: 'Görüntü kalitesi',
+    qualityTiers: { low: 'Düşük', medium: 'Orta', high: 'Yüksek', ultra: 'Ultra' },
+    schedule: 'Mola saatleri',
+    scheduleNow: (hh: string, mm: string, label: string): string => `Şu an: ${hh}:${mm} · ${label}`,
+    scheduleSample: 'Simülasyon · örnek program',
+    keyList: 'Tuşlar',
+    keys: [
+      ['0–5', 'Kat seç'],
+      ['O', 'Organizasyon şeması aç / kapat'],
+      ['K', 'Kampüs alanları arasında geç'],
+      ['Esc', 'Kartı, şemayı ya da bu menüyü kapat'],
+    ] as const,
   },
   // REQ-18 toolbar toggle.
   motionPause: 'Hareketi durdur',
@@ -138,6 +156,20 @@ export const tr = {
     'stamp-raise': 'İmzalıyor',
     'stamp-press': 'İmzalıyor',
     called: 'Çağrıldı: <adım etiketi>',
+  },
+  // Rev 38 polish: break-specific "Şu an" lines, keyed by break venue (scene/breaks.ts) or the floor station slot.
+  // A separate set: the §7.6 job-step map above stays as AC-11 transcribed it.
+  breakTpl: {
+    gym: 'Spor salonunda',
+    game: 'Oyun alanında',
+    snack: "Snack bar'da",
+    cafeteria: 'Yemekhanede öğle yemeğinde',
+    terrace: 'Terasta',
+    pods: 'Uyku kabininde dinleniyor',
+    lab: "Ar-Ge'de",
+    archive: 'Arşivde',
+    tea: 'Çay molasında',
+    coffee: 'Kahve molasında',
   },
 
 } as const;
