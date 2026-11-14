@@ -269,3 +269,8 @@ Eski kurulum: ~/.claude-backup-2026-11-01 (silme işlemi henüz yapılmadı).
 - CEO: (1) aktif işler penceresi kat panelinin üstüne binmesin; (2) binanın çevresinde gölgede kalan şehir yaşamı; (3) kart açıklamaları ve araçlar anlaşılır Türkçe olsun, teknik adlar korunsun; (4) kat planında yeni alanlar olsun; (5) senaryo/ayarlar köşede ikon menüde olsun. "İş planında değilse ekle."
 - Paketler: A şehir (city.ts, citySim.ts), B arayüz (iş şeridi yerleşimi ve daraltma, kat panelinde "Kampüs" grubu ve kanat kamera pozları, köşe ayar menüsü ve salt okunur Senaryo bölümü), C kart dili (descriptionTr, araç sözlüğü, "Özgün metin").
 - **Ruling:** şehir dikkat çekmesin diye soluk, düşük kontrastlı ve sisli; kampüs çevresinde boş bir yarıçap bırakılır. Yanlışsa maliyet: malzeme sabitleri.
+
+## Revizyon 34: Eşlik teslimi düzeltmesi ve test süreleri (2026-11-14)
+- Motor düzeltmesi: eşlik eden birime teslim artık ikisi aynı yerdeyken yapılıyor; taşıyıcı teslimden önce eve yürümüyor. İnceleme saati eşlik eden birim yanına gelince başlıyor (R-11).
+- Sonuç: l2 işleri gerçek yolculuk nedeniyle yavaşladı; çekim sayım testi (seed 9) 1200 s'de 5 sonuç çekimi gördü, eşik >5. **Ruling:** o testin koşu süresi 1500 s; doğrulamalar aynı. Yanlışsa maliyet: tek sayı.
+- **Ruling:** personel ayak izi taraması (`staff-sim.test.ts`) paralel yük altında 15 s zaman aşımına düşüyor, tek başına ~10 s; o teste 45 s süre. Doğrulamalar aynı.

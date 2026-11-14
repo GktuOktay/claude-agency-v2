@@ -52,6 +52,8 @@ import { createSimRuntime } from './simRuntime';
 import { syncStaffCabinFrom } from './elevatorView';
 import { createDirector, type Director, type RobotView } from '../scene/director';
 import { createProps, propRobotsOf } from '../scene/props';
+import { createWhiteboard, createWhiteboardTexture } from '../scene/whiteboard';
+import { whiteboardTextureSize } from '../sim/layout';
 import { isNavMovement } from '../sim/navMovement';
 import { createStaffRuntime, type StaffRuntime } from './staffRuntime';
 import { createStaff, type StaffModel } from '../scene/staff';
@@ -165,6 +167,10 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
   let director: Director | null = null;
   const narrowMq = typeof matchMedia === 'function' ? matchMedia('(max-width: 767px)') : null;
   const reducedMq = typeof matchMedia === 'function' ? matchMedia('(prefers-reduced-motion: reduce)') : null;
+  // T-8: meeting-room whiteboard, filled from the engine's meeting progress (§7.7 texture size per tier).
+  const board = createWhiteboard(scenarios);
+  const boardTex = createWhiteboardTexture(whiteboardTextureSize(quality.quality));
+  if (boardTex) model.meetingRoom.setWhiteboardTexture(boardTex.texture);
   const runtime = createSimRuntime({
     scenarios,
     units: new Map(data.units.map((u) => [u.id, u.floor])),
@@ -173,6 +179,7 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     unitName: ctx.nameOf,
     onStep: (dt, events) => {
       director?.ingest(events);
+      board.ingest(events);
       director?.update(dt, runtime.workflow);
     },
     isNarrow: () => narrowMq?.matches ?? false,
@@ -513,6 +520,7 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     if (shouldStepSim(orgOn)) sim.step(dt * 1000); // org mode: robots freeze in place
     runtime.frame(dt * 1000); // simulation clock (≤ 100 ms steps, frozen by org / user / hidden), engine, director, strip
     syncStaffCabinFrom(runtime.workflow.movement, model.staffCabin);
+    boardTex?.render(board.state(runtime.workflow, motion.active()));
     staffRt?.frame(dt); // staff NPCs: paused with the clock's global reasons (org / user / hidden)
     if (!runtime.clock.paused) model.city?.step(dt); // city life: same global pause reasons
     const selected = flow.selectedId();

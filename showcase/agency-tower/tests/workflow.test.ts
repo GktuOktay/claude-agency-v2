@@ -134,7 +134,7 @@ describe('engine trace (AC-4)', () => {
     let wf: Workflow | undefined;
     const { rng, log } = instrumented(9, () => wf?.time ?? 0);
     wf = makeWorkflow({ rng });
-    run(wf, 1200);
+    run(wf, 1500); // 1500 s: real escort travel (Rev 34); assertions unchanged
     const trace = wf.trace();
     const d = wf.draws();
     expect(log.length).toBe(d.outcome + d.lane + d.variant + d['start-delay'] + d.duration);
@@ -154,7 +154,7 @@ describe('engine trace (AC-4)', () => {
       if (!forced) expected++;
     }
     expect(d.outcome).toBe(expected);
-    expect(d.outcome).toBeGreaterThan(5);
+    expect(d.outcome).toBeGreaterThan(5); // run length 1500 s: real escort travel slows l2 (KARARLAR Rev 34)
     const unscripted = trace.filter((e) => e.type === 'job-start' && e.job > 3).length;
     expect(d.lane).toBe(unscripted);
     expect(d.variant).toBe(unscripted);
