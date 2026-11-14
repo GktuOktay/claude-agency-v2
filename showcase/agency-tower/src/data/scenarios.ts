@@ -300,6 +300,15 @@ export function keepsRoomAfter(ix: ScenarioIndex, s: Step): boolean {
   return false;
 }
 
+/** True when step `id` or a step after it on the forward path uses the room (hold continues). */
+export function roomAhead(ix: ScenarioIndex, id: string): boolean {
+  for (const r of reach(ix, [id])) {
+    if (ix.branchOf.has(r)) continue;
+    if (usesRoom(ix, ix.byId.get(r)!)) return true;
+  }
+  return false;
+}
+
 // ---------------------------------------------------------------- structural rules per scenario
 function checkGraph(ix: ScenarioIndex, w: string): void {
   const { scenario: scn, byId } = ix;

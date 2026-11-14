@@ -51,4 +51,9 @@ export const tr = {
     'meeting-table': 'Toplantı odası',
     globe: 'Kütüphane',
   },
+  // Spec 0002 §7.8 pause texts (simulation clock).
+  sim: {
+    paused: 'Duraklatıldı',
+    pausedSelected: 'Duraklatıldı · seçili robot',
+  },
 } as const;
