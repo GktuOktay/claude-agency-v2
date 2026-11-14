@@ -352,15 +352,22 @@ function items(floor: number): Item[] {
   return out;
 }
 
+/** Finish class of a baked material (QA r2B): metal (brass, brushed metal), polished stone (marble), other. */
+type FinishClass = 'metal' | 'stone' | 'other';
+const finishClass = (m: MeshStandardMaterial): FinishClass => (m.metalness >= 0.3 ? 'metal' : m.roughness <= 0.3 ? 'stone' : 'other');
+const step05 = (v: number): number => Math.round(v * 20) / 20;
+
 /**
- * Folds every opaque, non-glowing dressing mesh into one vertex-coloured mesh per shadow role, so the dressing
- * adds a couple of draw calls per floor instead of one per colour. Glow and glass parts keep their shared Kit
- * materials (they merge into the floor's existing buckets in mergeStatic).
+ * Folds every opaque, non-glowing dressing mesh into one vertex-coloured mesh per shadow role and finish class
+ * (metal, stone, other), so the dressing adds a few draw calls per floor instead of one per colour while metal
+ * and marble keep their sheen (QA r2B). Glow and glass parts keep their shared Kit materials (they merge into
+ * the floor's existing buckets in mergeStatic).
  */
 export function bakeStatic(k: Kit, root: Group, prefix = DRESSING_PREFIX): void {
   root.updateMatrixWorld(true);
   const inv = root.matrixWorld.clone().invert();
   const buckets = new Map<string, BufferGeometry[]>();
+  const finish = new Map<string, { roughness: number; metalness: number; n: number }>();
   const baked: Mesh[] = [];
   root.traverse((o) => {
     if (!(o instanceof Mesh) || o instanceof InstancedMesh || o.name !== '') return;
@@ -373,10 +380,13 @@ export function bakeStatic(k: Kit, root: Group, prefix = DRESSING_PREFIX): void 
     const colors = new Float32Array(n * 3);
     for (let i = 0; i < n; i++) colors.set([mat.color.r, mat.color.g, mat.color.b], i * 3);
     geo.setAttribute('color', new BufferAttribute(colors, 3));
-    const key = `${String(o.userData.shadow)}|${geo.index ? 'i' : 'n'}`;
+    const cls = finishClass(mat);
+    const key = `${String(o.userData.shadow)}|${geo.index ? 'i' : 'n'}|${cls}`;
     const list = buckets.get(key) ?? [];
     list.push(geo);
     buckets.set(key, list);
+    const f = finish.get(key) ?? { roughness: 0, metalness: 0, n: 0 };
+    finish.set(key, { roughness: f.roughness + mat.roughness, metalness: f.metalness + mat.metalness, n: f.n + 1 });
     baked.push(o);
   });
   for (const m of baked) m.removeFromParent();
@@ -384,9 +394,12 @@ export function bakeStatic(k: Kit, root: Group, prefix = DRESSING_PREFIX): void 
     const merged = mergeGeometries(geos);
     for (const g of geos) g.dispose();
     if (!merged) continue;
-    const role = key.split('|')[0] ?? 'object';
-    const mesh = new Mesh(merged, k.vertexColored());
-    mesh.name = `${prefix}static-${role}`;
+    const [role = 'object', , cls = 'other'] = key.split('|');
+    const f = finish.get(key)!;
+    // One merged mesh per finish class, on the class's mean finish (rounded to 0.05 so the materials stay shared).
+    const mat = cls === 'other' ? k.vertexColored() : k.vertexColored(step05(f.roughness / f.n), step05(f.metalness / f.n));
+    const mesh = new Mesh(merged, mat);
+    mesh.name = cls === 'other' ? `${prefix}static-${role}` : `${prefix}static-${role}-${cls}`;
     mesh.userData.shadow = role;
     root.add(mesh);
   }
