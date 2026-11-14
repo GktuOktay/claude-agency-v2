@@ -180,7 +180,7 @@ button:hover { background: #fff; border-color: rgba(47, 102, 208, 0.35); }
   color: var(--fg);
   border-radius: 10px;
   padding: 4px 8px;
-  font-size: 9.6px;
+  font-size: 11px; /* visual-standards minimum; CEO asked smaller than 12px */
   max-width: 28ch;
   width: max-content;
   white-space: normal;
