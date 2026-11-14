@@ -30,6 +30,7 @@
     {
       "id": "ceo",
       "nameTr": "CEO",
+      "descriptionTr": "Şirketin sahibi. Spec'leri imzalar, zarf eylemlerini onaylar ve yönü belirler.",
       "floor": 5,
       "tier": "ceo",
       "reportsTo": null,
@@ -49,6 +50,7 @@
     {
       "id": "chief-of-staff",
       "nameTr": "Genel Koordinatör",
+      "descriptionTr": "Ana oturum. İşleri doğru birime yönlendirir, durumu tutar ve CEO'ya rapor verir.",
       "floor": 4,
       "tier": "management",
       "reportsTo": "ceo",
@@ -68,6 +70,7 @@
     {
       "id": "delivery-manager",
       "nameTr": "Teslimat Yöneticisi",
+      "descriptionTr": "İmzalı spec'ten plan, issue, branch, PR, CI takibi ve durum raporları çıkarır. Kod yazmaz.",
       "floor": 4,
       "tier": "management",
       "reportsTo": "chief-of-staff",
@@ -82,6 +85,7 @@
     {
       "id": "talent-capacity",
       "nameTr": "Yetenek ve Kapasite",
+      "descriptionTr": "Puan kartlarından darboğaz, eksik uzmanlık ve token maliyeti raporları hazırlar. Yalnız öneri verir.",
       "floor": 4,
       "tier": "management",
       "reportsTo": "chief-of-staff",
@@ -96,6 +100,7 @@
     {
       "id": "product-manager",
       "nameTr": "Ürün Yöneticisi",
+      "descriptionTr": "Kaynaklı pazar araştırması yapar; yap, yapma ya da farklı yap kararı, yol haritası ve geri bildirim. Yeni fikirler için.",
       "floor": 3,
       "tier": "lead",
       "reportsTo": "chief-of-staff",
@@ -110,6 +115,7 @@
     {
       "id": "software-architect",
       "nameTr": "Yazılım Mimarı",
+      "descriptionTr": "Spec'ten önce çözüm mimarisini ve geçiş planlarını seçenekleri ve ödünleşimleriyle tasarlar. Kendi tasarımını onaylamaz.",
       "floor": 3,
       "tier": "lead",
       "reportsTo": "chief-of-staff",
@@ -124,6 +130,7 @@
     {
       "id": "scout",
       "nameTr": "Keşif Uzmanı",
+      "descriptionTr": "Hazır çözümleri (API, repo, kütüphane, MCP, skill) kaynaklarıyla bulup karşılaştırır. Hiçbir şey kurmaz.",
       "floor": 3,
       "tier": "specialist",
       "reportsTo": "product-manager",
@@ -138,6 +145,7 @@
     {
       "id": "business-analyst",
       "nameTr": "İş Analisti",
+      "descriptionTr": "CEO'nun anlattığı işi imzalanabilir bir spec'e çevirir. Koddan önce, her yeni iş ve değişiklikte kullanılır.",
       "floor": 3,
       "tier": "specialist",
       "reportsTo": "software-architect",
@@ -152,6 +160,7 @@
     {
       "id": "architecture-board",
       "nameTr": "Mimari Kurul",
+      "descriptionTr": "Spec'in mimarisini ve her yeni teknoloji ya da bağımlılığı bağımsız inceler; STACK.md ve ADR'leri tutar. İmzadan önce çalışır.",
       "floor": 3,
       "tier": "specialist",
       "reportsTo": "chief-of-staff",
@@ -166,6 +175,7 @@
     {
       "id": "quality-office",
       "nameTr": "Kalite Ofisi",
+      "descriptionTr": "Gereksinimden kanıta izlenebilirlik ve uyum kontrol listesi (gizlilik yasası, lisanslar, mağaza kuralları). Hukuki görüş vermez.",
       "floor": 2,
       "tier": "lead",
       "reportsTo": "chief-of-staff",
@@ -180,6 +190,7 @@
     {
       "id": "spec-critic",
       "nameTr": "Spec Eleştirmeni",
+      "descriptionTr": "Spec'i yalnız dosyaya bakarak karşı gözle okur ve cevapsız soruları listeler. İmzadan önce kullanılır.",
       "floor": 2,
       "tier": "specialist",
       "reportsTo": "quality-office",
@@ -194,6 +205,7 @@
     {
       "id": "qa-engineer",
       "nameTr": "Test Mühendisi",
+      "descriptionTr": "Her kabul ölçütünü kanıta bağlar, kodu bozarak testleri dener, başarısız tekrar testleri yazar. Üretim kodu yazmaz.",
       "floor": 2,
       "tier": "specialist",
       "reportsTo": "quality-office",
@@ -208,6 +220,7 @@
     {
       "id": "appsec",
       "nameTr": "Uygulama Güvenliği",
+      "descriptionTr": "Uygulama güvenliğini inceler: imza öncesi tehdit modeli; teslim öncesi kod, bağımlılık, gizli bilgi ve yapılandırma kontrolü (OWASP). Yalnız okur, değiştirmez.",
       "floor": 2,
       "tier": "specialist",
       "reportsTo": "quality-office",
@@ -222,6 +235,7 @@
     {
       "id": "internal-auditor",
       "nameTr": "İç Denetçi",
+      "descriptionTr": "Biten işi spec'e, kurallara ve kanıtlara göre bağımsız denetler; yalnız okur. Bir işe bitti demeden önce kullanılır.",
       "floor": 2,
       "tier": "specialist",
       "reportsTo": "ceo",
@@ -236,6 +250,7 @@
     {
       "id": "devops-sre",
       "nameTr": "DevOps / SRE",
+      "descriptionTr": "Docker, CI, yayın paketi (adımlar, geri alma, sağlık kontrolü), Cloudflare/Plesk listesi, yedek ve izleme. Hazırlar, kendisi yayına almaz.",
       "floor": 1,
       "tier": "lead",
       "reportsTo": "chief-of-staff",
@@ -250,6 +265,7 @@
     {
       "id": "dotnet-engineer",
       "nameTr": ".NET Mühendisi",
+      "descriptionTr": "İmzalı spec'i .NET (C#, ASP.NET Core, EF Core) ile önce test yazarak uygular.",
       "floor": 1,
       "tier": "specialist",
       "reportsTo": "devops-sre",
@@ -264,6 +280,7 @@
     {
       "id": "react-engineer",
       "nameTr": "React Mühendisi",
+      "descriptionTr": "İmzalı spec'i React, TypeScript ve Vite ile önce test yazarak, tüm arayüz durumlarıyla uygular.",
       "floor": 1,
       "tier": "specialist",
       "reportsTo": "devops-sre",
@@ -278,6 +295,7 @@
     {
       "id": "polyglot-engineer",
       "nameTr": "Çok Dilli Mühendis",
+      "descriptionTr": ".NET ve React dışındaki sistemleri (Django, Vue, PHP, Java, Go) okur ve taşır; davranış envanteri ve eşdeğerlik testleri çıkarır.",
       "floor": 1,
       "tier": "specialist",
       "reportsTo": "devops-sre",
@@ -292,6 +310,7 @@
     {
       "id": "marketing",
       "nameTr": "Pazarlama",
+      "descriptionTr": "Mağaza, ürün içi ve sosyal medya metinleri, marka rehberi ve görsel brifleri. Yalnız taslak hazırlar; yayın CEO onayı ister.",
       "floor": 0,
       "tier": "lead",
       "reportsTo": "chief-of-staff",
@@ -306,6 +325,7 @@
     {
       "id": "tech-comms",
       "nameTr": "Teknik İletişim",
+      "descriptionTr": "Müşteri belgelerinin kaynak metni: kılavuzlar, sürüm notları, özetler. Yalnız docs/dis/ içine yazar.",
       "floor": 0,
       "tier": "specialist",
       "reportsTo": "marketing",

@@ -3,6 +3,7 @@ import { Vector3 } from 'three';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { appRoot } from './helpers';
+import { toolLabel, modelLabel } from '../src/data/toolsTr';
 import { createSelectionFlow } from '../src/app/selection';
 import { CameraRig, floorPose, rideDuration, OVERVIEW_DURATION, ZOOM_DURATION } from '../src/scene/camera';
 import { createActivitySim } from '../src/scene/activity';
@@ -138,9 +139,10 @@ describe('selection flow (AC-10)', () => {
       const text = s.host.querySelector('[role="dialog"]')?.textContent ?? '';
       const agent = byName.get(u.id);
       if (agent) {
-        expect(text).toContain(agent.tools.join(', '));
-        expect(text).toContain(agent.model ?? '—');
-        expect(text).toContain(agent.description);
+        for (const t of agent.tools) expect(text).toContain(toolLabel(t));
+        expect(text).toContain(agent.model ? modelLabel(agent.model) : '—');
+        expect(text).toContain(u.descriptionTr);
+        expect(text).toContain(agent.description); // original stays reachable under the disclosure
       }
       for (const label of ['Rol', 'Açıklama', 'Araçlar', 'Model', 'Bağlı olduğu']) expect(text).toContain(label);
     }

@@ -12,6 +12,8 @@ export interface Unit {
   independent: boolean;
   roleTr: string;
   phrasesTr: string[];
+  /** Turkish description (1-220 code points); `description` stays the original English text. */
+  descriptionTr: string;
   description: string;
   tools: string[];
   model: string | null;
