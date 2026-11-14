@@ -45,6 +45,31 @@ describe('check-isolation (AC-1)', () => {
     });
   }
 
+  // 0002 §3.0 / AC-1: the denied segments also include `CLAUDE.md` and `docs`.
+  for (const seg of ['CLAUDE.md', 'docs']) {
+    it(`fails on a planted path string with a "${seg}" segment in src/ and scripts/`, () => {
+      const v = checkIsolation(
+        plant({ 'src/p.ts': `export const p = '../../../${seg}/x';\n`, 'scripts/q.mjs': `const q = 'a/${seg}';\n` }),
+      );
+      expect(v.map((x) => x.file).sort()).toEqual(['scripts/q.mjs', 'src/p.ts']);
+    });
+
+    it(`ignores a "${seg}" segment in tests/ and README.md`, () => {
+      const v = checkIsolation(plant({ 'tests/t.ts': `const s = '../${seg}/x';\n`, 'README.md': `see ../../${seg}/y\n` }));
+      expect(v).toEqual([]);
+    });
+  }
+
+  it('does not match segments that merely contain "docs" or "CLAUDE.md"', () => {
+    const v = checkIsolation(plant({ 'src/ok.ts': "export const a = 'x/mydocs/y';\nexport const b = 'x/CLAUDE.md.bak';\n" }));
+    expect(v).toEqual([]);
+  });
+
+  it('still does not scan .json files (roster quotes docs/dis/)', () => {
+    const v = checkIsolation(plant({ 'src/data/r.json': '{"d": "docs/dis/x"}' }));
+    expect(v).toEqual([]);
+  });
+
   it('does not fail on a string merely containing such a word', () => {
     const v = checkIsolation(
       plant({ 'src/ok.ts': "export const u = 'https://website.example/templates-list/x';\nexport const w = 'a/website/b';\n" }),

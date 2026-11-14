@@ -4,7 +4,8 @@ import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative, resolve, dirname, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const DENIED_SEGMENTS = new Set(['harness', '.claude', 'site', 'templates']);
+// 0002 §3.0 adds `CLAUDE.md` and `docs`; SCAN_EXT stays without .json (roster.generated.json quotes "docs/dis/").
+const DENIED_SEGMENTS = new Set(['harness', '.claude', 'site', 'templates', 'CLAUDE.md', 'docs']);
 const ALLOWED_CONSTANT = '../../../.claude/agents';
 const ALLOWED_FILE = 'scripts/build-roster.mjs';
 const SELF = 'scripts/check-isolation.mjs';

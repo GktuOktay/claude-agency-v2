@@ -4,6 +4,7 @@ import { parseParams } from './app/params';
 import { startSceneApp } from './app/sceneApp';
 import roster from './data/roster.generated.json';
 import hierarchy from './data/hierarchy.json';
+import scenarios from './data/scenarios.json';
 
 function hasWebGL2(): boolean {
   try {
@@ -18,7 +19,7 @@ if (root) {
   const params = parseParams(window.location.search);
   void boot({
     root,
-    loadRaw: () => Promise.resolve({ roster, overlay: hierarchy }),
+    loadRaw: () => Promise.resolve({ roster, overlay: hierarchy, scenarios }),
     hasWebGL2,
     startScene: (ctx) => startSceneApp(ctx, params),
   });
