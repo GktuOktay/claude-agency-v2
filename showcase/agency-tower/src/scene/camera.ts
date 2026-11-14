@@ -3,6 +3,7 @@ import { TOUCH, Vector3 } from 'three';
 import type { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { FLOOR_COUNT, FLOOR_HEIGHT, HALF_DEPTH, HALF_WIDTH, SHAFT_X } from './model';
 import { STAFF_SHAFT } from '../sim/layout';
+import { CAMPUS_BOUNDS } from '../sim/layout';
 
 export const OVERVIEW_DURATION = 1.2;
 export const ZOOM_DURATION = 0.6;
@@ -105,9 +106,11 @@ const cabinYFor = (floor: number): number => floor * FLOOR_HEIGHT + FLOOR_TARGET
 const TOWER_TOP = FLOOR_COUNT * FLOOR_HEIGHT;
 
 export function overviewPose(): CamPose {
-  const target = new Vector3(-0.6, TOWER_TOP * 0.46, 0);
+  // Campus wing (KARARLAR rev 31): frame the tower, both shafts and the wing with its terrace.
+  const c = CAMPUS_BOUNDS;
+  const target = new Vector3((c.x0 + c.x1) / 2, TOWER_TOP * 0.46, (c.z0 + c.z1) / 2);
   const dir = viewDirection(35, 35);
-  const pts = boxCorners(SHAFT_X - 0.9, STAFF_SHAFT.x + 0.9, 0, TOWER_TOP, -HALF_DEPTH, HALF_DEPTH);
+  const pts = boxCorners(Math.min(SHAFT_X - 0.9, c.x0), Math.max(STAFF_SHAFT.x + 0.9, c.x1), 0, TOWER_TOP, Math.min(-HALF_DEPTH, c.z0), Math.max(HALF_DEPTH, c.z1));
   const d = fitDistance(pts, target, dir, CAMERA_FOV, frameAspect, 0.84);
   return { cabinY: cabinYFor(0), pos: target.clone().add(dir.multiplyScalar(d)), target };
 }
@@ -197,7 +200,8 @@ export function setOrgInsets(top: number | null, bottom = 0): void {
  */
 export function orgPose(): CamPose {
   const dir = viewDirection(24, 22);
-  const pts = boxCorners(SHAFT_X - 0.9, STAFF_SHAFT.x + 0.9, 0, TOWER_TOP + 2.2, -HALF_DEPTH, HALF_DEPTH);
+  const c = CAMPUS_BOUNDS; // campus wing (KARARLAR rev 31) included
+  const pts = boxCorners(Math.min(SHAFT_X - 0.9, c.x0), Math.max(STAFF_SHAFT.x + 0.9, c.x1), 0, TOWER_TOP + 2.2, Math.min(-HALF_DEPTH, c.z0), Math.max(HALF_DEPTH, c.z1));
   const forward = dir.clone().negate();
   const right = new Vector3().crossVectors(forward, new Vector3(0, 1, 0)).normalize();
   const up = new Vector3().crossVectors(right, forward);

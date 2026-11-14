@@ -544,3 +544,249 @@ export const LOBBY_SPOTS: readonly StaffSpot[] = [
 export const PATROL_ROUTE: readonly string[] = ['staff:entrance', 'staff:lobby-corner', 'staff:patrol-west', 'staff:patrol-east', 'staff:lobby-door'];
 /** Where the desk guard stands, facing the entrance (yaw 0 faces +z). */
 export const GUARD_POST = { id: 'staff:guard-post', facing: 0 } as const;
+
+// ---------------------------------------------------------------- campus amenity wing (KARARLAR rev 31)
+// A three-level wing west of the tower (opposite the east staff shaft), beyond the visitor shaft, joined
+// to tower floors 0-2 by glass sky-bridges on the corridor line. Wing level n sits at tower floor n's
+// height and ghosts with it (0001 REQ-8); the wing roof (floor-3 height) carries a roof garden.
+// Coordinates are floor-local x/z like the rest of this file. Pure numbers, no three.js.
+
+export const WING = { x: -16.7, z: 0, halfW: 5.5, halfD: 5.5 } as const;
+export const WING_LEVELS: readonly number[] = [0, 1, 2];
+/** The wing roof is at the height of this tower floor and ghosts with it. */
+export const ROOF_GARDEN_FLOOR = 3;
+export const WING_EAST_X = WING.x + WING.halfW;
+export const WING_WEST_X = WING.x - WING.halfW;
+/** Wing-local x to floor-local x. */
+export const wingX = (lx: number): number => WING.x + lx;
+/** Glass sky-bridge on the corridor line between the wing east wall (x0) and the tower west wall (x1). */
+export const SKY_BRIDGE = { z: CORRIDOR_Z, halfWidth: 0.6, x0: WING_EAST_X, x1: -HALF_WIDTH } as const;
+/** Door gaps (z range) cut into the tower west wall and the wing east wall where the bridge lands. */
+export const BRIDGE_DOOR = { z0: CORRIDOR_Z - 0.6, z1: CORRIDOR_Z + 0.6 } as const;
+/** Level-0 door in the wing south wall onto the cafeteria terrace (x range). */
+export const TERRACE_DOOR = { x0: wingX(0.4), x1: wingX(1.6) } as const;
+export const TERRACE = { x0: wingX(-5.0), x1: wingX(5.0), z0: WING.halfD, z1: WING.halfD + 2.8 } as const;
+/** Whole campus footprint (tower, shafts, wing, terrace) for camera framing. */
+export const CAMPUS_BOUNDS = { x0: WING_WEST_X - 0.4, x1: STAFF_SHAFT.x + 0.9, z0: -HALF_DEPTH, z1: TERRACE.z1 } as const;
+
+export type AmenityZoneId = 'yemekhane' | 'snack-bar' | 'terrace' | 'gym' | 'game-room' | 'sleep-pods' | 'rnd-lab' | 'archive' | 'roof-garden';
+
+export interface AmenityZone {
+  readonly id: AmenityZoneId;
+  readonly floor: number;
+  /** Floor label (null: no label, e.g. the terrace belongs to the cafeteria). */
+  readonly label: string | null;
+  readonly bounds: Rect;
+  /** Label anchor (floor-local x/z). */
+  readonly labelAt: XZ;
+}
+
+const wingRect = (name: string, lx0: number, lz0: number, lx1: number, lz1: number): Rect => ({ name, x0: wingX(Math.min(lx0, lx1)), x1: wingX(Math.max(lx0, lx1)), z0: Math.min(lz0, lz1), z1: Math.max(lz0, lz1) });
+const wingAt = (lx: number, z: number): XZ => ({ x: wingX(lx), z });
+
+export const CAMPUS_ZONES: readonly AmenityZone[] = [
+  { id: 'yemekhane', floor: 0, label: 'YEMEKHANE', bounds: wingRect('yemekhane', -5.5, -5.5, 5.5, 5.5), labelAt: wingAt(-2.4, 2.0) },
+  { id: 'snack-bar', floor: 0, label: 'SNACK BAR', bounds: wingRect('snack-bar', 1.0, -5.5, 5.5, -1.6), labelAt: wingAt(2.9, -3.6) },
+  { id: 'terrace', floor: 0, label: null, bounds: { name: 'terrace', ...TERRACE }, labelAt: wingAt(1.0, 7.0) },
+  { id: 'gym', floor: 1, label: 'SPOR SALONU', bounds: wingRect('gym', -5.5, -5.5, 5.5, -1.3), labelAt: wingAt(-2.7, -3.4) },
+  { id: 'game-room', floor: 1, label: 'OYUN ALANI', bounds: wingRect('game-room', -5.5, -0.5, 5.5, 5.5), labelAt: wingAt(-1.0, 2.9) },
+  { id: 'sleep-pods', floor: 2, label: 'UYKU ODALARI', bounds: wingRect('sleep-pods', -5.5, -5.5, -0.3, -1.6), labelAt: wingAt(-2.95, -3.0) },
+  { id: 'rnd-lab', floor: 2, label: 'AR-GE', bounds: wingRect('rnd-lab', -0.3, -5.5, 5.5, 5.5), labelAt: wingAt(2.9, -3.8) },
+  { id: 'archive', floor: 2, label: 'ARŞİV', bounds: wingRect('archive', -5.5, -0.2, 0.6, 5.5), labelAt: wingAt(-2.4, 2.7) },
+  { id: 'roof-garden', floor: ROOF_GARDEN_FLOOR, label: null, bounds: wingRect('roof-garden', -5.5, -5.5, 5.5, 5.5), labelAt: wingAt(0, 0) },
+];
+
+export type AmenityKind =
+  | 'serving'
+  | 'snack'
+  | 'dining'
+  | 'terrace'
+  | 'treadmill'
+  | 'weights'
+  | 'mat'
+  | 'ping-pong'
+  | 'foosball'
+  | 'arcade'
+  | 'bean-bag'
+  | 'pod'
+  | 'lab-bench'
+  | 'archive';
+
+/** A break spot at an amenity: where a robot stands, sits or lies (a spur node of the campus graph). */
+export interface AmenitySpot extends XZ {
+  readonly id: string;
+  readonly floor: number;
+  readonly zone: AmenityZoneId;
+  readonly kind: AmenityKind;
+  /** Yaw of the robot at the spot (robot front is +z; yaw 0 faces +z). */
+  readonly facing: number;
+  /** Aisle id, or another amenity spot id (spur of a spur). */
+  readonly via: string;
+}
+
+const FACE_N = Math.PI;
+const FACE_S = 0;
+const FACE_E = Math.PI / 2;
+const FACE_W = -Math.PI / 2;
+
+type SpotRow = readonly [kind: AmenityKind, zone: AmenityZoneId, via: string, facing: number, z: number, xs: readonly number[]];
+const SPOT_ROWS: Readonly<Record<number, readonly SpotRow[]>> = {
+  0: [
+    ['serving', 'yemekhane', 'wing-spine', FACE_N, -2.35, [-3.8, -2.5, -1.2]],
+    ['snack', 'snack-bar', 'wing-spine', FACE_N, -2.35, [1.9, 2.9, 3.9]],
+    ['dining', 'yemekhane', 'wing-spine', FACE_S, -0.15, [-3.8, -2.3, -0.8, 2.3, 3.8]],
+    ['dining', 'yemekhane', 'dining-w', FACE_S, 2.85, [-3.8, -2.3, -0.8]],
+    ['dining', 'yemekhane', 'dining-e', FACE_S, 2.85, [2.3, 3.8]],
+    ['terrace', 'terrace', 'terrace-door', FACE_S, 6.75, [0.0, 2.0]],
+  ],
+  1: [
+    ['treadmill', 'gym', 'gym-w', FACE_N, -4.0, [-4.5, -3.3, -2.1, -0.9]],
+    ['weights', 'gym', 'gym-e', FACE_N, -3.9, [2.0, 3.6]],
+    ['mat', 'gym', 'wing-spine', FACE_N, -1.8, [1.6, 2.8, 4.0]],
+    ['ping-pong', 'game-room', 'wing-spine', FACE_E, 2.2, [-4.25]],
+    ['ping-pong', 'game-room', 'wing-spine', FACE_W, 2.2, [-1.75]],
+    ['foosball', 'game-room', 'wing-spine', FACE_S, 0.35, [0.6]],
+    ['foosball', 'game-room', 'game-arm', FACE_N, 2.05, [0.6]],
+    ['arcade', 'game-room', 'game-arm', FACE_S, 4.1, [3.7]],
+    ['bean-bag', 'game-room', 'game-lounge', FACE_N, 4.3, [-3.6, -2.3, -1.0]],
+  ],
+  2: [
+    ['pod', 'sleep-pods', 'wing-spine', FACE_S, -4.3, [-4.6, -3.5, -2.4, -1.3]],
+    ['lab-bench', 'rnd-lab', 'wing-spine', FACE_N, -2.1, [1.4, 2.2, 3.6, 4.4]],
+    ['archive', 'archive', 'archive-1', FACE_W, 1.9, [-4.85]],
+    ['archive', 'archive', 'archive-2', FACE_W, 3.5, [-4.85]],
+  ],
+};
+
+function amenitySpotsOf(floor: number): AmenitySpot[] {
+  const out: AmenitySpot[] = [];
+  const count = new Map<AmenityKind, number>();
+  for (const [kind, zone, via, facing, z, xs] of SPOT_ROWS[floor] ?? []) {
+    for (const lx of xs) {
+      const i = count.get(kind) ?? 0;
+      count.set(kind, i + 1);
+      out.push({ id: `amenity:${kind}:${i}`, floor, zone, kind, facing, via, x: wingX(lx), z });
+    }
+  }
+  // The second arcade cabinet is reached through the first one's spot (spur of a spur).
+  const first = out.find((s) => s.kind === 'arcade');
+  if (first) out.push({ ...first, id: 'amenity:arcade:1', via: first.id, x: wingX(4.5) });
+  return out;
+}
+
+/** Break spots per wing level (floor 0: cafeteria, snack bar, terrace; 1: gym, game room; 2: pods, lab, archive). */
+export const AMENITY_SPOTS: readonly AmenitySpot[] = WING_LEVELS.flatMap(amenitySpotsOf);
+
+/** Aisles of one wing level, floor-local: the wing spine on the corridor line plus zone aisles. */
+export function wingAisles(floor: number): Aisle[] {
+  const z = CORRIDOR_Z;
+  const a = (id: string, lx0: number, z0: number, lx1: number, z1: number): Aisle => ({ id, a: wingAt(lx0, z0), b: wingAt(lx1, z1) });
+  const spine: Aisle = { id: 'wing-spine', a: { x: WING_EAST_X, z }, b: wingAt(-4.8, z) };
+  switch (floor) {
+    case 0:
+      return [spine, a('terrace-door', 1.0, z, 1.0, 6.3), a('dining-w', 1.0, 2.1, -4.4, 2.1), a('dining-e', 1.0, 2.1, 4.4, 2.1)];
+    case 1:
+      return [spine, a('gym-arm', 0.3, z, 0.3, -2.7), a('gym-w', 0.3, -2.7, -4.6, -2.7), a('gym-e', 0.3, -2.7, 4.2, -2.7), a('game-arm', 2.0, z, 2.0, 4.1), a('game-lounge', 2.0, 3.5, -4.0, 3.5)];
+    case 2:
+      return [spine, a('archive-arm', 0.9, z, 0.9, 3.5), a('archive-1', 0.9, 1.9, -4.2, 1.9), a('archive-2', 0.9, 3.5, -4.2, 3.5)];
+    default:
+      return [];
+  }
+}
+
+/** Wing walls with their door gaps and the bridge glass sides, as nav obstacles. */
+function wingWallRects(floor: number): Rect[] {
+  const t = WALL_HALF_T + 0.01;
+  const x0 = WING_WEST_X;
+  const x1 = WING_EAST_X;
+  const z0 = -WING.halfD;
+  const z1 = WING.halfD;
+  const out = [
+    span('wing-wall-north', x0 - t, z0 - t, x1 + t, z0 + t),
+    span('wing-wall-west', x0 - t, z0 - t, x0 + t, z1 + t),
+    span('wing-wall-east', x1 - t, z0 - t, x1 + t, BRIDGE_DOOR.z0),
+    span('wing-wall-east', x1 - t, BRIDGE_DOOR.z1, x1 + t, z1 + t),
+  ];
+  if (floor === 0) out.push(span('wing-wall-south', x0 - t, z1 - t, TERRACE_DOOR.x0, z1 + t), span('wing-wall-south', TERRACE_DOOR.x1, z1 - t, x1 + t, z1 + t));
+  else out.push(span('wing-wall-south', x0 - t, z1 - t, x1 + t, z1 + t));
+  const b = SKY_BRIDGE;
+  out.push(span('bridge-side', b.x0, b.z - b.halfWidth - t, b.x1, b.z - b.halfWidth + t), span('bridge-side', b.x0, b.z + b.halfWidth - t, b.x1, b.z + b.halfWidth + t));
+  return out;
+}
+
+/** Furniture footprints (obstacles) and seat/bed zones (not obstacles) of one wing level, floor-local. */
+export function wingFurniture(floor: number): { footprints: Rect[]; seatZones: Rect[] } {
+  const r = wingRect;
+  const f: Rect[] = [];
+  const s: Rect[] = [];
+  const seats = (name: string, half: number, kinds: readonly AmenityKind[]): void => {
+    for (const p of AMENITY_SPOTS) if (p.floor === floor && kinds.includes(p.kind)) s.push(rect(name, p.x, p.z, half, half));
+  };
+  switch (floor) {
+    case 0:
+      f.push(r('serving-counter', -4.6, -3.65, -0.4, -3.0), r('kitchen-pass', -4.9, -5.45, -0.2, -4.7));
+      f.push(r('snack-counter', 1.4, -3.35, 4.4, -2.85), r('snack-fridges', 1.2, -5.45, 4.8, -4.9));
+      f.push(r('dining-table', -4.6, 0.25, -0.1, 1.4), r('dining-table', 1.7, 0.25, 4.5, 1.4));
+      f.push(r('dining-table', -4.6, 3.25, -0.1, 4.4), r('dining-table', 1.7, 3.25, 4.5, 4.4));
+      f.push(r('green-wall', -5.5, -4.6, -5.2, 4.6), r('planter', 4.6, 4.7, 5.4, 5.4), r('planter', -4.7, 4.7, -1.6, 5.4));
+      for (const lx of [0.0, 2.0]) f.push(r('bistro-table', lx - 0.33, 7.0, lx + 0.33, 7.66));
+      f.push(r('terrace-planter', -5.0, 7.9, 5.0, 8.3));
+      seats('stool', 0.2, ['snack', 'dining', 'terrace']);
+      break;
+    case 1:
+      for (const lx of [-4.5, -3.3, -2.1, -0.9]) {
+        f.push(r('treadmill-console', lx - 0.38, -5.1, lx + 0.38, -4.75));
+        s.push(r('treadmill-belt', lx - 0.33, -4.75, lx + 0.33, -3.25));
+      }
+      f.push(r('dumbbell-rack', 1.4, -5.45, 4.6, -4.85), r('weight-bench', 2.55, -4.45, 3.05, -3.35));
+      f.push(r('green-wall', -5.5, -5.2, -5.2, -1.6), r('planter', 4.7, -1.5, 5.4, -1.3));
+      f.push(r('ping-pong-table', -3.75, 1.78, -2.25, 2.62), r('foosball', 0.05, 0.875, 1.15, 1.525));
+      f.push(r('arcade-cabinet', 3.4, 4.75, 4.8, 5.4), r('planter', -5.4, 4.8, -4.6, 5.4), r('planter', 4.85, 0.0, 5.4, 1.4));
+      seats('bean-bag', 0.32, ['bean-bag']);
+      break;
+    case 2:
+      for (const lx of [-4.6, -3.5, -2.4, -1.3]) {
+        f.push(r('pod-shell', lx - 0.5, -5.45, lx + 0.5, -4.95), r('pod-side', lx - 0.5, -4.95, lx - 0.4, -3.55), r('pod-side', lx + 0.4, -4.95, lx + 0.5, -3.55));
+        s.push(r('pod-bed', lx - 0.4, -4.95, lx + 0.4, -3.55));
+      }
+      f.push(r('planter-divider', -0.5, -5.45, -0.1, -2.3));
+      f.push(r('lab-bench', 1.0, -3.3, 2.6, -2.7), r('lab-bench', 3.2, -3.3, 4.8, -2.7), r('screen-wall', 0.4, -5.5, 5.1, -5.3));
+      for (const lx of [1.2, 2.5, 3.8]) f.push(r('prototype-stand', lx - 0.22, -4.52, lx + 0.22, -4.08));
+      for (const z of [1.1, 2.7, 4.3]) f.push(r('archive-shelf', -4.42, z - 0.22, -0.38, z + 0.22));
+      for (const [lx, z] of [[2.6, 1.6], [4.0, 3.2], [2.6, 4.6]] as const) f.push(r('prototype-stand', lx - 0.3, z - 0.3, lx + 0.3, z + 0.3));
+      f.push(r('planter', 4.6, 4.6, 5.4, 5.4), r('planter', 4.6, 0.0, 5.4, 0.8));
+      seats('lab-stool', 0.2, ['lab-bench']);
+      break;
+  }
+  return { footprints: f, seatZones: s };
+}
+
+/** Campus part of one tower floor's plan: the bridge aisle, wing aisles, break spots and obstacles. */
+export interface CampusLevelLayout {
+  readonly floor: number;
+  readonly aisles: readonly Aisle[];
+  readonly spots: readonly AmenitySpot[];
+  /** Wing walls, bridge sides and wing furniture. */
+  readonly footprints: readonly Rect[];
+  readonly seatZones: readonly Rect[];
+  /** The tower west wall split around the bridge door (stands in for the solid `wall-west` rect). */
+  readonly towerWestWall: readonly Rect[];
+}
+
+/** Campus layout for a wing level (floors 0-2), joined to the tower floor's corridor; null elsewhere. */
+export function campusLevelLayout(floor: number, tower: FloorLayout): CampusLevelLayout | null {
+  if (!WING_LEVELS.includes(floor)) return null;
+  const corridor = tower.aisles.find((a) => a.id === 'corridor');
+  const start = corridor ? (corridor.a.x <= corridor.b.x ? corridor.a : corridor.b) : { x: WORK_DOOR_X, z: CORRIDOR_Z };
+  const bridge: Aisle = { id: 'sky-bridge', a: start, b: { x: WING_EAST_X, z: CORRIDOR_Z } };
+  const furniture = wingFurniture(floor);
+  const t = WALL_HALF_T + 0.01;
+  return {
+    floor,
+    aisles: [bridge, ...wingAisles(floor)],
+    spots: AMENITY_SPOTS.filter((s) => s.floor === floor),
+    footprints: [...wingWallRects(floor), ...furniture.footprints],
+    seatZones: furniture.seatZones,
+    towerWestWall: [span('wall-west', -HALF_WIDTH - t, -HALF_DEPTH - t, -HALF_WIDTH + t, BRIDGE_DOOR.z0), span('wall-west', -HALF_WIDTH - t, BRIDGE_DOOR.z1, -HALF_WIDTH + t, HALF_DEPTH + t)],
+  };
+}
