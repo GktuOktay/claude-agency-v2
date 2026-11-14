@@ -85,6 +85,12 @@ button:hover { background: #fff; border-color: rgba(47, 102, 208, 0.35); }
   padding: 6px 8px;
   position: relative;
 }
+/* Groups "Kule" / "Kampüs" (Rev 31 UI pass); campus areas get a square marker (shape, not colour). */
+.panel-group { display: flex; flex-direction: column; gap: 2px; }
+.panel-group + .panel-group { margin-top: var(--space-1); padding-top: var(--space-1); border-top: 1px solid var(--panel-border); }
+.panel-group-label { margin: 2px 8px; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--fg-muted); }
+.floor-panel .is-campus .dot { border-radius: 2px; background: #7c8a6a; }
+.floor-panel .is-campus .num { display: none; }
 .floor-panel .num { font-variant-numeric: tabular-nums; font-weight: 700; }
 .floor-panel button:hover { background: rgba(31, 35, 41, 0.04); border-color: transparent; }
 .floor-panel button[aria-current='true'] { background: var(--accent-soft); font-weight: 700; color: #173a7a; }
@@ -248,6 +254,10 @@ html.is-org .robot-label { box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.25), 0 4p
   .floor-panel button[data-floor='all'] .name { position: static; width: auto; height: auto; clip-path: none; }
   .floor-panel button[aria-current='true']::before { left: 10px; right: 10px; top: auto; bottom: 3px; width: auto; height: 3px; }
   .floor-panel .marker { display: none; }
+  .panel-group { flex-direction: row; align-items: center; gap: 4px; flex: none; }
+  .panel-group + .panel-group { margin-top: 0; padding-top: 0; border-top: 0; margin-left: 2px; padding-left: 4px; border-left: 1px solid var(--panel-border); }
+  .panel-group-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .floor-panel .is-campus .num { display: inline; }
   .toolbar { left: 8px; right: 8px; top: auto; bottom: 8px; max-width: none; justify-content: center; }
   .toolbar > button, .segmented button { min-height: var(--touch); }
   .segmented button { min-width: var(--touch); padding: 4px 10px; }

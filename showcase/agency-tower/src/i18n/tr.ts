@@ -14,6 +14,7 @@ export const tr = {
   shortcutsOff: 'Kısayollar: kapalı',
   close: 'Kapat',
   floorPanel: 'Kat seçimi',
+  panelGroups: { tower: 'Kule', campus: 'Kampüs' },
   unitList: 'Birim listesi',
   currentMarker: '● ',
   card: {

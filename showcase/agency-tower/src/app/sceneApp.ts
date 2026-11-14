@@ -34,6 +34,7 @@ import { pickRobot } from '../scene/picking';
 import { applyPose } from '../scene/pose';
 import { createRng } from '../scene/rng';
 import { createFloorPanel } from '../ui/floorPanel';
+import { CAMPUS_ITEMS, campusItem, nextCampus, type CampusKey } from '../ui/campusNav';
 import { createKeyHandler } from '../ui/keymap';
 import { el } from '../ui/dom';
 import { mountHud } from '../ui/hudLayout';
@@ -236,7 +237,7 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     model.setOrg(false);
     syncStaff();
     rig.exitOrg();
-    panel.setCurrent(model.view.mode === 'floor' ? model.view.focusFloor : 'all');
+    panel.setCurrent(campusAt ?? (model.view.mode === 'floor' ? model.view.focusFloor : 'all'));
   }
   orgBtn.addEventListener('click', () => (orgOn ? exitOrg() : enterOrg()));
 
@@ -263,16 +264,33 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     dropOrg();
     if (v === 'all') goOverview();
     else goFloor(v);
+  }, {
+    items: CAMPUS_ITEMS,
+    onSelect: (k) => {
+      closeCard();
+      dropOrg();
+      goCampus(k);
+    },
   });
   panel.setCurrent('all');
 
+  let campusAt: CampusKey | null = null;
+  function goCampus(k: CampusKey): void {
+    const c = campusItem(k);
+    model.setView({ mode: 'floor', focusFloor: c.focusFloor }); // ghosting follows the same tower floor
+    syncStaff();
+    rig.goToWing(c.level, c.focusFloor);
+    panel.setCurrent((campusAt = k));
+  }
   function goFloor(n: number): void {
+    campusAt = null;
     model.setView({ mode: 'floor', focusFloor: n });
     syncStaff();
     rig.goToFloor(n);
     panel.setCurrent(n);
   }
   function goOverview(): void {
+    campusAt = null;
     model.setView({ mode: 'overview', focusFloor: 0 });
     syncStaff();
     rig.goOverview();
@@ -288,6 +306,7 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     toggleOrg: () => (orgOn ? exitOrg() : enterOrg()),
     exitOrg,
     closeCard,
+    cycleCampus: () => goCampus(nextCampus(campusAt)),
     orgEnabled: true,
   });
   window.addEventListener('keydown', (e) => keys.handle(e));

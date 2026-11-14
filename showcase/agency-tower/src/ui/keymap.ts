@@ -1,4 +1,4 @@
-// Single-key shortcuts (REQ-14, §4 key-by-state matrix).
+// Single-key shortcuts (REQ-14, §4 key-by-state matrix). `K` cycles the campus wing levels (Rev 31 UI pass).
 export interface KeyState {
   busy: boolean; // a ride or camera move is in progress
   cardOpen: boolean;
@@ -11,6 +11,8 @@ export interface KeyDeps {
   toggleOrg(): void;
   exitOrg(): void;
   closeCard(): void;
+  /** `K`: next campus area (wing level / roof garden); absent = key unused. */
+  cycleCampus?(): void;
   orgEnabled: boolean;
 }
 
@@ -23,7 +25,7 @@ export interface KeyEventLike {
   target: EventTarget | null;
 }
 
-type Request = { kind: 'floor'; n: number } | { kind: 'org' };
+type Request = { kind: 'floor'; n: number } | { kind: 'org' } | { kind: 'campus' };
 
 function isTextField(t: EventTarget | null): boolean {
   if (!t || typeof (t as Element).tagName !== 'string') return false;
@@ -49,6 +51,10 @@ export function createKeyHandler(deps: KeyDeps): KeyHandler {
       if (s.cardOpen) deps.closeCard();
       if (s.mode === 'org') deps.exitOrg();
       deps.goFloor(req.n);
+    } else if (req.kind === 'campus') {
+      if (s.cardOpen) deps.closeCard();
+      if (s.mode === 'org') deps.exitOrg();
+      deps.cycleCampus?.();
     } else {
       if (!deps.orgEnabled) return;
       if (s.cardOpen) deps.closeCard();
@@ -74,6 +80,7 @@ export function createKeyHandler(deps: KeyDeps): KeyHandler {
       let req: Request | null = null;
       if (/^[0-5]$/.test(e.key)) req = { kind: 'floor', n: Number(e.key) };
       else if (e.key === 'o' || e.key === 'O') req = deps.orgEnabled ? { kind: 'org' } : null;
+      else if (e.key === 'k' || e.key === 'K') req = deps.cycleCampus ? { kind: 'campus' } : null;
       else if (e.key === 'Escape') {
         if (s.busy) return;
         if (s.cardOpen) deps.closeCard();
