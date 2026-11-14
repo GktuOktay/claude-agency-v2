@@ -193,7 +193,7 @@ describe('staff behaviour', () => {
     const complete = [...byFloor.entries()].filter(([f, s]) => s.size === all[f]!.desks.length);
     expect(complete.length).toBeGreaterThanOrEqual(2);
     expect(tea.some((e) => e.type === 'floor')).toBe(true);
-  });
+  }, 60_000); // heavy simulation: explicit timeout; times out at 15 s under CPU load (QA 0002 r2)
 
   it('the tea server pauses at a desk: stands still in the serve state facing the desk', () => {
     const frames = long.views.map((f) => f.find((v) => v.id === 'staff:tea')!);

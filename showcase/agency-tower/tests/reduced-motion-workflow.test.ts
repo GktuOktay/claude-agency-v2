@@ -113,7 +113,7 @@ describe('AC-16: the simulation trace is identical with and without reduced moti
     expect(normal.ambEvents.length).toBeGreaterThan(50);
     expect(trace(reduced)).toBe(trace(normal));
     expect(trace(live)).toBe(trace(normal));
-  });
+  }, 60_000); // heavy simulation: explicit timeout; times out at 15 s under CPU load (QA 0002 r2)
 });
 
 describe('AC-16: rendering under reduced motion', () => {
@@ -160,7 +160,7 @@ describe('AC-16: rendering under reduced motion', () => {
     expect(cuts).toBeGreaterThan(20);
     expect(rides).toBeGreaterThan(0);
     expect(s.sim.get('scout').kind).toBe('raise');
-  });
+  }, 60_000); // heavy simulation: explicit timeout; times out at 15 s under CPU load (QA 0002 r2)
 
   it('a rider is rendered at the origin landing until its ride ends, then at the destination landing', () => {
     const s = stack(true);
