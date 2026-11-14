@@ -44,7 +44,7 @@ import {
   type ShadowRole,
 } from './furniture';
 import { buildFloorDressing } from './flexOffice';
-import { buildSoftwareDecor, dressDesks } from './softwareDecor';
+import { FLOOR_VIEW_HIDE, buildSoftwareDecor, dressDesks } from './softwareDecor';
 import { type MatOptions, type RobotParts } from './robot';
 import { createCharacter } from './human';
 import { Screen } from './screen';
@@ -888,6 +888,10 @@ export function buildTower(data: TowerData, options: BuildOptions = {}): TowerMo
         // hidden so nothing draws over the focused floor.
         if (v.mode === 'floor' && f.id < v.focusFloor) for (const m of f.materials.slab) setOpacity(m, BELOW_SLAB);
         for (const child of f.group.children) child.visible = v.mode === 'overview' || focused || child.name === 'floor-slab';
+        // The lobby slat ceiling would cover the reception from above: hidden while its floor is focused.
+        f.group.traverse((o) => {
+          if (o.userData[FLOOR_VIEW_HIDE] === true) o.visible = !focused;
+        });
 
         // Shadows: only the focused floor casts and receives, so floors never shadow each other; in
         // overview only the slabs cast (onto the ground) and contact shadows stand in for the rest.
