@@ -243,6 +243,8 @@ describe('the city never covers the tower or the wing', () => {
     // Rev 33 extras: café umbrellas and the park kiosk.
     ...plan.tables.map((t) => new Box3(new Vector3(t.x - 1.05, 0, t.z - 1.05), new Vector3(t.x + 1.05, 2.45, t.z + 1.05))),
     new Box3(new Vector3(plan.kiosk.x0 - 0.2, 0, plan.kiosk.z0 - 0.9), new Vector3(plan.kiosk.x1 + 0.2, 2.7, plan.kiosk.z1 + 0.2)),
+    // Rev 37 extra: the plaza sculpture (the hotel and its porte-cochère are plan buildings already).
+    new Box3(new Vector3(plan.sculpture.x - plan.sculpture.r, 0, plan.sculpture.z - plan.sculpture.r), new Vector3(plan.sculpture.x + plan.sculpture.r, plan.sculpture.h, plan.sculpture.z + plan.sculpture.r)),
   ];
   // Sample points on the tower and wing walls (bottom, middle, top edges) and the terrace edge.
   const targets: Vector3[] = [];
