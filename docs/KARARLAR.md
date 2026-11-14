@@ -264,3 +264,8 @@ Eski kurulum: ~/.claude-backup-2026-11-01 (silme işlemi henüz yapılmadı).
 - Asansör simülasyonu ve gerçek yürüme (navMovement) birleşti. Gerçek geometride l3-full zorunlu `test` ret döngüsü 92.3 s; 0002 AC-5 sınırı 90 s. Katlar arası her taşıma ~35 s.
 - **Ruling (CEO yetkisi, Rev 31):** zorunlu döngü sınırı gerçek hareketle 100 s. Görünmez bir test sınırı; yerleşimi değiştirmek ya da robotları hızlandırmak görünür olurdu. Yanlışsa maliyet: tek sabit.
 - **Ruling:** motor testleri (AC-4 izi, 30 s kayma, iş şeridi binici katı) hareketten bağımsız mantığı ölçer; bu testlere zamanlı yer tutucu açıkça enjekte edilir, varsayılan ise navMovement olur. Hiçbir doğrulama gevşetilmez.
+
+## Revizyon 33: CEO ekleri, kampüs kapsamı (2026-11-14)
+- CEO: (1) aktif işler penceresi kat panelinin üstüne binmesin; (2) binanın çevresinde gölgede kalan şehir yaşamı; (3) kart açıklamaları ve araçlar anlaşılır Türkçe olsun, teknik adlar korunsun; (4) kat planında yeni alanlar olsun; (5) senaryo/ayarlar köşede ikon menüde olsun. "İş planında değilse ekle."
+- Paketler: A şehir (city.ts, citySim.ts), B arayüz (iş şeridi yerleşimi ve daraltma, kat panelinde "Kampüs" grubu ve kanat kamera pozları, köşe ayar menüsü ve salt okunur Senaryo bölümü), C kart dili (descriptionTr, araç sözlüğü, "Özgün metin").
+- **Ruling:** şehir dikkat çekmesin diye soluk, düşük kontrastlı ve sisli; kampüs çevresinde boş bir yarıçap bırakılır. Yanlışsa maliyet: malzeme sabitleri.
