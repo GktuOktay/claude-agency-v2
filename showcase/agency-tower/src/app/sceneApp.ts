@@ -100,7 +100,7 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
   root.prepend(canvas);
   const renderer = new WebGLRenderer({ canvas, ...RENDERER_OPTIONS });
   renderer.setClearColor(0x000000, 0); // the page's soft off-white gradient shows through
-  renderer.toneMappingExposure = 1.08;
+  renderer.toneMappingExposure = lightingFor(1, 0).exposure; // the frame loop follows the day / night light
 
   // Fixed day lighting (M1): warm key light, soft sky/ground fill, high ambient.
   const scene = new Scene();

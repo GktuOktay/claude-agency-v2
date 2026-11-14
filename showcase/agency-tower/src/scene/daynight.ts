@@ -100,10 +100,12 @@ export function lightingFor(brightness: number, lightsOn: number): Lighting {
   const b = Math.min(1, Math.max(0, brightness));
   const dark = 1 - b;
   return {
-    sun: 0.12 + 2.23 * b,
-    hemi: 0.42 + 0.73 * b,
-    ambient: 0.18 + 0.42 * b,
-    exposure: 1.08 + 0.12 * dark,
+    // Art direction after Rev 38: a touch more key, a touch less flat fill and day exposure 1.0, so the light
+    // palette sits below the ACES shoulder and reads rich instead of chalky; the night values are unchanged.
+    sun: 0.12 + 2.28 * b,
+    hemi: 0.42 + 0.7 * b,
+    ambient: 0.18 + 0.38 * b,
+    exposure: 1.0 + 0.2 * dark,
     sunColor: sunColorFor(b),
     hemiSky: mixNum(HEMI_NIGHT.sky, HEMI_DAY.sky, b),
     hemiGround: mixNum(HEMI_NIGHT.ground, HEMI_DAY.ground, b),
