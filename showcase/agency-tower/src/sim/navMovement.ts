@@ -9,7 +9,7 @@ import { TIERS } from '../data/types';
 import { createElevator, type Elevator } from './elevator';
 import { FLOOR_COUNT, ROBOT_SEPARATION, STAFF_LANDING, floorLayout, floorY, separationExempt, type FloorLayout, type XZ } from './layout';
 import type { MovePhase, Movement, Target } from './movement';
-import { buildFloorGraph, offsetPath, pathLength, pointAlong, projectOnSegment, shortestPath, type FloorGraph } from './nav';
+import { buildCampusGraph, buildFloorGraph, offsetPath, pathLength, pointAlong, projectOnSegment, shortestPath, type FloorGraph } from './nav';
 
 export const WALK_SPEED = 1.2;
 /** Call-button gesture at the waiting spot before the call registers (part of the cabin-arrival wait). */
@@ -52,6 +52,8 @@ export interface NavMovementOptions {
   record?: boolean;
   /** Floor the staff cabin starts at (default 0). */
   cabinFloor?: number;
+  /** Route into the campus wing over the sky-bridges on wing levels (KARARLAR rev 31; default on). */
+  campus?: boolean;
 }
 
 export interface NavMovement extends Movement {
@@ -154,7 +156,8 @@ export const isNavMovement = (m: Movement): m is NavMovement => NAV_INSTANCES.ha
 export function createNavMovement(opts: NavMovementOptions): NavMovement {
   const record = opts.record ?? false;
   const layouts = opts.layouts ? [...opts.layouts] : layoutsFromUnits(opts.units);
-  const graphs: FloorGraph[] = layouts.map((l) => buildFloorGraph(l));
+  // Campus graphs are additive (every tower node and edge kept), so tower routes are unchanged.
+  const graphs: FloorGraph[] = layouts.map((l) => (opts.campus ?? true ? buildCampusGraph(l) : buildFloorGraph(l)));
   const elevator = createElevator({ startFloor: opts.cabinFloor ?? 0, record });
   const legs: LegRecord[] = [];
   let time = 0;
