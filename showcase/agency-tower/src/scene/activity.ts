@@ -151,7 +151,7 @@ export const OFF_SLOT_CHANCE = 0.05;
 /** After hours an idle robot stays idle at home this often instead of walking to its desk or the coffee. */
 export const AFTER_HOURS_STAY = 0.9;
 /** A meal at the cafeteria or on the terrace during the lunch slot lasts longer, seconds [min, max). */
-export const LUNCH_STAY_S: readonly [number, number] = [40, 60];
+export const LUNCH_STAY_S: readonly [number, number] = [50, 75];
 /** Longest wait at the ping-pong table for the mate. */
 export const MATE_WAIT_S = 90;
 const CAMPUS_SEED_SALT = 0x5eed;

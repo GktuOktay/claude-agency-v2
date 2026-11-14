@@ -84,7 +84,7 @@ export function slotVenueWeights(unit: string, slot: SlotKind): [BreakVenue | 's
     ['game', 3],
     ['snack', 3],
     ['station', 2.5],
-    ['lab', LAB_FANS.has(unit) ? 10 : 2.5],
+    ['lab', LAB_FANS.has(unit) ? 7 : 2.5],
     ['pods', 0.3],
   ];
   if (ARCHIVE_UNITS.has(unit)) w.push(['archive', 2]);
