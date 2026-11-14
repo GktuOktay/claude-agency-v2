@@ -21,15 +21,18 @@ export interface DaySegment {
 }
 
 /** One office day, in order from 09:00. */
+// Rev 40: night (light phase 0.5–1 = 18:00–06:00) lasts 105 s, a quarter of the 420 s cycle; the slots keep
+// their CEO times and the coffee / tea lengths, lunch 80 s, each work block 37.5 s, dawn (06:00–09:00) 5 s.
 export const OFFICE_DAY: readonly DaySegment[] = [
-  { from: '09:00', to: '10:30', seconds: 45, period: 'work' },
+  { from: '09:00', to: '10:30', seconds: 37.5, period: 'work' },
   { from: '10:30', to: '10:45', seconds: 40, period: 'coffee' },
-  { from: '10:45', to: '12:30', seconds: 45, period: 'work' },
-  { from: '12:30', to: '13:30', seconds: 90, period: 'lunch' },
-  { from: '13:30', to: '15:30', seconds: 45, period: 'work' },
+  { from: '10:45', to: '12:30', seconds: 37.5, period: 'work' },
+  { from: '12:30', to: '13:30', seconds: 80, period: 'lunch' },
+  { from: '13:30', to: '15:30', seconds: 37.5, period: 'work' },
   { from: '15:30', to: '15:45', seconds: 40, period: 'tea' },
-  { from: '15:45', to: '18:00', seconds: 45, period: 'work' },
-  { from: '18:00', to: '09:00', seconds: 70, period: 'after' },
+  { from: '15:45', to: '18:00', seconds: 37.5, period: 'work' },
+  { from: '18:00', to: '06:00', seconds: 105, period: 'after' },
+  { from: '06:00', to: '09:00', seconds: 5, period: 'after' },
 ];
 
 export const OFFICE_DAY_S = OFFICE_DAY.reduce((s, d) => s + d.seconds, 0);
