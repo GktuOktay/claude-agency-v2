@@ -208,9 +208,16 @@ function serverRoom(k: Kit, parent: Group, accent: number): void {
   for (const z of [0.34, 0.95]) k.box(aisle, 2.17, 0.008, 0.02, 0, k.glow(...AISLE_LIGHT), -0.27, 0.003, z, 'none');
 }
 
-/** Lobby: an oak slat ceiling raft over the reception (half open, so the desk stays visible from above). */
+/** Marks a group the floor view hides while its floor is focused (model.setView), like upper slabs ghost. */
+export const FLOOR_VIEW_HIDE = 'floorViewHide';
+
+/**
+ * Lobby: an oak slat ceiling raft over the reception (half open). It is baked into its own named mesh (so the
+ * floor-wide bakes leave it apart) and hidden in floor-0 view, where it would cover the reception (QA r2B).
+ */
 function slatCeiling(k: Kit, parent: Group): void {
   const g = sub(parent, `${DECOR_PREFIX}slat-ceiling`, PROP_AT.x, 0, PROP_AT.z);
+  g.userData[FLOOR_VIEW_HIDE] = true;
   const y = CEILING - 0.22;
   const slat = k.m(PALETTE.oak, { roughness: 0.6 });
   for (let i = 0; i < 10; i++) k.box(g, 3.0, 0.04, 0.07, 0, slat, 0, y, -0.85 + i * 0.19, 'none');
@@ -218,6 +225,7 @@ function slatCeiling(k: Kit, parent: Group): void {
     k.box(g, 0.04, 0.03, 1.85, 0, k.m(PALETTE.charcoal), x, y + 0.04, 0, 'none');
     k.cyl(g, 0.005, 0.005, CEILING - y - 0.07, k.m(PALETTE.graphite), x, y + 0.07, 0, 4, 'none');
   }
+  bakeStatic(k, g, `${DECOR_PREFIX}slat-ceiling:`);
 }
 
 /** Tower crown: the AJANS sign on two posts behind the penthouse's north glass, facing the city (+z). */

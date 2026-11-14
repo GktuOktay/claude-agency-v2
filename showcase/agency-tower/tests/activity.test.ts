@@ -116,7 +116,7 @@ describe('activity simulation (AC-17)', () => {
   it('the same seed gives an identical trace; a different seed differs', () => {
     expect(run(60).trace).toEqual(run(60).trace);
     expect(run(60, SEED + 1).trace).not.toEqual(run(60).trace);
-  });
+  }, 60_000); // heavy simulation: explicit timeout; times out at 15 s under CPU load (QA 0002 r2)
 
   it('working places the robot at its desk and scrolls its screen', () => {
     const { model, sim } = setup();

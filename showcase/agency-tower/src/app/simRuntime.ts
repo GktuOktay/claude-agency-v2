@@ -31,6 +31,11 @@ export interface SimRuntimeOptions {
   onEvents?: (events: WfEvent[]) => void;
   /** Every frame after the engine: the simulation dt (0 while paused) and the drained events (T-6 director). */
   onStep?: (dt: number, events: WfEvent[]) => void;
+  /**
+   * AC-15: the ambient cycle and the speech bubbles, before the engine, on the simulation dt. Called only when the
+   * clock advanced (dt > 0), so a global pause (org / user / hidden) freezes them with no draws.
+   */
+  onAmbient?: (dt: number) => void;
 }
 
 export interface SimRuntime {
@@ -38,8 +43,11 @@ export interface SimRuntime {
   workflow: Workflow;
   strip: JobStrip;
   pauseButton: HTMLButtonElement;
-  /** One frame of `frameMs`; advances the clock (≤ 100 ms, 0 while paused), the engine and the strip. */
-  frame(frameMs: number): void;
+  /**
+   * One frame of `frameMs`; advances the clock (≤ 100 ms, 0 while paused), the ambient hook and the engine (both
+   * skipped while paused) and the strip. Returns the simulation dt in seconds.
+   */
+  frame(frameMs: number): number;
   setOrg(on: boolean): void;
   setHidden(on: boolean): void;
   select(unit: string): void;
@@ -102,11 +110,15 @@ export function createSimRuntime(o: SimRuntimeOptions): SimRuntime {
     pauseButton,
     frame(frameMs) {
       const dt = clock.tick(frameMs);
-      if (dt > 0) workflow.step(dt);
+      if (dt > 0) {
+        o.onAmbient?.(dt);
+        workflow.step(dt);
+      }
       const events = workflow.drainEvents();
       if (events.length) o.onEvents?.(events);
       o.onStep?.(dt, events);
       render();
+      return dt;
     },
     setOrg: (on) => clock.setReason('org', on),
     setHidden: (on) => clock.setReason('hidden', on),

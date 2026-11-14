@@ -44,6 +44,9 @@ export const PALETTE = {
   hatch: 0xebe6de,
   books: [0xd98b6a, 0x7fa7c9, 0xe2c26c, 0x9bbf8a, 0xb79ad0, 0xf0ece4],
 } as const;
+/** Rev 37 finish defaults by palette colour (QA r2B): brushed brass is metallic; explicit options still win. */
+const FINISHES: ReadonlyMap<number, { roughness: number; metalness: number }> = new Map([[PALETTE.brass, { roughness: 0.32, metalness: 0.85 }]]);
+
 
 const geoCache = new Map<string, BufferGeometry>();
 function cached(key: string, make: () => BufferGeometry): BufferGeometry {
@@ -79,15 +82,16 @@ export class Kit {
     readonly textures: KitTextures,
   ) {}
 
-  /** Opaque interior material (contents category). */
+  /** Opaque interior material (contents category). Palette finishes (brass) bring their own sheen defaults. */
   m(color: number, opts: MatOptions = {}): Material {
     const key = `c:${color}:${opts.emissive ?? ''}:${opts.emissiveIntensity ?? ''}:${opts.roughness ?? ''}:${opts.metalness ?? ''}`;
     let mat = this.mats.get(key);
     if (!mat) {
+      const finish = FINISHES.get(color);
       mat = new MeshStandardMaterial({
         color,
-        roughness: opts.roughness ?? 0.7,
-        metalness: opts.metalness ?? 0,
+        roughness: opts.roughness ?? finish?.roughness ?? 0.7,
+        metalness: opts.metalness ?? finish?.metalness ?? 0,
         emissive: opts.emissive ?? 0x000000,
         emissiveIntensity: opts.emissiveIntensity ?? 1,
       });
@@ -98,11 +102,11 @@ export class Kit {
   }
 
   /** Opaque vertex-coloured material (contents category) for geometry pre-merged across colours. */
-  vertexColored(roughness = 0.75): Material {
-    const key = `vc:${roughness}`;
+  vertexColored(roughness = 0.75, metalness = 0): Material {
+    const key = `vc:${roughness}:${metalness}`;
     let mat = this.mats.get(key);
     if (!mat) {
-      mat = new MeshStandardMaterial({ color: 0xffffff, vertexColors: true, roughness });
+      mat = new MeshStandardMaterial({ color: 0xffffff, vertexColors: true, roughness, metalness });
       this.sinks.contents.push(mat);
       this.mats.set(key, mat);
     }

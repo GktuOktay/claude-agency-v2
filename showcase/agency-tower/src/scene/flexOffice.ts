@@ -6,7 +6,7 @@
 // clear of every waypoint edge, lane and spot of src/sim/layout.ts (which this module never changes).
 import { BufferAttribute, Group, InstancedMesh, Mesh, MeshStandardMaterial, type BufferGeometry } from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import { PENTHOUSE, MEETING_FLOOR, FLOOR_HEIGHT, FLOOR_TOP, type Rect } from '../sim/layout';
+import { PENTHOUSE, MEETING_FLOOR, FLOOR_HEIGHT, FLOOR_TOP, LOBBY_FLOOR, type Rect } from '../sim/layout';
 import { Kit, PALETTE, coffeeTable, floorLamp, glassPartition, rug, sofa } from './furniture';
 import { softwareDecorFootprints } from './softwareLayout';
 import { Foliage, GREENS, hangingPlant, leafAt, mossWall, planterBox, smallPlant, tallHalf, tallPlant, type Leaf, type TallKind } from './greenery';
@@ -305,9 +305,13 @@ function items(floor: number): Item[] {
   // Two focus pods (phone booths) along the west wall of the south-west room.
   for (const z of [0.45, 1.4]) out.push({ name: 'focus-pod', x: POD_X, z, box: sym(0.47, 0.47), build: focusPod });
 
-  // Two sit-stand desks (one raised, one lowered) along the south windows, stools on the north side.
-  for (const [x, raised] of [[-5.4, true], [-4.0, false]] as const) {
-    out.push({ name: 'sit-stand-desk', x, z: 4.85, box: [-0.56, 0.56, -0.75, 0.31], build: (c) => sitStandDesk(c, raised) });
+  // Two sit-stand desks (one raised, one lowered) along the south windows, stools on the north side. The lobby
+  // (floor 0) has its security desk and turnstile in that strip (QA r2B overlap): there one desk stands by the
+  // west wall south of the reception, the other at the south windows east of the lobby path.
+  const sitStand: readonly (readonly [number, number, boolean])[] =
+    floor === LOBBY_FLOOR ? [[-6.95, 3.95, true], [0.3, 4.85, false]] : [[-5.4, 4.85, true], [-4.0, 4.85, false]];
+  for (const [x, z, raised] of sitStand) {
+    out.push({ name: 'sit-stand-desk', x, z, box: [-0.56, 0.56, -0.75, 0.31], build: (c) => sitStandDesk(c, raised) });
   }
 
   // Planter divider between the corridor and the lounge.
@@ -348,15 +352,22 @@ function items(floor: number): Item[] {
   return out;
 }
 
+/** Finish class of a baked material (QA r2B): metal (brass, brushed metal), polished stone (marble), other. */
+type FinishClass = 'metal' | 'stone' | 'other';
+const finishClass = (m: MeshStandardMaterial): FinishClass => (m.metalness >= 0.3 ? 'metal' : m.roughness <= 0.3 ? 'stone' : 'other');
+const step05 = (v: number): number => Math.round(v * 20) / 20;
+
 /**
- * Folds every opaque, non-glowing dressing mesh into one vertex-coloured mesh per shadow role, so the dressing
- * adds a couple of draw calls per floor instead of one per colour. Glow and glass parts keep their shared Kit
- * materials (they merge into the floor's existing buckets in mergeStatic).
+ * Folds every opaque, non-glowing dressing mesh into one vertex-coloured mesh per shadow role and finish class
+ * (metal, stone, other), so the dressing adds a few draw calls per floor instead of one per colour while metal
+ * and marble keep their sheen (QA r2B). Glow and glass parts keep their shared Kit materials (they merge into
+ * the floor's existing buckets in mergeStatic).
  */
 export function bakeStatic(k: Kit, root: Group, prefix = DRESSING_PREFIX): void {
   root.updateMatrixWorld(true);
   const inv = root.matrixWorld.clone().invert();
   const buckets = new Map<string, BufferGeometry[]>();
+  const finish = new Map<string, { roughness: number; metalness: number; n: number }>();
   const baked: Mesh[] = [];
   root.traverse((o) => {
     if (!(o instanceof Mesh) || o instanceof InstancedMesh || o.name !== '') return;
@@ -369,10 +380,13 @@ export function bakeStatic(k: Kit, root: Group, prefix = DRESSING_PREFIX): void 
     const colors = new Float32Array(n * 3);
     for (let i = 0; i < n; i++) colors.set([mat.color.r, mat.color.g, mat.color.b], i * 3);
     geo.setAttribute('color', new BufferAttribute(colors, 3));
-    const key = `${String(o.userData.shadow)}|${geo.index ? 'i' : 'n'}`;
+    const cls = finishClass(mat);
+    const key = `${String(o.userData.shadow)}|${geo.index ? 'i' : 'n'}|${cls}`;
     const list = buckets.get(key) ?? [];
     list.push(geo);
     buckets.set(key, list);
+    const f = finish.get(key) ?? { roughness: 0, metalness: 0, n: 0 };
+    finish.set(key, { roughness: f.roughness + mat.roughness, metalness: f.metalness + mat.metalness, n: f.n + 1 });
     baked.push(o);
   });
   for (const m of baked) m.removeFromParent();
@@ -380,9 +394,12 @@ export function bakeStatic(k: Kit, root: Group, prefix = DRESSING_PREFIX): void 
     const merged = mergeGeometries(geos);
     for (const g of geos) g.dispose();
     if (!merged) continue;
-    const role = key.split('|')[0] ?? 'object';
-    const mesh = new Mesh(merged, k.vertexColored());
-    mesh.name = `${prefix}static-${role}`;
+    const [role = 'object', , cls = 'other'] = key.split('|');
+    const f = finish.get(key)!;
+    // One merged mesh per finish class, on the class's mean finish (rounded to 0.05 so the materials stay shared).
+    const mat = cls === 'other' ? k.vertexColored() : k.vertexColored(step05(f.roughness / f.n), step05(f.metalness / f.n));
+    const mesh = new Mesh(merged, mat);
+    mesh.name = cls === 'other' ? `${prefix}static-${role}` : `${prefix}static-${role}-${cls}`;
     mesh.userData.shadow = role;
     root.add(mesh);
   }
