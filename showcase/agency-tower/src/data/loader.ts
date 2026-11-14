@@ -20,6 +20,14 @@ function str(v: unknown, what: string, min: number, max: number): string {
   return v;
 }
 
+/** Length counted in code points, so an emoji counts once. */
+function codePointStr(v: unknown, what: string, min: number, max: number): string {
+  if (typeof v !== 'string') return fail(`${what}: expected string`);
+  const n = [...v].length;
+  if (n < min || n > max) fail(`${what}: expected ${min}-${max} code points`);
+  return v;
+}
+
 function strArray(v: unknown, what: string): string[] {
   if (!Array.isArray(v)) return fail(`${what}: expected array`);
   return v.map((x, i) => str(x, `${what}[${i}]`, 0, 200));
@@ -86,6 +94,7 @@ function validate(rosterIn: unknown, overlayIn: unknown) {
     const reportsTo = raw.reportsTo;
     if (reportsTo !== null && typeof reportsTo !== 'string') fail(`${w}.reportsTo`);
     if (typeof raw.independent !== 'boolean') fail(`${w}.independent`);
+    const nameTr = codePointStr(raw.nameTr, `${w}.nameTr`, 1, 32);
     const roleTr = str(raw.roleTr, `${w}.roleTr`, 1, 60);
     if (!Array.isArray(raw.phrasesTr) || raw.phrasesTr.length < 2 || raw.phrasesTr.length > 6) fail(`${w}.phrasesTr: 2-6 entries`);
     const phrasesTr = (raw.phrasesTr as unknown[]).map((p, k) => str(p, `${w}.phrasesTr[${k}]`, 1, 48));
@@ -106,6 +115,7 @@ function validate(rosterIn: unknown, overlayIn: unknown) {
       tier: raw.tier,
       reportsTo,
       independent: raw.independent,
+      nameTr,
       roleTr,
       phrasesTr,
       description: card.description,

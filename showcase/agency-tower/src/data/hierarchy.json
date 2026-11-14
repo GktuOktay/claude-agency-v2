@@ -29,6 +29,7 @@
   "units": [
     {
       "id": "ceo",
+      "nameTr": "CEO",
       "floor": 5,
       "tier": "ceo",
       "reportsTo": null,
@@ -47,6 +48,7 @@
     },
     {
       "id": "chief-of-staff",
+      "nameTr": "Genel Koordinatör",
       "floor": 4,
       "tier": "management",
       "reportsTo": "ceo",
@@ -65,6 +67,7 @@
     },
     {
       "id": "delivery-manager",
+      "nameTr": "Teslimat Yöneticisi",
       "floor": 4,
       "tier": "management",
       "reportsTo": "chief-of-staff",
@@ -78,6 +81,7 @@
     },
     {
       "id": "talent-capacity",
+      "nameTr": "Yetenek ve Kapasite",
       "floor": 4,
       "tier": "management",
       "reportsTo": "chief-of-staff",
@@ -91,6 +95,7 @@
     },
     {
       "id": "product-manager",
+      "nameTr": "Ürün Yöneticisi",
       "floor": 3,
       "tier": "lead",
       "reportsTo": "chief-of-staff",
@@ -104,6 +109,7 @@
     },
     {
       "id": "software-architect",
+      "nameTr": "Yazılım Mimarı",
       "floor": 3,
       "tier": "lead",
       "reportsTo": "chief-of-staff",
@@ -117,6 +123,7 @@
     },
     {
       "id": "scout",
+      "nameTr": "Keşif Uzmanı",
       "floor": 3,
       "tier": "specialist",
       "reportsTo": "product-manager",
@@ -130,6 +137,7 @@
     },
     {
       "id": "business-analyst",
+      "nameTr": "İş Analisti",
       "floor": 3,
       "tier": "specialist",
       "reportsTo": "software-architect",
@@ -143,6 +151,7 @@
     },
     {
       "id": "architecture-board",
+      "nameTr": "Mimari Kurul",
       "floor": 3,
       "tier": "specialist",
       "reportsTo": "chief-of-staff",
@@ -156,6 +165,7 @@
     },
     {
       "id": "quality-office",
+      "nameTr": "Kalite Ofisi",
       "floor": 2,
       "tier": "lead",
       "reportsTo": "chief-of-staff",
@@ -169,6 +179,7 @@
     },
     {
       "id": "spec-critic",
+      "nameTr": "Spec Eleştirmeni",
       "floor": 2,
       "tier": "specialist",
       "reportsTo": "quality-office",
@@ -182,6 +193,7 @@
     },
     {
       "id": "qa-engineer",
+      "nameTr": "Test Mühendisi",
       "floor": 2,
       "tier": "specialist",
       "reportsTo": "quality-office",
@@ -195,6 +207,7 @@
     },
     {
       "id": "appsec",
+      "nameTr": "Uygulama Güvenliği",
       "floor": 2,
       "tier": "specialist",
       "reportsTo": "quality-office",
@@ -208,6 +221,7 @@
     },
     {
       "id": "internal-auditor",
+      "nameTr": "İç Denetçi",
       "floor": 2,
       "tier": "specialist",
       "reportsTo": "ceo",
@@ -221,6 +235,7 @@
     },
     {
       "id": "devops-sre",
+      "nameTr": "DevOps / SRE",
       "floor": 1,
       "tier": "lead",
       "reportsTo": "chief-of-staff",
@@ -234,6 +249,7 @@
     },
     {
       "id": "dotnet-engineer",
+      "nameTr": ".NET Mühendisi",
       "floor": 1,
       "tier": "specialist",
       "reportsTo": "devops-sre",
@@ -247,6 +263,7 @@
     },
     {
       "id": "react-engineer",
+      "nameTr": "React Mühendisi",
       "floor": 1,
       "tier": "specialist",
       "reportsTo": "devops-sre",
@@ -260,6 +277,7 @@
     },
     {
       "id": "polyglot-engineer",
+      "nameTr": "Çok Dilli Mühendis",
       "floor": 1,
       "tier": "specialist",
       "reportsTo": "devops-sre",
@@ -273,6 +291,7 @@
     },
     {
       "id": "marketing",
+      "nameTr": "Pazarlama",
       "floor": 0,
       "tier": "lead",
       "reportsTo": "chief-of-staff",
@@ -286,6 +305,7 @@
     },
     {
       "id": "tech-comms",
+      "nameTr": "Teknik İletişim",
       "floor": 0,
       "tier": "specialist",
       "reportsTo": "marketing",

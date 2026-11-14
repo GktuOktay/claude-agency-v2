@@ -27,7 +27,7 @@ export function createUnitList(
   const buttons = new Map<string, HTMLButtonElement>();
   for (const u of sortUnits(units)) {
     const li = el('li');
-    const b = el('button', { type: 'button' }, `${u.name} · ${u.roleTr}`);
+    const b = el('button', { type: 'button' }, `${u.nameTr} · ${u.roleTr}`);
     b.addEventListener('click', () => onSelect(u, b));
     buttons.set(u.id, b);
     li.append(b);

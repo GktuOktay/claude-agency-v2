@@ -42,9 +42,10 @@ export function createCard(parent: HTMLElement, opts: CardOptions): CardControll
         panel = null;
       }
       opener = from;
-      const p = el('aside', { role: 'dialog', 'aria-label': unit.name, class: 'card' });
+      const p = el('aside', { role: 'dialog', 'aria-label': unit.nameTr, class: 'card' });
       const closeBtn = el('button', { type: 'button', 'aria-label': tr.close, class: 'card-close' }, '×');
       closeBtn.addEventListener('click', close);
+      const title = el('h2', { class: 'card-title' }, unit.nameTr);
       const dl = el('dl');
       const row = (label: string, value: string): void => {
         dl.append(el('dt', {}, label), el('dd', {}, value));
@@ -66,7 +67,7 @@ export function createCard(parent: HTMLElement, opts: CardOptions): CardControll
           close();
         }
       });
-      p.append(closeBtn, dl);
+      p.append(closeBtn, title, dl);
       parent.append(p);
       panel = p;
       closeBtn.focus();

@@ -131,6 +131,7 @@ button:hover { background: #fff; border-color: rgba(47, 102, 208, 0.35); }
   backdrop-filter: blur(8px);
 }
 .card-close { position: absolute; right: var(--space-2); top: var(--space-2); min-width: 34px; border-radius: var(--radius-pill); font-size: 1.1rem; line-height: 1; }
+.card-title { margin: 0 0 var(--space-2); padding-right: 2.5rem; font-size: 1.1rem; }
 .card dl { margin: 0; display: grid; grid-template-columns: max-content 1fr; gap: 10px var(--space-4); padding-right: 2.5rem; font-size: 0.9rem; }
 .card dt { font-weight: 600; color: var(--fg-muted); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; padding-top: 2px; }
 .card dd { margin: 0; overflow-wrap: anywhere; line-height: 1.4; }
@@ -177,10 +178,13 @@ button:hover { background: #fff; border-color: rgba(47, 102, 208, 0.35); }
   animation: bubble-in 220ms ease-out;
   background: #fff;
   color: var(--fg);
-  border-radius: 12px;
-  padding: 5px 10px;
-  font-size: 12px;
-  white-space: nowrap;
+  border-radius: 10px;
+  padding: 4px 8px;
+  font-size: 9.6px;
+  max-width: 28ch;
+  width: max-content;
+  white-space: normal;
+  overflow-wrap: anywhere;
   box-shadow: 0 1px 2px rgba(31, 35, 41, 0.08), 0 6px 16px rgba(31, 35, 41, 0.14);
 }
 .fps { position: absolute; left: var(--space-4); bottom: var(--space-4); background: rgba(20, 22, 26, 0.8); color: #fff; padding: 2px var(--space-2); border-radius: 6px; font: 12px ui-monospace, monospace; }

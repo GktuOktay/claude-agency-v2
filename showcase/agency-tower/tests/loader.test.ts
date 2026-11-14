@@ -18,13 +18,36 @@ function valid(): { roster: Obj; overlay: Obj } {
       schemaVersion: 1,
       floors: FLOORS,
       units: [
-        { id: 'ceo', floor: 5, tier: 'ceo', reportsTo: null, independent: false, roleTr: 'Patron', phrasesTr: ['Merhaba', 'Hadi'], manual: { description: 'Boss', tools: [], model: null } },
-        { id: 'worker', floor: 1, tier: 'specialist', reportsTo: 'ceo', independent: false, roleTr: 'İşçi', phrasesTr: ['Çalışıyorum', 'Kahve?'] },
+        { id: 'ceo', floor: 5, tier: 'ceo', reportsTo: null, independent: false, nameTr: 'CEO', roleTr: 'Patron', phrasesTr: ['Merhaba', 'Hadi'], manual: { description: 'Boss', tools: [], model: null } },
+        { id: 'worker', floor: 1, tier: 'specialist', reportsTo: 'ceo', independent: false, nameTr: 'İşçi Ajan', roleTr: 'İşçi', phrasesTr: ['Çalışıyorum', 'Kahve?'] },
       ],
     },
   };
 }
 const units = (d: { overlay: Obj }) => d.overlay.units as Obj[];
+
+describe('loader nameTr (Rev 31)', () => {
+  it('is required, a string of 1-32 code points', () => {
+    for (const bad of [undefined, '', 5, 'x'.repeat(33), '😀'.repeat(33)]) {
+      const d = valid();
+      if (bad === undefined) delete (units(d)[1] as Obj).nameTr;
+      else (units(d)[1] as Obj).nameTr = bad;
+      expect(loadData(d.roster, d.overlay).ok, String(bad)).toBe(false);
+    }
+  });
+  it('accepts exactly 32 code points, counting an emoji as one', () => {
+    const d = valid();
+    (units(d)[1] as Obj).nameTr = '😀'.repeat(32);
+    expect(loadData(d.roster, d.overlay).ok).toBe(true);
+  });
+  it('every committed unit has a nameTr', () => {
+    const r = loadData(roster, hierarchy);
+    if (!r.ok) throw new Error('data');
+    for (const u of r.data.units) expect([...u.nameTr].length).toBeGreaterThan(0);
+    expect(r.data.units.find((u) => u.id === 'software-architect')?.nameTr).toBe('Yazılım Mimarı');
+    expect(r.data.units.find((u) => u.id === 'ceo')?.nameTr).toBe('CEO');
+  });
+});
 
 describe('loader (AC-4)', () => {
   it('accepts valid data and merges card fields', () => {
@@ -34,7 +57,7 @@ describe('loader (AC-4)', () => {
     if (!r.ok) return;
     expect(r.data.units.map((u) => u.id)).toEqual(['ceo', 'worker']);
     const w = r.data.units.find((u) => u.id === 'worker');
-    expect(w).toMatchObject({ name: 'worker', description: 'Does work.', tools: ['Read'], model: 'sonnet', floor: 1, tier: 'specialist', reportsTo: 'ceo' });
+    expect(w).toMatchObject({ name: 'worker', nameTr: 'İşçi Ajan', description: 'Does work.', tools: ['Read'], model: 'sonnet', floor: 1, tier: 'specialist', reportsTo: 'ceo' });
     const c = r.data.units.find((u) => u.id === 'ceo');
     expect(c).toMatchObject({ description: 'Boss', tools: [], model: null });
   });

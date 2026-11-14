@@ -4,6 +4,8 @@ export const TIERS: readonly Tier[] = ['ceo', 'management', 'lead', 'specialist'
 export interface Unit {
   id: string;
   name: string;
+  /** Turkish display name (Rev 31); `name` stays the agent id. */
+  nameTr: string;
   floor: number;
   tier: Tier;
   reportsTo: string | null;

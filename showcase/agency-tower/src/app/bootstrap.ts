@@ -53,7 +53,7 @@ export async function boot(deps: BootDeps): Promise<BootState> {
     return 'data-error';
   }
 
-  const names = new Map(data.units.map((u) => [u.id, u.name]));
+  const names = new Map(data.units.map((u) => [u.id, u.nameTr]));
   const nameOf = (id: string): string => names.get(id) ?? id;
 
   if (!deps.hasWebGL2()) {

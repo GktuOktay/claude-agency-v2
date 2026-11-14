@@ -146,6 +146,7 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     units: new Map(data.units.map((u) => [u.id, u.floor])),
     titles,
     maxJobs: quality.quality === 'low' ? 2 : 3,
+    unitName: ctx.nameOf,
     isNarrow: () => narrowMq?.matches ?? false,
     reducedMotion: () => reducedMq?.matches ?? false,
     rideTo: (floor) =>
@@ -314,7 +315,7 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
   const roomEls = model.rooms.map((room) => ({ room, e: pill('room-label', accentCss(room.floor), room.text) }));
   const labelWidths = new WeakMap<HTMLElement, number>();
   const robotEls = new Map<string, HTMLElement>(
-    model.robots.map((r) => [r.unit.id, pill('robot-label', accentCss(r.floor), r.unit.name, tr.tiers[r.unit.tier])]),
+    model.robots.map((r) => [r.unit.id, pill('robot-label', accentCss(r.floor), r.unit.nameTr, tr.tiers[r.unit.tier])]),
   );
   const fpsEl = el('div', { class: 'fps' }, '');
   fpsEl.hidden = !params.debug;

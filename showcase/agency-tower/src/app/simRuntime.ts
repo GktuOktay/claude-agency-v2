@@ -22,6 +22,8 @@ export interface SimRuntimeOptions {
   reducedMotion(): boolean;
   /** Ride to the §7.6b floor of an activated entry (card/org rules applied by the caller). */
   rideTo(floor: number): void;
+  /** Display name for a unit id in the card now-line (Rev 31); defaults to the id. */
+  unitName?: (id: string) => string;
   /** Extra engine options (tests). */
   workflow?: Partial<WorkflowOptions>;
   /** Receives the events drained every frame (T-6 director). */
@@ -109,7 +111,7 @@ export function createSimRuntime(o: SimRuntimeOptions): SimRuntime {
     cardLinesFor(unit, ambient) {
       const st = workflow.unitState(unit);
       const job = st ? workflow.jobs().find((j) => j.n === st.job) : undefined;
-      return cardLines(st, ambient, job ? { n: job.n, title: job.title, lane: job.lane } : null, workflow.movement.floorOf(unit));
+      return cardLines(st, ambient, job ? { n: job.n, title: job.title, lane: job.lane } : null, workflow.movement.floorOf(unit), o.unitName);
     },
   };
 }

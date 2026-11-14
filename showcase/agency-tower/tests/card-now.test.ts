@@ -104,7 +104,7 @@ describe('card "Şu an" map (AC-11)', () => {
 });
 
 const unit: Unit = {
-  id: 'qa-engineer', name: 'QA', floor: 2, tier: 'specialist', reportsTo: null, independent: false,
+  id: 'qa-engineer', name: 'qa-engineer', nameTr: 'Test Mühendisi', floor: 2, tier: 'specialist', reportsTo: null, independent: false,
   roleTr: 'Rol', phrasesTr: ['a', 'b'], description: 'd', tools: [], model: null,
 };
 
@@ -145,5 +145,14 @@ describe('card DOM lines (AC-11)', () => {
     expect(root.querySelector('[role="dialog"]')).not.toBeNull();
     expect(root.textContent).not.toContain('Şu an');
     expect(root.textContent).not.toContain('Aktif işler — simülasyon');
+  });
+});
+
+describe('now-line unit names (Rev 31)', () => {
+  it('names the other unit by nameTr when a resolver is given, by id otherwise', () => {
+    const st = { state: 'wait', job: 1, step: 'a', label: 'x', other: 'qa-engineer' } as Parameters<typeof cardLines>[0];
+    const nameOf = (id: string): string => (id === 'qa-engineer' ? 'Test Mühendisi' : id);
+    expect(cardLines(st, 'idle', null, undefined, nameOf).now).toBe('Bekliyor: Test Mühendisi');
+    expect(cardLines(st, 'idle', null).now).toBe('Bekliyor: qa-engineer');
   });
 });

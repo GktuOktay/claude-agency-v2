@@ -17,7 +17,7 @@ export const tr = {
   unitList: 'Birim listesi',
   currentMarker: '● ',
   card: {
-    name: 'Ad',
+    name: 'Ajan adı',
     tier: 'Kademe',
     role: 'Rol',
     description: 'Açıklama',

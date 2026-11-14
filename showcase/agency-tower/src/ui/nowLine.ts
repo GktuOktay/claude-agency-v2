@@ -50,6 +50,7 @@ export function cardLines(
   ambient: ActivityKind,
   job: { n: number; title: string; lane: number } | null,
   rideFloor?: number,
+  nameOf: (id: string) => string = (id) => id,
 ): CardLines {
   if (!unit) {
     // wave/raise are selection gestures; the caller captures the state before selection, so idle is a guard only.
@@ -60,7 +61,7 @@ export function cardLines(
     state: unit.state,
     label: unit.label,
     prop: isPropKind(unit.prop) ? unit.prop : undefined,
-    other: unit.other,
+    other: unit.other === undefined ? undefined : nameOf(unit.other),
     floor: rideFloor,
     progress: unit.progress,
   });

@@ -73,10 +73,13 @@ describe('app states (AC-5)', () => {
     expect(startScene).not.toHaveBeenCalled();
     const buttons = root.querySelectorAll<HTMLButtonElement>('ul button');
     expect(buttons).toHaveLength(20);
-    const target = [...buttons].find((b) => b.textContent?.includes('qa-engineer'));
+    const target = [...buttons].find((b) => b.textContent?.startsWith('Test Mühendisi'));
+    expect(target).toBeDefined();
     target?.click();
     const card = root.querySelector('[role="dialog"]');
     expect(card).not.toBeNull();
+    expect(card?.querySelector('h2')?.textContent).toBe('Test Mühendisi');
+    expect(card?.textContent).toContain('Ajan adı');
     expect(card?.textContent).toContain('qa-engineer');
     expect(card?.textContent).toContain('Bağlı olduğu');
   });
