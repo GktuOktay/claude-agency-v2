@@ -43,7 +43,8 @@ import {
   type KitTextures,
   type ShadowRole,
 } from './furniture';
-import { createRobot, type MatOptions, type RobotParts } from './robot';
+import { type MatOptions, type RobotParts } from './robot';
+import { createCharacter } from './human';
 import { Screen } from './screen';
 
 import {
@@ -587,10 +588,10 @@ export function buildTower(data: TowerData, options: BuildOptions = {}): TowerMo
     const accent = floorAccent(entry.id);
     const robotMats = new Map<string, Material>();
     const robotMat = (color: number, opts: MatOptions = {}): Material => {
-      const key = `${color}:${opts.emissive ?? ''}:${opts.roughness ?? ''}:${opts.metalness ?? ''}:${opts.emissiveIntensity ?? ''}`;
+      const key = `${color}:${opts.emissive ?? ''}:${opts.roughness ?? ''}:${opts.metalness ?? ''}:${opts.emissiveIntensity ?? ''}:${opts.vertexColors ? 'v' : ''}`;
       let m = robotMats.get(key);
       if (!m) {
-        m = new MeshStandardMaterial({ color, roughness: opts.roughness ?? 0.6, metalness: opts.metalness ?? 0, emissive: opts.emissive ?? 0, emissiveIntensity: opts.emissiveIntensity ?? 1 });
+        m = new MeshStandardMaterial({ color, roughness: opts.roughness ?? 0.6, metalness: opts.metalness ?? 0, emissive: opts.emissive ?? 0, emissiveIntensity: opts.emissiveIntensity ?? 1, vertexColors: opts.vertexColors ?? false });
         entry.materials.robots.push(m);
         robotMats.set(key, m);
       }
@@ -631,7 +632,7 @@ export function buildTower(data: TowerData, options: BuildOptions = {}): TowerMo
       seat.position.set(dx, FLOOR_TOP, seatZ);
       entry.group.add(seat);
 
-      const { group, parts } = createRobot(unit, accent, robotMat);
+      const { group, parts } = createCharacter(unit, accent, robotMat);
       k.blob(group, 0.6, 0.6, 0, 0, 0.012);
       group.traverse((o) => {
         if (o instanceof Mesh && o.name !== 'contact-shadow') o.userData.shadow = 'object';
