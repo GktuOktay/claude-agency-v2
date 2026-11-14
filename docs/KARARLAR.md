@@ -245,3 +245,9 @@ Eski kurulum: ~/.claude-backup-2026-11-01 (silme işlemi henüz yapılmadı).
 - Q-1 (CEO, sohbette): "Yalnız chief-of-staff". Yardımcı robotları yalnız ana oturum çıkarır (4. kat); etiket hizmet ettiği birimi gösterir. Gerçek ajans yapısıyla tutarlı.
 - **İtiraz (kural 6):** genel amaçlı kaynak planlayıcısı her spec-critic turunda yeni kilitlenme/sıra bulgusu üretiyor. Alternatif: elle yazılmış sabit zaman çizelgeleri. 3. tur toparlanmazsa CEO'ya sorulacak.
 - Q-2 (CEO, sohbette): "Ayrı personel asansörü". Robotlar doğu tarafında ayrı bir personel kuyusu kullanır; ziyaretçi kabini kamerayla kalır, 0001 REQ-10/AC-8 değişmez.
+
+## Revizyon 30: Spec 0002 uygulama kararları (2026-11-14)
+- **Ruling (spec boşluğu, imzalı metin değişmedi):** l2-dependency'de §7.2 "l2-base with these rows replacing…" `meet → c-sc` bırakıyor, `c-ab` ana yoldan erişilemiyor. Uygulama `meet.next = c-ab` aldı (AC-5 ana yolda istiyor). Yanlışsa maliyet: iki dosyada tek hücre. İmza düşmesin diye spec değil burası kayıt.
+- **Ruling:** AC-1 diff tabanı = 0001 son commit'i `dfb7413` (PR #31 henüz main'e girmedi; `merge-base main` 0001 öncesini veriyor).
+- **Ruling:** oda tutma: l2 yalnız toplantı, l3 toplantıdan imzaya; kullanımdaki imza masası R-3(1)'deki tutulmuş oda gibi bekletir; adım süreleri `engine` akışında beşinci amaç `duration` olarak sayılır.
+- Not: testler bu makinede Node 25.9.0 ile koştu (.nvmrc 22); QA Node 22'de yeniden koşmalı.
