@@ -1,6 +1,7 @@
 // Workflow engine (spec 0002 AC-4, AC-8, AC-9). Fixed seeds, 0.1 s simulation steps.
 import { describe, it, expect } from 'vitest';
-import { makeWorkflow, run, runUntilDone, scenarioSet } from './workflowHelpers';
+import { makeWorkflow, run, runUntilDone, scenarioSet, unitFloors } from './workflowHelpers';
+import { createTimedMovement } from '../src/sim/movement';
 import { createRng } from '../src/scene/rng';
 import { streamSeed, type WfEvent, type Workflow, type DirectedState } from '../src/sim/workflow';
 import { indexScenario } from '../src/data/scenarios';
@@ -74,7 +75,8 @@ describe('engine trace (AC-4)', () => {
   });
 
   it('every step acquires all its actors, escort and place in one step, none before all are free; grants follow R-3', () => {
-    const wf = makeWorkflow({ seed: 21 });
+    // Engine logic on the timed stand-in (Rev 32): its pace gives the counted grant rounds.
+    const wf = makeWorkflow({ seed: 21, movement: createTimedMovement(unitFloors()) });
     run(wf, 1200);
     const trace = wf.trace();
     let grants = 0;

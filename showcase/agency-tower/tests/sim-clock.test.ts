@@ -2,7 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { createSimClock, MAX_SIM_STEP_S, pauseText } from '../src/sim/clock';
 import { createRng } from '../src/scene/rng';
 import { streamSeed, type Workflow, type WfEvent } from '../src/sim/workflow';
-import { makeWorkflow } from './workflowHelpers';
+import { makeWorkflow, unitFloors } from './workflowHelpers';
+import { createTimedMovement } from '../src/sim/movement';
 
 describe('simulation clock (AC-15, REQ-16, §7.8)', () => {
   it('advances by frame time in steps of at most 100 ms', () => {
@@ -64,11 +65,13 @@ describe('simulation clock (AC-15, REQ-16, §7.8)', () => {
 
 // ---------------------------------------------------------------- engine on the clock (AC-15)
 
-function rig(seed = 8) {
+/** `timed`: inject the timed stand-in for tests that measure engine logic at its pace (Rev 32). */
+function rig(seed = 8, timed = false) {
   const clock = createSimClock();
   const base = createRng(streamSeed(seed, 'engine'));
   let draws = 0;
-  const wf = makeWorkflow({ isSelected: (u) => clock.isSelected(u), rng: () => (draws++, base()) });
+  const movement = timed ? createTimedMovement(unitFloors()) : undefined;
+  const wf = makeWorkflow({ isSelected: (u) => clock.isSelected(u), rng: () => (draws++, base()), ...(movement ? { movement } : {}) });
   const log: { wall: number; e: WfEvent }[] = [];
   const frame = (ms = 100): void => {
     const dt = clock.tick(ms);
@@ -127,9 +130,9 @@ describe('global pause freezes the engine (AC-15)', () => {
   });
 
   it('a 30 s pause at 50 s equals the unpaused trace with later times shifted by 30 s', () => {
-    const a = rig(13);
+    const a = rig(13, true);
     a.frames(200);
-    const b = rig(13);
+    const b = rig(13, true);
     b.frames(50);
     b.clock.setReason('user', true);
     b.frames(30);
@@ -161,7 +164,7 @@ describe('global pause freezes the engine (AC-15)', () => {
 
 describe('selection pause is step-scoped (AC-15, REQ-17)', () => {
   it('only the selected robot\'s step stops its elapsed time; co-actors hold; another job advances', () => {
-    const r = rig();
+    const r = rig(8, true);
     // Job #1's meeting: BA, react-engineer, qa-engineer.
     until(r, () => runOf(r.wf, 1, 'meet')?.phase === 'active');
     r.frames(1);
