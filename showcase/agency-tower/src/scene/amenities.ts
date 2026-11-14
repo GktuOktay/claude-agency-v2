@@ -2,12 +2,13 @@
 // (level 1); nap pods, R&D lab and the project archive (level 2); greenery on every level. Procedural
 // geometry with the floor's kit; repeats are instanced (green-wall leaves, archive boxes). Positions follow
 // the footprints in src/sim/layout.ts (wingFurniture) so the nav graph keeps clear of everything.
-import { BoxGeometry, BufferAttribute, CanvasTexture, Color, Group, IcosahedronGeometry, InstancedMesh, Matrix4, Mesh, MeshBasicMaterial, MeshStandardMaterial, PlaneGeometry, Quaternion, Shape, ShapeGeometry, SphereGeometry, SRGBColorSpace, Vector3, type BufferGeometry, type Texture } from 'three';
+import { BoxGeometry, BufferAttribute, CanvasTexture, Color, Group, InstancedMesh, Matrix4, Mesh, MeshBasicMaterial, MeshStandardMaterial, PlaneGeometry, Quaternion, Shape, ShapeGeometry, SphereGeometry, SRGBColorSpace, Vector3, type BufferGeometry, type Texture } from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { PALETTE, bistroTable, fridge, plant, stool, type Kit } from './furniture';
 import type { FloorMaterials } from './model';
 import { AMENITY_SPOTS, FLOOR_TOP, LAB_STATIONS, wingX, type AmenityKind } from '../sim/layout';
 import { CODE_LINES } from './codeLines';
+import { clumpGeometry } from './greenery';
 
 /** Closed projects in the archive (fictional names; one label per box, cycled). */
 export const PROJECT_ARCHIVE: readonly string[] = [
@@ -106,11 +107,14 @@ const BLUE = PALETTE.books[1];
 const YELLOW = PALETTE.books[2];
 
 /** Instanced leaf clusters on a wall-mounted planting panel (green wall) along z at x = `x`, facing +x. */
+/** Green-wall leaf clump radius (the shared clump is a unit ball). */
+const LEAF_R = 0.14;
+
 function greenWall(k: Kit, p: Paints, parent: Group, x: number, z0: number, z1: number, name: string): void {
   k.box(parent, 0.08, 1.1, z1 - z0, 0, p.leafDark, x, Y, (z0 + z1) / 2);
   const cols = Math.round((z1 - z0) / 0.32);
   const rows = 5;
-  const leaves = new InstancedMesh(new IcosahedronGeometry(0.14, 0), k.m(0xffffff, { roughness: 0.85 }), cols * rows);
+  const leaves = new InstancedMesh(clumpGeometry(), k.m(0xffffff, { roughness: 0.85 }), cols * rows) // shared 12-vertex clump (Rev 40);
   const m = new Matrix4();
   const q = new Quaternion();
   const tones = [new Color(PALETTE.leaf), new Color(PALETTE.leafDark), new Color(0x86b86a), new Color(0x5f9157)];
@@ -118,7 +122,7 @@ function greenWall(k: Kit, p: Paints, parent: Group, x: number, z0: number, z1: 
   for (let c = 0; c < cols; c++) {
     for (let r = 0; r < rows; r++) {
       const s = 0.8 + ((c * 7 + r * 3) % 5) * 0.1;
-      m.compose(new Vector3(x + 0.08, Y + 0.15 + r * 0.22 + (c % 2) * 0.08, z0 + 0.16 + c * 0.32), q, new Vector3(s * 0.7, s, s));
+      m.compose(new Vector3(x + 0.08, Y + 0.15 + r * 0.22 + (c % 2) * 0.08, z0 + 0.16 + c * 0.32), q, new Vector3(s * 0.7 * LEAF_R, s * LEAF_R, s * LEAF_R));
       leaves.setMatrixAt(i, m);
       leaves.setColorAt(i, tones[(c + r * 2) % tones.length] ?? new Color(PALETTE.leaf));
       i++;
