@@ -11,3 +11,6 @@ tmp/
 
 # graphify: derived output, rebuilt per project (graph-usage standard)
 graphify-out/
+
+# agent worktrees (local only)
+.claude/worktrees/
