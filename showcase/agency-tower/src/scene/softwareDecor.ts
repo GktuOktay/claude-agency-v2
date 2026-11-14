@@ -109,8 +109,15 @@ function acousticPanels(k: Kit, g: Group, accent: number): void {
 
 function brandWall(k: Kit, g: Group): void {
   const w = 2.7;
-  const h = 1.15;
-  k.box(g, w, 0.06, 0.2, 0, k.m(PALETTE.white), 0, 0, 0, 'object');
+  const h = 1.6; // taller than the 1.2 walls: the lobby's double-height feature wall
+  k.box(g, w, 0.06, 0.2, 0, k.m(PALETTE.marble, { roughness: 0.25 }), 0, 0, 0, 'object');
+  k.box(g, w, 0.015, 0.05, 0, k.m(PALETTE.brass), 0, h, -0.045, 'none');
+  // Art wall: an abstract triptych in walnut frames above the plaques.
+  [PALETTE.books[0], PALETTE.books[1], PALETTE.books[2]].forEach((c, i) => {
+    const x = 0.6 + i * 0.25;
+    k.box(g, 0.22, 0.36, 0.015, 0, k.m(PALETTE.walnut), x, 0.98, 0.0, 'none');
+    k.box(g, 0.18, 0.32 - i * 0.06, 0.006, 0, k.m(c ?? PALETTE.white, { roughness: 0.9 }), x, 1.0 + i * 0.03, 0.012, 'none');
+  });
   k.box(g, w, h - 0.06, 0.04, 0, k.m(PALETTE.charcoal, { roughness: 0.6 }), 0, 0.06, -0.06, 'object');
   // Vertical oak slats over the dark backer.
   const slat = k.m(PALETTE.oak, { roughness: 0.6 });
@@ -225,6 +232,31 @@ function crownSign(k: Kit, parent: Group): void {
   k.box(g, w, 0.02, 0.03, 0, k.glow(...WARM_LIGHT), 0, 1.48 + h, 0.0, 'none');
 }
 
+/** Designer pendants (brass cap, opal globe) on long cords; globes hang at `y`, above head and screen height. */
+function pendants(k: Kit, parent: Group, xs: readonly number[], z: number, y: number): void {
+  const g = sub(parent, `${DECOR_PREFIX}pendants`);
+  for (const x of xs) {
+    k.cyl(g, 0.003, 0.003, CEILING - y, k.m(PALETTE.charcoal), x, y, z, 4, 'none');
+    k.cyl(g, 0.035, 0.02, 0.04, k.m(PALETTE.brass), x, y + 0.06, z, 10, 'none');
+    k.ball(g, 0.085, k.glow(0xfff6ea, 0xffd9a0, 0.4, 3.2), x, y, z, true).userData.shadow = 'none';
+  }
+}
+
+/** Rev 37 executive finishes mounted on existing props (inside their footprints): stone reception, walnut boardroom table. */
+function propFinish(k: Kit, parent: Group, floor: number): void {
+  const g = sub(parent, `${DECOR_PREFIX}prop-finish`, PROP_AT.x, 0, PROP_AT.z);
+  const marble = k.m(PALETTE.marble, { roughness: 0.25 });
+  if (floor === LOBBY_FLOOR) {
+    k.box(g, 2.44, 0.48, 0.02, 0, marble, 0, 0.01, 0.29, 'object');
+    k.box(g, 2.54, 0.025, 0.68, 0, marble, 0, 0.54, 0, 'object');
+    k.box(g, 2.44, 0.012, 0.012, 0, k.m(PALETTE.brass), 0, 0.06, 0.306, 'none');
+    pendants(k, parent, [-5.3, -4.5, -3.7], PROP_AT.z + 0.1, 1.75);
+  } else if (floor === 4) {
+    k.box(g, 2.36, 0.012, 1.06, 0, k.m(PALETTE.walnut, { roughness: 0.45 }), 0, 0.3825, 0, 'object');
+    pendants(k, parent, [-5.2, -4.5, -3.8], PROP_AT.z, 1.6);
+  }
+}
+
 /** Builds the software-company decor of one floor: a group at the floor surface. */
 export function buildSoftwareDecor(k: Kit, floor: number, accent: number): Group {
   const root = new Group();
@@ -233,6 +265,8 @@ export function buildSoftwareDecor(k: Kit, floor: number, accent: number): Group
   for (const s of softwareDecorSpots(floor)) root.add(buildSpot(k, s, accent));
   if (floor === 1) serverRoom(k, root, accent);
   if (floor === LOBBY_FLOOR) slatCeiling(k, root);
+  propFinish(k, root, floor);
+  if (floor === PENTHOUSE) pendants(k, root, [0.9, 1.9], -4.75, 1.7);
   bakeStatic(k, root, DECOR_PREFIX);
   // The crown sign stays its own group (outside the storey; floor-wide mergeStatic still folds its parts).
   if (floor === PENTHOUSE) crownSign(k, root);
@@ -312,6 +346,7 @@ export function dressDesks(k: Kit, floor: number, floorGroup: Group, screens: re
         break;
       case 'executive':
         screen.setWide(true);
+        k.box(setup, 2.0, 0.012, 0.01, 0, k.m(PALETTE.brass), 0, 0.33, 0.42, 'none'); // brass edge on the walnut top
         sideMonitor(k, setup, secondTile, 0.62, -0.1, -0.35);
         laptopOnStand(k, setup, laptopTile, -0.5, -0.02, 0.35);
         break;

@@ -24,6 +24,11 @@ export type ShadowRole = 'object' | 'surface' | 'slab' | 'none';
 export const PALETTE = {
   oak: 0xdcb98e,
   oakDark: 0xb98d5e,
+  // Rev 37 executive finishes: walnut veneer, honed marble, brushed brass, cognac leather.
+  walnut: 0x6e4b34,
+  marble: 0xeeebe6,
+  brass: 0xb8955a,
+  leather: 0x8a5a3c,
   white: 0xf7f5f1,
   offWhite: 0xece8e1,
   charcoal: 0x3a3f47,
@@ -213,7 +218,7 @@ export function desk(k: Kit, wide = false): Group {
   const w = wide ? 2.0 : 1.2;
   const d = wide ? 0.85 : 0.62;
   k.blob(g, w + 0.5, d + 0.5, 0, 0);
-  k.box(g, w, 0.045, d, 0.02, k.m(wide ? PALETTE.oakDark : PALETTE.oak, { roughness: 0.6 }), 0, 0.32, 0);
+  k.box(g, w, 0.045, d, 0.02, k.m(wide ? PALETTE.walnut : PALETTE.oak, { roughness: wide ? 0.45 : 0.6 }), 0, 0.32, 0);
   const leg = k.m(wide ? PALETTE.charcoal : PALETTE.white);
   for (const x of [-(w / 2 - 0.06), w / 2 - 0.06]) k.box(g, 0.05, 0.32, d - 0.08, 0.015, leg, x, 0, 0);
   k.box(g, w - 0.2, 0.16, 0.03, 0.01, leg, 0, 0.15, -(d / 2 - 0.08));
@@ -367,7 +372,7 @@ export function coffeeIsland(k: Kit, accent: number): Group {
   const g = new Group();
   k.blob(g, 2.6, 0.9, 0, 0);
   k.box(g, 2.2, 0.36, 0.55, 0.03, k.m(PALETTE.white), 0, 0, 0, 'object', 'coffee-counter');
-  k.box(g, 2.28, 0.04, 0.6, 0.015, k.m(PALETTE.oak, { roughness: 0.55 }), 0, 0.36, 0);
+  k.box(g, 2.28, 0.04, 0.6, 0.015, k.m(PALETTE.marble, { roughness: 0.25 }), 0, 0.36, 0);
   const dark = k.m(PALETTE.charcoal, { roughness: 0.35, metalness: 0.2 });
   k.box(g, 0.3, 0.32, 0.26, 0.04, dark, 0.45, 0.4, -0.05, 'object', 'coffee-machine');
   k.box(g, 0.12, 0.03, 0.02, 0.008, k.m(accent, { emissive: accent, emissiveIntensity: 1.2 }), 0.45, 0.64, 0.085, 'none');

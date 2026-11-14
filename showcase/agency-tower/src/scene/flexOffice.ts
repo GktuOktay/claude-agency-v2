@@ -236,10 +236,10 @@ function terraceSeating(c: Ctx): void {
   g.add(at(sofa(k, PALETTE.fabric, accent, 1.6), 0, -0.6));
   g.add(at(coffeeTable(k, 0.8, 0.5), 0, 0.35));
   const left = new Group();
-  loungeChair(k, left, PALETTE.fabricBlue, accent);
+  loungeChair(k, left, PALETTE.leather, accent);
   g.add(at(left, -1.2, 0.4, -Math.PI / 2));
   const right = new Group();
-  loungeChair(k, right, PALETTE.fabricBlue, accent);
+  loungeChair(k, right, PALETTE.leather, accent);
   g.add(at(right, 1.2, 0.4, Math.PI / 2));
   k.cyl(g, 0.05, 0.05, 0.1, k.glow(...LAMP_LIGHT), -0.2, 0.245, 0.35, 8); // lantern on the table
 }
@@ -250,7 +250,7 @@ function skylineLounge(c: Ctx): void {
   g.add(at(rug(k, 2.0, 0.9, RUG_WARM, RUG_BORDER), 0.1, 0.05));
   for (const x of [-0.3, 0.6]) {
     const ch = new Group();
-    loungeChair(k, ch, PALETTE.fabric, accent);
+    loungeChair(k, ch, PALETTE.leather, accent);
     g.add(at(ch, x, 0));
   }
   k.cyl(g, 0.14, 0.14, 0.03, k.m(PALETTE.oak, { roughness: 0.6 }), 0.15, 0.3, -0.05, 14);
@@ -323,7 +323,7 @@ function items(floor: number): Item[] {
       x,
       z: LOUNGE_CHAIR_Z,
       box: sym(0.31, 0.31),
-      build: (c) => loungeChair(c.k, c.g, i ? PALETTE.fabricBlue : PALETTE.fabric, c.accent),
+      build: (c) => loungeChair(c.k, c.g, floor >= 4 ? PALETTE.leather : i ? PALETTE.fabricBlue : PALETTE.fabric, c.accent),
     });
   });
 

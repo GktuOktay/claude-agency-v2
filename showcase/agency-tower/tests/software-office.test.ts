@@ -263,6 +263,20 @@ describe('software-company interior in the tower', () => {
     expect(box.min.y).toBeGreaterThan(FLOOR_TOP + 1.0);
   });
 
+  it('Rev 37 executive finishes: stone reception (floor 0) and walnut boardroom table (floor 4) on the existing props, designer pendants on floors 0, 4 and 5, a double-height lobby feature wall', () => {
+    for (let f = 0; f < FLOOR_COUNT; f++) {
+      expect(named(floor(f), `${DECOR_PREFIX}prop-finish`), `floor ${f}`).toHaveLength(1);
+      expect(named(floor(f), `${DECOR_PREFIX}pendants`).length, `floor ${f}`).toBe([0, 4, 5].includes(f) ? 1 : 0);
+    }
+    const k = new Kit({ contents: [], slab: [], tinted: [] }, { wood: null, hatch: null, blob: null });
+    const lobby = buildSoftwareDecor(k, 0, 0x88aacc);
+    lobby.updateMatrixWorld(true);
+    const wall = new Box3().setFromObject(named(lobby, 'flex:brand-wall')[0]!);
+    expect(wall.max.y - FLOOR_TOP).toBeGreaterThan(1.5);
+    const lamps = new Box3().setFromObject(named(lobby, `${DECOR_PREFIX}pendants`)[0]!);
+    expect(lamps.min.y - FLOOR_TOP).toBeGreaterThan(1.3); // above heads and screens
+  });
+
   it('every desk gets a premium setup: dual monitors, ultrawides and laptops on stands are all present, the signing desk an executive setup', () => {
     const kinds = new Map<string, number>();
     for (const f of model.floors) {
