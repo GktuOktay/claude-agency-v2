@@ -43,6 +43,7 @@ import {
   type KitTextures,
   type ShadowRole,
 } from './furniture';
+import { buildFloorDressing } from './flexOffice';
 import { type MatOptions, type RobotParts } from './robot';
 import { createCharacter } from './human';
 import { Screen } from './screen';
@@ -176,6 +177,8 @@ export interface BuildOptions {
   textures?: Partial<KitTextures>;
   /** Canvas texture for the meeting-room whiteboard (§7.7 size per tier); plain white when absent. */
   whiteboardTexture?: () => Texture | null;
+  /** Green, flexible floor dressing (src/scene/flexOffice.ts); default on, off for A/B budget checks. */
+  dressing?: boolean;
 }
 
 const WALL_OVERVIEW = 0.25;
@@ -569,6 +572,8 @@ export function buildTower(data: TowerData, options: BuildOptions = {}): TowerMo
       }
       group.add(sky);
     }
+
+    if (options.dressing !== false) group.add(buildFloorDressing(k, id, accent));
 
     rooms.push({ floor: id, text: floorName(id), primary: true, position: new Vector3(isPenthouse ? -1.2 : WORK_CENTER_X, id * FLOOR_HEIGHT + FLOOR_TOP + ROOM_LABEL_Y, -3.6) });
     rooms.push({ floor: id, text: tr.rooms.coffee, primary: false, position: new Vector3(COFFEE.x, id * FLOOR_HEIGHT + FLOOR_TOP + ROOM_LABEL_Y * 0.9, COFFEE.z - 0.6) });

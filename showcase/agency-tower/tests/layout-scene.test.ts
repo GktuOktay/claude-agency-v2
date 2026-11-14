@@ -1,9 +1,10 @@
 // Spec 0002 T-5/T-8: the scene model is built from src/sim/layout.ts, and the layout footprints the
 // waypoint edges keep clear of (AC-12) cover every piece of furniture the model actually builds.
 import { describe, it, expect } from 'vitest';
-import { Mesh, Vector3 } from 'three';
+import { InstancedMesh, Matrix4, Mesh, Vector3 } from 'three';
 import { FLOOR_COUNT, FLOOR_TOP, HALF_WIDTH, floorLayout, type FloorLayout } from '../src/sim/layout';
 import { buildTower } from '../src/scene/model';
+import { dressingFootprints } from '../src/scene/flexOffice';
 import { sortUnits } from '../src/ui/unitList';
 import { loadData } from '../src/data/loader';
 import roster from '../src/data/roster.generated.json';
@@ -44,20 +45,30 @@ describe('layout <-> scene model consistency', () => {
     expect(model.layouts).toEqual(lays);
   });
 
-  it('every furniture vertex of every floor lies inside a layout footprint or chair zone (footprints cover the model)', () => {
+  it('every furniture vertex of every floor lies inside a layout footprint, chair zone or dressing footprint (footprints cover the model)', () => {
+    // Dressing footprints (src/scene/flexOffice.ts) are held to the same edge clearance in flex-office.test.ts.
     model.root.updateMatrixWorld(true);
     const v = new Vector3();
     for (const f of model.floors) {
       const lay = lays[f.id]!;
-      const rects = [...lay.footprints, ...lay.seatZones];
+      const rects = [...lay.footprints, ...lay.seatZones, ...dressingFootprints(f.id)];
       const base = f.group.position.y;
       const misses = new Map<string, number>();
       f.group.traverse((o) => {
         if (!(o instanceof Mesh) || o.name === 'floor-slab') return;
         const pos = o.geometry.attributes.position;
         if (!pos) return;
-        for (let i = 0; i < pos.count; i++) {
-          v.fromBufferAttribute(pos, i).applyMatrix4(o.matrixWorld);
+        // Instanced meshes are checked once per instance.
+        const mats: Matrix4[] = [];
+        if (o instanceof InstancedMesh) {
+          for (let j = 0; j < o.count; j++) {
+            const im = new Matrix4();
+            o.getMatrixAt(j, im);
+            mats.push(im.premultiply(o.matrixWorld));
+          }
+        } else mats.push(o.matrixWorld);
+        for (const mw of mats) for (let i = 0; i < pos.count; i++) {
+          v.fromBufferAttribute(pos, i).applyMatrix4(mw);
           const h = v.y - base - FLOOR_TOP;
           if (h <= 0.03 || h > 1.3) continue; // floor surfaces, rugs and floor lights; skyline far below
           if (Math.abs(v.x) > HALF_WIDTH + 0.06 || Math.abs(v.z) > 5.56) continue; // outside the building

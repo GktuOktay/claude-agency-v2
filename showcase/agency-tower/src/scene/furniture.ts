@@ -92,6 +92,18 @@ export class Kit {
     return mat;
   }
 
+  /** Opaque vertex-coloured material (contents category) for geometry pre-merged across colours. */
+  vertexColored(roughness = 0.75): Material {
+    const key = `vc:${roughness}`;
+    let mat = this.mats.get(key);
+    if (!mat) {
+      mat = new MeshStandardMaterial({ color: 0xffffff, vertexColors: true, roughness });
+      this.sinks.contents.push(mat);
+      this.mats.set(key, mat);
+    }
+    return mat;
+  }
+
   /** Night-light material (contents category): emissive intensity `day` by day, `night` at night. */
   glow(color: number, emissive: number, day: number, night: number): Material {
     const key = `g:${color}:${emissive}:${day}:${night}`;
