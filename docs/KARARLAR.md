@@ -300,3 +300,9 @@ Eski kurulum: ~/.claude-backup-2026-11-01 (silme işlemi henüz yapılmadı).
 - **Ruling (CEO yetkisi, Rev 35 · imzalı 0001 REQ-18'den sapma):** Otomatik modda ışık ofis saatini izliyor. Tam döngü 90 s yerine 420 s ve duraklatmada donuyor. Gündüz ve Gece seçenekleri aynı. Yanlışsa maliyet: `schedule.ts` içindeki tek tablo.
 - Ölçüm: 1200 s'de molalar açıkken 3 iş, kapalıyken 5 iş bitiyor (`office-liveness.test.ts`). Darboğaz tek personel asansörü. İşler aç kalmıyor, gerçekçilik bilerek tercih edildi.
 - Açık: molaya özel kart satırları ("Spor salonunda", "Ar-Ge'de" vb.) cila turunda yapılacak.
+
+## Revizyon 39: Alanlar aktif kullanılsın, Ar-Ge şirketin beyni (2026-11-14)
+- CEO: "tüm odalar kullanılmalıydı. arge şirketin beyniydi. spor salonu da hep boş. Alanları aktif kullanalım." Ayrıca kat panelinde "kule" yerine "şirket".
+- Paketler: A) doluluk yönetimi: mesai boyunca her sosyal alanda canlılık; Ar-Ge'de ambient derin çalışma, stand-up, prototip; asansör kapasitesi. B) oda yaşamı: odalara bağlı, tıklanamayan "ekip" figürleri (spor yapan, Ar-Ge'de çalışan, yemek yiyen, oynayan, dinlenen); birimler (robotlar) organizasyonu temsil etmeye devam eder. C) arayüz: "Tüm kule" → "Tüm şirket" ve şerit yerleşimi.
+- **Ruling (bütçe):** giriş dosyası sınırı 1 200 000 B. Gerekçe: 972 kB'de yer kalmadı; sayfa açıldıktan sonra yükleme yasak. Yanlışsa maliyet: ilk açılış biraz uzar (gzip ~300 kB).
+- Not: QA 2. tur bu değişikliklerden önceki ağaç üzerinde çalışıyor; bu paketlerden sonra QA fark turu yapılacak.

@@ -1,12 +1,12 @@
 // Bundle budget (spec 0002 REQ-20, R-10): the raw minified size of the entry chunk referenced by
-// dist/index.html entry chunk must stay at or below 1 000 000 bytes (1 kB = 1000 bytes; not gzip). Spec 0002 set 748 000; raised for the CEO-authorized campus scope, docs/KARARLAR.md Rev 31, raised again in Rev 35.
+// dist/index.html entry chunk must stay at or below 1 200 000 bytes (1 kB = 1000 bytes; not gzip). Spec 0002 set 748 000; raised for the CEO-authorized campus scope, docs/KARARLAR.md Rev 31, raised again in Rev 35 and Rev 39.
 // Run after `npm run build`; deliberately not part of `npm test` (tests must not depend on a build).
 // Usage: node scripts/budget-check.mjs [distDir]
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-export const BUDGET_BYTES = 1_000_000;
+export const BUDGET_BYTES = 1_200_000;
 
 // <script ... type=module ... src=X>, quotes written as escapes so the isolation scanner reads no strings here.
 const MODULE_SCRIPT = /<script\b[^>]*\btype\s*=\s*[\x22\x27]?module[\x22\x27]?[^>]*>/i;
