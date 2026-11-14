@@ -186,8 +186,8 @@ button:hover { background: #fff; border-color: rgba(47, 102, 208, 0.35); }
   position: relative;
   backdrop-filter: blur(8px);
 }
-.card-close { position: absolute; right: var(--space-2); top: var(--space-2); min-width: 34px; border-radius: var(--radius-pill); font-size: 1.1rem; line-height: 1; }
-.card-title { margin: 0 0 var(--space-2); padding-right: 2.5rem; font-size: 1.1rem; }
+.card-close { position: absolute; right: var(--space-2); top: var(--space-2); min-width: var(--touch); min-height: var(--touch); padding: 0; display: grid; place-items: center; border-radius: var(--radius-pill); font-size: 1.1rem; line-height: 1; }
+.card-title { margin: 0 0 var(--space-2); padding-right: 3rem; font-size: 1.1rem; }
 .card dl { margin: 0; display: grid; grid-template-columns: max-content 1fr; gap: 10px var(--space-4); padding-right: 2.5rem; font-size: 0.9rem; }
 .card dt { font-weight: 600; color: var(--fg-muted); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; padding-top: 2px; }
 .card dd { margin: 0; overflow-wrap: anywhere; line-height: 1.4; }
@@ -354,5 +354,5 @@ html.is-org .robot-label { box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.25), 0 4p
 
 /* Original English text under a disclosure on the robot card. */
 .card-original { margin-top: 6px; font-size: 0.8rem; color: var(--fg-muted); }
-.card-original summary { cursor: pointer; }
+.card-original summary { cursor: pointer; display: list-item; box-sizing: border-box; min-height: var(--touch); min-width: var(--touch); padding: 12px 0; }
 .card-original p { margin: 4px 0 0; }
