@@ -374,7 +374,7 @@ describe('the grounds never cover what the views are for', () => {
 });
 
 describe('exterior budget', () => {
-  it('facade + grounds: <= 40k vertices and <= 30 meshes; the scene stays under 700k and 1000', () => {
+  it('facade + grounds: <= 20k vertices and <= 30 meshes; the scene stays under 700k and 1000', () => {
     const m = model();
     let verts = 0;
     let meshes = 0;
@@ -393,7 +393,7 @@ describe('exterior budget', () => {
       total += o.geometry.attributes.position?.count ?? 0;
     }
     console.info(`[budget] exterior vertices=${verts} meshes=${meshes}; scene vertices=${total} meshes=${totalMeshes}`);
-    expect(verts).toBeLessThanOrEqual(40_000);
+    expect(verts).toBeLessThanOrEqual(20_000); // Rev 40: was 40 000
     expect(meshes).toBeLessThanOrEqual(30);
     expect(total).toBeLessThan(700_000);
     expect(totalMeshes).toBeLessThan(1000);
