@@ -225,7 +225,7 @@ describe('staff behaviour', () => {
         floors.add(v.floor);
         if (v.state === 'fade-out' || v.state === 'fade-in') expect(Math.hypot(v.x - STAFF_LANDING.entry.x, v.z - STAFF_LANDING.entry.z)).toBeLessThan(1e-6);
       }
-      const mops = long.events.filter((e) => e.staffId === id && e.type === 'mop');
+      const mops = long.events.filter((e): e is Extract<StaffEvent, { type: 'mop' }> => e.staffId === id && e.type === 'mop');
       expect(new Set(mops.map((e) => e.floor)).size).toBeGreaterThanOrEqual(2);
       for (const e of long.events.filter((x) => x.staffId === id && x.type === 'floor')) {
         if (e.type !== 'floor') continue;
