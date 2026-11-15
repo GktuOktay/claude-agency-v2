@@ -9,6 +9,7 @@ import { createStaff } from '../src/scene/staff';
 import { createRoomLife } from '../src/scene/roomLife';
 import { createProps, propRobotsOf } from '../src/scene/props';
 import { loadData } from '../src/data/loader';
+import { createHandProps } from '../src/scene/handProps';
 import roster from '../src/data/roster.generated.json';
 import hierarchy from '../src/data/hierarchy.json';
 
@@ -34,11 +35,12 @@ it('the whole tower stays under 700k vertices', () => {
 });
 
 it('the full app scene stays under 700k EXPANDED vertices (instances counted, visible meshes only; Rev 40)', () => {
-  // Built the way sceneApp.ts builds it: tower (with city, campus, grounds, facade), props, room life, staff.
+  // Built the way sceneApp.ts builds it: tower (with city, campus, grounds, facade), props, room life, staff, hand props.
   const model = buildTower(data());
   createProps({ robots: propRobotsOf(model), model });
   model.root.add(createRoomLife({ seed: 1 }).group);
   model.root.add(createStaff({ layouts: model.layouts, seed: 1, reducedMotion: false }).group);
+  model.root.add(createHandProps(model.robots.length).group); // Rev 43 B hand props, full capacity counted
   let expanded = 0;
   let once = 0;
   const byPart = new Map<string, number>();
