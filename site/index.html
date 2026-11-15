@@ -230,7 +230,7 @@ footer { padding-block: 40px 56px; color: var(--muted); font-size: 0.82rem; }
     <p class="lede">Claude yönetir, 18 agent çalışır, kararı sen verirsin. Önce Claude ile konuşup spec'i imzalarsın (gate 1). Sonra agent'lar kodu Docker konteynerinde yazar ve test eder. Yayını yine sen onaylarsın (gate 2).</p>
     </div>
     <div class="scene" id="scene">
-      <div class="tag" aria-hidden="true"><span><i style="background:var(--surface);border:1.5px solid var(--ink)"></i>spec zarfı</span><span><i style="background:var(--auto)"></i>otonom adım</span><span><i style="background:var(--gate)"></i>senin onayın</span></div>
+      <div class="tag" aria-hidden="true"><span><i style="background:var(--gate-soft);border:1.5px solid var(--gate)"></i>iş fikri</span><span><i style="background:var(--surface);border:1.5px solid var(--ink)"></i>spec zarfı</span><span><i style="background:var(--auto)"></i>otonom adım</span><span><i style="background:var(--gate)"></i>senin onayın</span></div>
     </div>
     </div>
 
@@ -608,11 +608,18 @@ sh claude-agency-v2/harness/bin/install-global.sh</pre>
   function add(geo, key, x, y, z, extra) { var m = new THREE.Mesh(geo, mat(key, extra)); m.position.set(x, y, z); scene.add(m); return m; }
 
   // Process, left to right: spec → İMZA → [Docker: analiz, kod, test, denetim] → ONAY → canlı.
-  var X = { spec: -6.4, g1: -4.3, pads: [-2.25, -0.75, 0.75, 2.25], g2: 4.3, live: 6.4 };
-  add(new THREE.BoxGeometry(15.4, 0.14, 3.2), 'surface', 0, -0.1, 0);
-  add(new THREE.BoxGeometry(12.8, 0.04, 0.16), 'line', 0, 0.0, 0);
+  var X = { ceo: -8.7, talk: -6.8, spec: -4.9, g1: -3.0, pads: [-1.2, 0.2, 1.6, 3.0], g2: 4.8, live: 6.6 };
+  add(new THREE.BoxGeometry(17.8, 0.14, 3.2), 'surface', -1.05, -0.1, 0);
+  add(new THREE.BoxGeometry(15.3, 0.04, 0.16), 'line', -1.05, 0.0, 0);
+  // the job comes in: the CEO
+  add(new THREE.CylinderGeometry(0.62, 0.62, 0.1, 32), 'gateSoft', X.ceo, 0.05, 0);
+  add(new THREE.CylinderGeometry(0.22, 0.3, 0.8, 20), 'gate', X.ceo, 0.5, -0.25);
+  add(new THREE.SphereGeometry(0.22, 20, 16), 'gate', X.ceo, 1.08, -0.25);
+  // discussion and research: two units at a round table
+  var talkPad = add(new THREE.CylinderGeometry(0.5, 0.5, 0.36, 28), 'autoSoft', X.talk, 0.18, 0, { emissiveIntensity: 0 });
+  [-0.78, 0.78].forEach(function (z) { add(new THREE.CylinderGeometry(0.16, 0.22, 0.6, 16), 'auto', X.talk, 0.3, z); add(new THREE.SphereGeometry(0.17, 16, 12), 'auto', X.talk, 0.78, z); });
   // spec desk
-  add(new THREE.BoxGeometry(1.2, 0.5, 1.2), 'gateSoft', X.spec, 0.25, 0);
+  var specDesk = add(new THREE.BoxGeometry(1.2, 0.5, 1.2), 'autoSoft', X.spec, 0.25, 0, { emissiveIntensity: 0 });
   // gates: arch ring + stamp
   var stamps = [], rings = [];
   [X.g1, X.g2].forEach(function (x) {
@@ -622,9 +629,9 @@ sh claude-agency-v2/harness/bin/install-global.sh</pre>
     add(new THREE.CylinderGeometry(0.05, 0.05, 0.5, 8), 'ink', x, 2.35, 0).userData.handle = true;
   });
   // container (glass) + pads
-  var glass = add(new THREE.BoxGeometry(6.4, 1.5, 2.4), 'auto', 0, 0.75, 0, { transparent: true, opacity: 0.1, depthWrite: false });
-  var edges = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(6.4, 1.5, 2.4)), new THREE.LineBasicMaterial());
-  edges.material.userData.key = 'auto'; mats.push(edges.material); edges.position.set(0, 0.75, 0); scene.add(edges);
+  var glass = add(new THREE.BoxGeometry(5.9, 1.5, 2.4), 'auto', 0.9, 0.75, 0, { transparent: true, opacity: 0.1, depthWrite: false });
+  var edges = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(5.9, 1.5, 2.4)), new THREE.LineBasicMaterial());
+  edges.material.userData.key = 'auto'; mats.push(edges.material); edges.position.set(0.9, 0.75, 0); scene.add(edges);
   var pads = X.pads.map(function (x) { return add(new THREE.BoxGeometry(1.1, 0.14, 1.1), 'autoSoft', x, 0.07, 0, { emissiveIntensity: 0 }); });
   // live server
   var leds = [];
@@ -638,10 +645,11 @@ sh claude-agency-v2/harness/bin/install-global.sh</pre>
     var body = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.06, 0.4), mat('paper')); e.add(body);
     var seal = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 0.03, 16), mat('gate')); seal.position.y = 0.05; seal.visible = false; e.add(seal);
     var seal2 = seal.clone(); seal2.position.x = 0.16; e.add(seal2);
-    e.userData.seals = [seal, seal2]; scene.add(e); return e;
+    var idea = new THREE.Mesh(new THREE.SphereGeometry(0.2, 20, 16), mat('gateSoft', { emissiveIntensity: 0.25 })); idea.position.y = 0.12; e.add(idea);
+    e.userData.seals = [seal, seal2]; e.userData.idea = idea; e.userData.paper = [body]; scene.add(e); return e;
   }
   // timeline: [x, hold seconds, event]
-  var stops = [[X.spec, 0.6, 'spawn'], [X.g1, 1.0, 'g0'], [X.pads[0], 0.45, 'p0'], [X.pads[1], 0.45, 'p1'], [X.pads[2], 0.45, 'p2'], [X.pads[3], 0.45, 'p3'], [X.g2, 1.0, 'g1'], [X.live, 0.5, 'live']];
+  var stops = [[X.ceo, 0.7, 'spawn'], [X.talk, 1.1, 'talk'], [X.spec, 0.9, 'spec'], [X.g1, 1.0, 'g0'], [X.pads[0], 0.45, 'p0'], [X.pads[1], 0.45, 'p1'], [X.pads[2], 0.45, 'p2'], [X.pads[3], 0.45, 'p3'], [X.g2, 1.0, 'g1'], [X.live, 0.5, 'live']];
   var SPEED = 3.2, segs = [], T = 0;
   for (var s = 0; s < stops.length; s++) {
     segs.push({ t0: T, t1: T + stops[s][1], x0: stops[s][0], x1: stops[s][0], ev: stops[s][2] }); T += stops[s][1];
@@ -652,21 +660,21 @@ sh claude-agency-v2/harness/bin/install-global.sh</pre>
   function sample(t) { t = ((t % CYCLE) + CYCLE) % CYCLE; for (var i = 0; i < segs.length; i++) { var g = segs[i]; if (t <= g.t1) { var k = (t - g.t0) / Math.max(1e-6, g.t1 - g.t0); return { x: g.x0 + (g.x1 - g.x0) * k, ev: g.ev, k: k, t: t }; } } return { x: X.live, ev: 'end', k: 1, t: t }; }
 
   // labels (HTML, follow the 3D anchors)
-  var LBL = [['Spec', X.spec, 0.9, 'g'], ['İmza', X.g1, 2.85, 'g'], ['Analiz', X.pads[0], 1.75, 'a'], ['Kod', X.pads[1], 1.75, 'a'], ['Test', X.pads[2], 1.75, 'a'], ['Denetim', X.pads[3], 1.75, 'a'], ['Onay', X.g2, 2.85, 'g'], ['Canlı', X.live, 1.65, 'a']];
+  var LBL = [['İş', X.ceo, 1.75, 'g'], ['Tartışma', X.talk, 1.25, 'a'], ['Spec', X.spec, 0.95, 'a'], ['İmza', X.g1, 2.85, 'g'], ['Analiz', X.pads[0], 1.75, 'a'], ['Kod', X.pads[1], 1.75, 'a'], ['Test', X.pads[2], 1.75, 'a'], ['Denetim', X.pads[3], 1.75, 'a'], ['Onay', X.g2, 2.85, 'g'], ['Canlı', X.live, 1.65, 'a']];
   var lbls = LBL.map(function (l) { var el = document.createElement('span'); el.className = 'lbl ' + l[3]; el.textContent = l[0]; el.setAttribute('aria-hidden', 'true'); box.appendChild(el); return { el: el, v: new THREE.Vector3(l[1], l[2], 0) }; });
   var dock = document.createElement('span'); dock.className = 'lbl dock'; dock.textContent = 'DOCKER'; dock.setAttribute('aria-hidden', 'true'); box.appendChild(dock);
-  var dockV = new THREE.Vector3(-3.2, 1.5, 1.2);
+  var dockV = new THREE.Vector3(3.2, 1.6, 1.25);
 
   var C = {};
   function applyColors() {
     C = { auto: tok('--auto'), autoSoft: tok('--auto-soft'), gate: tok('--gate'), gateSoft: tok('--gate-soft'), line: tok('--line'), ink: tok('--ink'), surface: tok('--bg'), paper: tok('--surface') };
-    mats.forEach(function (m) { m.color.set(C[m.userData.key] || C.ink); if (m.emissive) m.emissive.set(m.userData.key === 'gate' ? C.gate : C.auto); });
+    mats.forEach(function (m) { m.color.set(C[m.userData.key] || C.ink); if (m.emissive) m.emissive.set(/^gate/.test(m.userData.key) ? C.gate : C.auto); });
   }
   applyColors();
   var W = 1, H = 1;
-  function size() { W = box.clientWidth; H = box.clientHeight; if (!W || !H) return; renderer.setSize(W, H, false); var a = W / H, v = Math.max(3.0, 7.3 / a); cam.left = -v * a; cam.right = v * a; cam.top = v; cam.bottom = -v; cam.updateProjectionMatrix(); }
+  function size() { W = box.clientWidth; H = box.clientHeight; if (!W || !H) return; renderer.setSize(W, H, false); var a = W / H, v = Math.max(3.2, 8.6 / a); cam.left = -v * a; cam.right = v * a; cam.top = v; cam.bottom = -v; cam.updateProjectionMatrix(); }
   var sway = 0;
-  function place() { var a = 0.62 + Math.sin(sway) * 0.05; cam.position.set(Math.sin(a) * 14, 10, Math.cos(a) * 14); cam.lookAt(0, 0.8, 0); cam.updateMatrixWorld(); }
+  function place() { var a = 0.62 + Math.sin(sway) * 0.05; cam.position.set(Math.sin(a) * 14, 10, Math.cos(a) * 14); cam.position.x -= 1.05; cam.lookAt(-1.05, 0.8, 0); cam.updateMatrixWorld(); }
   function labels() {
     var tmp = new THREE.Vector3();
     lbls.concat([{ el: dock, v: dockV }]).forEach(function (l) { tmp.copy(l.v).project(cam); l.el.style.transform = 'translate(-50%, -50%) translate(' + ((tmp.x + 1) / 2 * W).toFixed(1) + 'px,' + ((1 - tmp.y) / 2 * H).toFixed(1) + 'px)'; });
@@ -674,7 +682,7 @@ sh claude-agency-v2/harness/bin/install-global.sh</pre>
   var clock = 0;
   function update(dt) {
     clock += dt; sway += dt * 0.35; place();
-    pads.forEach(function (p) { p.material.emissiveIntensity = Math.max(0, p.material.emissiveIntensity - dt * 2.5); });
+    pads.concat([talkPad, specDesk]).forEach(function (p) { p.material.emissiveIntensity = Math.max(0, p.material.emissiveIntensity - dt * 2.5); });
     rings.forEach(function (r) { r.material.emissiveIntensity = Math.max(0, r.material.emissiveIntensity - dt * 1.6); });
     var press = [0, 0];
     envs.forEach(function (e, n) {
@@ -682,7 +690,13 @@ sh claude-agency-v2/harness/bin/install-global.sh</pre>
       var hop = (s.ev === undefined) ? Math.sin(Math.PI * s.k) * 0.25 : 0;
       e.position.set(s.x, 0.32 + hop, 0);
       var seals = e.userData.seals;
-      if (s.ev === 'spawn') { seals[0].visible = false; seals[1].visible = false; e.scale.setScalar(Math.min(1, s.k * 3)); } else e.scale.setScalar(1);
+      var isIdea = s.x < X.spec - 0.01 || (s.ev === 'spec' && s.k < 0.5);
+      e.userData.idea.visible = isIdea; e.userData.paper[0].visible = !isIdea;
+      if (isIdea) { seals[0].visible = false; seals[1].visible = false; }
+      if (s.ev === 'spawn') e.scale.setScalar(Math.min(1, s.k * 3)); else e.scale.setScalar(1);
+      if (isIdea) e.userData.idea.scale.setScalar(s.ev === 'talk' ? 1 + 0.35 * Math.sin(Math.PI * s.k) : s.x > X.talk ? 1.15 : 0.85);
+      if (s.ev === 'talk') talkPad.material.emissiveIntensity = 0.5;
+      if (s.ev === 'spec') specDesk.material.emissiveIntensity = 0.5;
       if (s.ev === 'g0' || s.ev === 'g1') {
         var gi = s.ev === 'g0' ? 0 : 1, k = s.k;
         var drop = k < 0.35 ? k / 0.35 : k < 0.55 ? 1 : Math.max(0, 1 - (k - 0.55) / 0.3);
