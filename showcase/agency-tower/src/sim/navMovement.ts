@@ -70,6 +70,8 @@ export interface NavMovement extends Movement {
   /** Graph node the unit stands at (or last passed), for tests and rendering. */
   nodeOf(unit: string): string | null;
   legLog(): readonly LegRecord[];
+  /** Callers on `floor` held away from the landing because all its waiting spots are taken (elevator backlog). */
+  awaitingSpot(floor: number): number;
 }
 
 const HIERARCHY_TIERS: ReadonlyMap<string, string> = new Map(hierarchy.units.map((u) => [u.id, u.tier]));
@@ -200,6 +202,8 @@ export function createNavMovement(opts: NavMovementOptions): NavMovement {
   };
   const deskOwner = (floor: number): string | undefined => layouts[floor]?.desks.find((d) => d.wide)?.owner;
 
+  /** Callers held where they are because every waiting spot of their landing is taken. */
+  const spotWait = new Set<string>();
   const units = new Map<string, Unit>();
   for (const [id, floor] of [...opts.units].sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0))) {
     const home = `home:${id}`;
@@ -274,6 +278,7 @@ export function createNavMovement(opts: NavMovementOptions): NavMovement {
 
   // ------------------------------------------------------------ planning
   function plan(u: Unit, t: Target): void {
+    spotWait.delete(u.id);
     u.target = t;
     u.dest = resolve(u, t);
     u.plan = [];
@@ -295,10 +300,14 @@ export function createNavMovement(opts: NavMovementOptions): NavMovement {
       const taken = claimed(p.floor, u);
       // The call-panel spot takes a fourth caller (clear of the waiting spots and the boarders' lane).
       const free = [...range('wait:', 3), 'call'].find((w) => !taken.has(w));
-      if (free === undefined) return;
+      if (free === undefined) {
+        spotWait.add(u.id);
+        return;
+      }
       p.to = free;
       ride.wait = free;
     }
+    spotWait.delete(u.id);
     u.plan.shift();
     u.legNo++;
     const startPos = position(u);
@@ -663,6 +672,7 @@ export function createNavMovement(opts: NavMovementOptions): NavMovement {
       return { ...u.leg.startPos };
     },
     legIndex: (id) => get(id).legNo,
+    awaitingSpot: (floor) => [...spotWait].filter((id) => get(id).floor === floor).length,
     nodeOf: (id) => get(id).node,
     legLog: () => legs,
     snapshot() {
