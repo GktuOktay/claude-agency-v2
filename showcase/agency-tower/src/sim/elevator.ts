@@ -128,6 +128,11 @@ export interface Elevator {
   boarded(unit: string): void;
   /** Walk-in boarding: the cabin waits at this floor for the boarder (boarding, not yet aboard). */
   awaiting(unit: string): boolean;
+  /**
+   * Seconds until the travelling cabin stops at `floor` if the queued caller `unit` there will board it (as the
+   * cabin would decide now), else null. Callers use it to step toward the door as the cabin arrives.
+   */
+  arrivingFor(unit: string, floor: number): number | null;
   status(unit: string): CallStatus;
   /**
    * Advances the cabin. `doorBlocked` is the door sensor: while it reports someone in the doorway the fully open doors
@@ -427,6 +432,32 @@ export function createElevator(opts: ElevatorOptions = {}): Elevator {
       walkedIn.add(unit);
       log({ type: 'board', unit, floor: stopFloor, doors: doorsAt(t) });
       if (boarding.every((r) => walkedIn.has(r.unit))) log({ type: 'riders', count: riders.length - exiting.length + boarding.length, floor: stopFloor });
+    },
+    arrivingFor(unit, floor) {
+      if (mode !== 'travel' || !near(toPos, floor) || status.get(unit) !== 'queued') return null;
+      const c = queue.find((x) => x.unit === unit);
+      if (!c || c.from !== floor) return null;
+      // Dry run of arriveAt's choice of boarders (the commit is restored afterwards).
+      const saved = commit;
+      const staying = riders.filter((r) => r.to !== floor).length;
+      let nd = 0;
+      if (staying > 0) nd = dir;
+      else {
+        const k = commitToHead();
+        if (k) nd = k.floor === floor ? k.dir : Math.sign(k.floor - floor);
+      }
+      let ok = false;
+      if (nd !== 0) {
+        const k = commit;
+        const want = queue.filter((q) => {
+          if (q.from !== floor) return false;
+          if (k && k.floor === floor && matchesCommit(q, k) && (staying === 0 || k.dir === nd)) return true;
+          return pickupAllowed(q, nd);
+        });
+        ok = want.slice(0, capacity - staying).some((q) => q.unit === unit);
+      }
+      commit = saved;
+      return ok ? Math.max(0, dur - t) : null;
     },
     awaiting: (unit) => walkIn && mode === 'doors' && boarding.some((r) => r.unit === unit) && !walkedIn.has(unit),
     status: (unit) => status.get(unit) ?? 'none',

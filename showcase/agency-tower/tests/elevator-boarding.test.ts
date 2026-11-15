@@ -64,8 +64,9 @@ function watchBoarding(nav: NavMovement, units: readonly string[]): { step(t: nu
             if (r > res.maxRise.d) res.maxRise = { d: r, at: `${u} @${t.toFixed(2)} ${prev.phase}->${phase}` };
           }
           if (phase === 'ride' && prev.phase !== 'ride') res.boarders.set(u, prev.sim.floor);
-          const from = res.boarders.get(u);
-          if (from !== undefined && prev.sim.x < DOOR_X && sim.x >= DOOR_X && sim.floor === from) {
+          // Walking into the cabin (eastward over the door plane) on a landing.
+          if (prev.sim.x < DOOR_X && sim.x >= DOOR_X && sim.floor === prev.sim.floor) {
+            const from = sim.floor;
             if (cab.floor === from && cab.mode === 'doors' && cab.doors >= 1) res.crossedOpen.add(u);
             else res.crossedShut.push(`${u} @${t.toFixed(2)} cabin ${cab.mode} f${cab.floor} doors ${cab.doors.toFixed(2)}`);
           }
