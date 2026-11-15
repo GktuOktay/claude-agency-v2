@@ -187,5 +187,17 @@ export const tr = {
     walkHintTouch: 'Sürükle: bak · Zemine dokun: oraya git',
     exitWalk: 'Çık',
     exitWalkLabel: 'Gezintiden çık',
+    // Rev 43: switching robots in "Ajan gözü".
+    prevAgent: 'Önceki ajan',
+    nextAgent: 'Sonraki ajan',
+    pickAgent: 'Takip edilecek ajan',
+    agentOption: (name: string, floor: string): string => `${name} · ${floor}`,
+    followSwitchHint: 'Tab / Shift+Tab: sonraki / önceki ajan · Esc: takibi bırak',
+  },
+  // Rev 43 "Tanıtım turu": a cinematic camera tour.
+  tour: {
+    start: 'Tanıtım turu',
+    startLabel: 'Tanıtım turunu başlat (T)',
+    exit: 'Turu bitir',
   },
 } as const;

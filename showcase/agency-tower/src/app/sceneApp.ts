@@ -31,10 +31,12 @@ import { bubbleCovers, bubbleSize, bubbleVisible, floorLabelAt, floorLabelColumn
 import { bubbleLift, createDeclutter, declutterDue } from '../scene/declutter';
 import { FLOOR_HEIGHT, FLOOR_TOP, accentCss, buildTower, floorAccent, type RobotEntry, type ViewState } from '../scene/model';
 import { ROBOT_BASE_SCALE, ROBOT_HEIGHT, tierStyle } from '../scene/robot';
-import { FOLLOW_FOV, createFollower, type Follower } from '../scene/follow';
+import { FOLLOW_FOV, createFollower, cycleFollow, followBounds, followOrder, type Follower } from '../scene/follow';
+import { createTourPlayer, installTourHook, tourParams, tourPlan, type TourPlayer } from '../scene/tour';
 import { WALK_FOV, createWalker, isWalkKey, walkInputFromKeys, type Walker } from '../scene/walk';
 import { buildCampusGraph, type CampusGraph } from '../sim/nav';
-import { createCameraModeUi } from '../ui/cameraModeUi';
+import { createCameraModeUi, type FollowList } from '../ui/cameraModeUi';
+import { createTourUi } from '../ui/tourUi';
 import type { Unit } from '../data/types';
 import { blobTexture, hatchTexture, screenTexture, woodTexture } from '../scene/textures';
 import { pickRobot } from '../scene/picking';
@@ -83,6 +85,8 @@ import { createPulseSection } from '../ui/settings/pulse';
 import { HALF_WIDTH } from '../sim/layout';
 
 const SEED = 20261113;
+/** Rev 43 tour finale: sky brightness of golden hour (the key light is golden around 0.35, lightingFor). */
+const GOLDEN_BRIGHTNESS = 0.38;
 
 /** Render view of an ambient-only robot (no director). */
 const ambientView = (a: ActivityView): Pick<RobotView, 'x' | 'y' | 'z' | 'facing' | 'walkPhase' | 'pose' | 'screenScroll'> => ({
@@ -439,8 +443,10 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
   }
 
   const keys = createKeyHandler({
-    getState: () => ({ busy: rig.busy, cardOpen: card.isOpen(), mode: orgOn ? 'org' : rig.mode === 'org' ? 'overview' : rig.mode, camera: camMode?.kind ?? null }),
-    exitCamera: () => exitCameraMode(true),
+    getState: () => ({ busy: rig.busy, cardOpen: card.isOpen(), mode: orgOn ? 'org' : rig.mode === 'org' ? 'overview' : rig.mode, camera: tour ? 'tour' : (camMode?.kind ?? null) }),
+    exitCamera: () => (tour ? endTour() : exitCameraMode(true)),
+    stepFollow: (d) => stepFollow(d),
+    startTour: () => startTour(),
     goFloor: (n) => {
       dropOrg();
       goFloor(n);
@@ -527,7 +533,10 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
   const viewExtras = el('div', { class: 'view-extras' });
   viewExtras.append(dnControl.element, screenshot.element);
 
-  const officeSection = createOfficeSection({ controls: [runtime.pauseButton, orgBtn, daySpeed.element, lunch.element], schedule: office });
+  // Rev 43 "Tanıtım turu": the start button joins the "Ofis" controls (no new tab); `?film=1` records without UI.
+  const tourOpts = tourParams(window.location.search);
+  const tourUi = createTourUi({ onStart: () => startTour(), onEnd: () => endTour(), film: tourOpts.film });
+  const officeSection = createOfficeSection({ controls: [runtime.pauseButton, orgBtn, daySpeed.element, lunch.element, tourUi.startButton], schedule: office });
   const settings = createSettingsMenu({
     sections: [
       createAppearanceSection({ dayNight: viewExtras, current: currentTier, onQuality }),
@@ -646,7 +655,23 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     return model.view.focusFloor;
   };
   const walkPlace = (): string => (campusAt ? campusItem(campusAt).label : floorName(model.view.focusFloor));
-  const modeUi = createCameraModeUi({ onWalk: () => startWalk(), onExit: () => exitCameraMode(true), touch: coarse });
+  const modeUi = createCameraModeUi({
+    onWalk: () => startWalk(),
+    onExit: () => exitCameraMode(true),
+    onStep: (d) => stepFollow(d),
+    onPick: (id) => switchFollow(id),
+    touch: coarse,
+  });
+  // Rev 43: "Ajan gözü" switching order (home floor, then id) and the picker list (floor the robot is on now).
+  const followIds = followOrder(model.robots.map((r) => ({ id: r.unit.id, floor: r.floor })));
+  const followList = (current: string): FollowList => ({
+    current,
+    agents: followIds.flatMap((id) => {
+      const r = robotById.get(id);
+      return r ? [{ id, name: r.unit.nameTr, floor: `${tr.floorShort} ${floorOf(r)}` }] : [];
+    }),
+  });
+  let followListAt = 0;
   /** Stop any rig move: the mode drives the camera directly from now on. */
   const holdRig = (): void => {
     rig.run([]);
@@ -664,7 +689,19 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     camMode = { kind: 'follow', id: u.id, follower: createFollower(camera.position, controls.target), scale: tierStyle(u.tier).scale };
     walkKeys.clear();
     hoverId = null;
-    modeUi.showFollow(u.nameTr);
+    modeUi.showFollow(u.nameTr, followList(u.id));
+  }
+  /** Rev 43: follow another robot; the same follower eases over (cuts with reduced motion). */
+  function switchFollow(id: string): void {
+    const r = robotById.get(id);
+    if (camMode?.kind !== 'follow' || !r || camMode.id === id) return;
+    camMode = { ...camMode, id, scale: tierStyle(r.unit.tier).scale };
+    modeUi.updateFollow(r.unit.nameTr, followList(id));
+  }
+  function stepFollow(dir: 1 | -1): void {
+    if (camMode?.kind !== 'follow') return;
+    const next = cycleFollow(followIds, camMode.id, dir);
+    if (next) switchFollow(next);
   }
   ctx.hooks.onFollow = (u) => startFollow(u);
   function startWalk(): void {
@@ -770,8 +807,14 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
         syncStaff();
         panel.setCurrent(f);
       }
-      pose = m.follower.update(r.group.position, r.group.rotation.y, dt, still, m.scale);
+      pose = m.follower.update(r.group.position, r.group.rotation.y, dt, still, m.scale, followBounds(r.group.position));
       fov = FOLLOW_FOV;
+      // The picker names the floor each robot is on now (refreshed once a second, not while it is in use).
+      followListAt += dt;
+      if (followListAt >= 1 && document.activeElement?.tagName !== 'SELECT') {
+        followListAt = 0;
+        modeUi.updateFollow(r.unit.nameTr, followList(m.id));
+      }
     } else {
       m.walker.update(dt, walkInputFromKeys(walkKeys), still);
       pose = m.walker.pose();
@@ -787,9 +830,102 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     }
   }
 
+  // ---- "Tanıtım turu" (KARARLAR Rev 43): a cinematic camera tour; only Esc / "Turu bitir" while it runs ----
+  let tour: { player: TourPlayer; follow: { id: string; follower: Follower; scale: number } | null; golden: number } | null = null;
+  const tourEnded: (() => void)[] = [];
+  /** A robot at work on the engineering floor for the follow shot (not on a break), else the first robot. */
+  const workingRobot = (): RobotEntry | null => {
+    const ids = followIds.filter((id) => {
+      const r = robotById.get(id);
+      return !!r && floorOf(r) === 1 && !sim.onBreak(id);
+    });
+    const id = ids[0] ?? followIds[0];
+    return id ? (robotById.get(id) ?? null) : null;
+  };
+  function startTour(): void {
+    if (tour) return;
+    exitCameraMode(false);
+    closeCard();
+    if (orgOn) dropOrg();
+    if (settings.isOpen()) settings.close(false);
+    holdRig();
+    hoverId = null;
+    tour = { player: createTourPlayer(tourPlan(), motion.active()), follow: null, golden: 0 };
+    tourUi.show();
+  }
+  /** Ends the tour (finished, Esc or "Turu bitir"): the overview, from wherever the camera is now. */
+  function endTour(): void {
+    if (!tour) return;
+    tour.player.stop();
+    tour = null;
+    tourUi.hide();
+    controls.enabled = true;
+    rig.position.copy(camera.position);
+    rig.target.copy(controls.target);
+    rig.fov = camera.fov;
+    campusAt = null;
+    model.setView({ mode: 'overview', focusFloor: 0 });
+    syncStaff();
+    rig.goOverview();
+    panel.setCurrent('all');
+    refreshWalkOffer();
+    canvas.focus();
+    for (const cb of tourEnded) cb();
+  }
+  const tourView = (focusFloor: number, campus: CampusKey | null): void => {
+    campusAt = campus;
+    model.setView({ mode: 'floor', focusFloor });
+    syncStaff();
+    panel.setCurrent(campus ?? focusFloor);
+  };
+  function frameTour(dt: number, still: boolean): void {
+    const t = tour;
+    if (!t) return;
+    const f = t.player.update(dt, { pos: camera.position, target: controls.target, fov: camera.fov });
+    t.golden = f.golden;
+    const seg = f.segment;
+    if (f.entered) {
+      t.follow = null;
+      if (seg.kind === 'follow') {
+        const r = workingRobot();
+        if (r) t.follow = { id: r.unit.id, follower: createFollower(camera.position, controls.target), scale: tierStyle(r.unit.tier).scale };
+      } else if (seg.view === null) {
+        campusAt = null;
+        model.setView({ mode: 'overview', focusFloor: 0 });
+        syncStaff();
+        panel.setCurrent('all');
+      } else if ('campus' in seg.view) tourView(campusItem(seg.view.campus).focusFloor, seg.view.campus);
+      else tourView(seg.view.floor, null);
+    }
+    let pose = f.pose;
+    let fov = pose?.fov ?? camera.fov;
+    const fr = t.follow ? robotById.get(t.follow.id) : undefined;
+    if (!pose && t.follow && fr) {
+      const fl = floorOf(fr);
+      if (model.view.mode !== 'floor' || model.view.focusFloor !== fl || campusAt) tourView(fl, null);
+      const p = t.follow.follower.update(fr.group.position, fr.group.rotation.y, dt, still, t.follow.scale, followBounds(fr.group.position));
+      pose = { pos: p.pos, target: p.target, fov: FOLLOW_FOV };
+      fov = FOLLOW_FOV;
+    }
+    controls.enabled = false;
+    if (pose) {
+      camera.position.copy(pose.pos);
+      controls.target.copy(pose.target);
+      camera.lookAt(pose.target);
+    }
+    if (Math.abs(camera.fov - fov) > 1e-3) {
+      camera.fov = fov;
+      camera.updateProjectionMatrix();
+    }
+    if (t.player.done) endTour();
+  }
+  // Recording hook: `?tour=1` / `?film=1` only; `?film=1` hides all UI and starts after 3 s.
+  installTourHook(window, { start: () => startTour(), onEnd: (cb) => tourEnded.push(cb) }, tourOpts);
+  if (tourOpts.film) window.setTimeout(() => startTour(), 3000);
+
   const rail = mountHud(root, { menu: toolbar, panel: panel.element, legend });
   rail.append(modeUi.walkButton);
-  root.append(unitList.element, labels, fpsEl, modeUi.bar, feed.element);
+  root.append(unitList.element, labels, fpsEl, modeUi.bar, feed.element, tourUi.exitButton);
 
   let hoverId: string | null = null;
   let focusId: string | null = null;
@@ -827,7 +963,7 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     if (!down) return;
     const kind = classifyPointer(down, { x: e.clientX, y: e.clientY });
     down = null;
-    if (kind !== 'click') return;
+    if (kind !== 'click' || tour) return;
     if (camMode) {
       // Walk: a click / tap on the floor walks there along the graph. Follow: the scene is not pickable.
       if (camMode.kind === 'walk') {
@@ -852,7 +988,7 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
   let hoverPending = false;
   let hoverLabel = false;
   canvas.addEventListener('pointermove', (e) => {
-    if (hoverPending || e.buttons || camMode) return;
+    if (hoverPending || e.buttons || camMode || tour) return;
     hoverPending = true;
     requestAnimationFrame(() => {
       hoverPending = false;
@@ -966,7 +1102,8 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     if (director) props.frame(director, model.view, orgOn);
 
     rig.update(dt);
-    if (camMode) frameCameraMode(dt, still);
+    if (tour) frameTour(dt, still);
+    else if (camMode) frameCameraMode(dt, still);
     else {
       if (Math.abs(camera.fov - rig.fov) > 1e-3) {
         camera.fov = rig.fov;
@@ -1116,7 +1253,11 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     // day / night: sky, sun, fill, window and floor-light glow (lights fade on over ~0.7 s, cut if reduced)
     dayNight.step(dt);
     // Rev 35 P3: in Otomatik the light follows the office clock (dark after hours); Gündüz / Gece hold.
-    const { isNight, brightness } = sceneLight(dayNight, office);
+    const base = sceneLight(dayNight, office);
+    // Rev 43: the tour finale pulls back to the overview in golden-hour light.
+    const golden = tour?.golden ?? 0;
+    const isNight = golden > 0 ? false : base.isNight;
+    const brightness = golden > 0 ? base.brightness + (GOLDEN_BRIGHTNESS - base.brightness) * golden : base.brightness;
     const lightsGoal = isNight ? 1 : 0;
     lightsOn = still ? lightsGoal : lightsOn + (lightsGoal - lightsOn) * Math.min(1, dt * 1.5);
     const L = lightingFor(brightness, lightsOn);
