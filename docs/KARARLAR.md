@@ -394,3 +394,4 @@ Eski kurulum: ~/.claude-backup-2026-11-01 (silme işlemi henüz yapılmadı).
   - Kodlamada 4 mühendis aynı odada görünür; gerekirse ek ekip robotu ve personel eklenir.
   - CEO penthouse'a gelince bir karşılama ekibi hazır bekler.
 - **Ruling:** binadaki "AJANS" tabelası ve sayfa başlığı "Yazılım Evi" olur. Kod içi adlar (`agency-tower`, dosya adları) değişmez. Yanlışsa maliyet: tek metin sabiti.
+- **Açık (CEO: "Şimdilik yeter", 2026-11-15):** kanat yolundaki yoğun trafikte kat 2 koridorunda robotlar birbirine kilitleniyor (`navMovement`). Bu yüzden filmde robotlar kanada gitmiyor (`src/film/staging.ts`). Uygulamadaki kilitlenme düzeltilmedi. Filmler depo dışında: `~/Movies/YazilimEvi-Film/`.
