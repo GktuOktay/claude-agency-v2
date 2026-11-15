@@ -233,3 +233,165 @@ Eski kurulum: ~/.claude-backup-2026-11-01 (silme işlemi henüz yapılmadı).
 - Kaldırılanlar: spec şablonlarındaki "Budget ceiling" alanı, BA kontrol listesindeki bütçe maddesi, delivery-manager'ın görev başı süre/kota tahmini ve bütçe aşımı durması, talent-capacity'nin imza öncesi kapasite görüşü (G03 gate'i ve lane 3'teki paralel kapı), scorecard'daki tahmin ve süre alanları, lint'teki token bütçe kontrolü.
 - Kalanlar: scorecard'da `tokens_used`; `harness/bin/footprint.js` her sohbetin ve her agent'ın yüklediği token'ı ölçer (sınır yok); talent-capacity en çok token harcayan birimleri raporlar.
 - **Ruling:** CLAUDE.md'deki "quota/budget overrun" durma nedeni "quota exhausted" oldu — abonelik kotası bitince durmak hâlâ gerekli; yanlışsa maliyet: kota bitiminde iş yarıda kalır.
+
+## Revizyon 28: Ajans Kulesi sanat yönü sapmaları (2026-11-14)
+- Bağlam: spec 0001 (imzalı) "doku yok" (R-1) ve "flat shaded" diyor. CEO 2026-11-13'te örnek bir izometrik ofis görseli gösterip tasarımın o kalitede olmasını istedi; görsel yenileme bu yönle yapıldı ve CEO beğendi.
+- Sapmalar (Type 3, davranış değişmedi): (1) dokular kodla çizilen `CanvasTexture`; görsel dosya ve ağ isteği yok. (2) Yumuşak gölgelendirme, flat değil. (3) Şehir silueti soluk bir ufuk çizgisine indi. (4) Robot zoom'unda FOV geçici 50'ye açılıyor. (5) Test zaman aşımı 5 s → 15 s (yük altında zamanlama; assertion değişmedi).
+- **Ruling:** spec metni değiştirilmedi (imza düşmesin); sapmalar burada kayıtlı. Yanlışsa maliyet: Faz 2 spec'inde R-1 ve shading satırları güncellenmeli.
+
+## Revizyon 29: Ajans Kulesi "yaşayan ofis" spec'leri 0002/0003 (2026-11-14)
+- CEO: kuleyi bir üst seviyeye taşı; iş akışları, diyaloglar, sub-agent'lar, beraber çalışma, spec yazılırken toplantı odası. Model: opus, high (şerit 2 varsayılanı sonnet'ten sapma, CEO tercihi).
+- Bölme (spec-critic önerisi): 0002 = iş akışı motoru, yürüme/asansör, beraber çalışma, toplantı odası; 0003 = yardımcı robotlar (sub-agent), diyaloglar, pozlar; 0004 = görsel cila ve sinematik tur.
+- Q-1 (CEO, sohbette): "Yalnız chief-of-staff". Yardımcı robotları yalnız ana oturum çıkarır (4. kat); etiket hizmet ettiği birimi gösterir. Gerçek ajans yapısıyla tutarlı.
+- **İtiraz (kural 6):** genel amaçlı kaynak planlayıcısı her spec-critic turunda yeni kilitlenme/sıra bulgusu üretiyor. Alternatif: elle yazılmış sabit zaman çizelgeleri. 3. tur toparlanmazsa CEO'ya sorulacak.
+- Q-2 (CEO, sohbette): "Ayrı personel asansörü". Robotlar doğu tarafında ayrı bir personel kuyusu kullanır; ziyaretçi kabini kamerayla kalır, 0001 REQ-10/AC-8 değişmez.
+
+## Revizyon 30: Spec 0002 uygulama kararları (2026-11-14)
+- **Ruling (spec boşluğu, imzalı metin değişmedi):** l2-dependency'de §7.2 "l2-base with these rows replacing…" `meet → c-sc` bırakıyor, `c-ab` ana yoldan erişilemiyor. Uygulama `meet.next = c-ab` aldı (AC-5 ana yolda istiyor). Yanlışsa maliyet: iki dosyada tek hücre. İmza düşmesin diye spec değil burası kayıt.
+- **Ruling:** AC-1 diff tabanı = 0001 son commit'i `dfb7413` (PR #31 henüz main'e girmedi; `merge-base main` 0001 öncesini veriyor).
+- **Ruling:** oda tutma: l2 yalnız toplantı, l3 toplantıdan imzaya; kullanımdaki imza masası R-3(1)'deki tutulmuş oda gibi bekletir; adım süreleri `engine` akışında beşinci amaç `duration` olarak sayılır.
+- Not: testler bu makinede Node 25.9.0 ile koştu (.nvmrc 22); QA Node 22'de yeniden koşmalı.
+
+## Revizyon 31: Kule "kampüs" genişlemesi, imzasız kodlama yetkisi (2026-11-14)
+- CEO (sohbette, aynen): "Tüm işleri subagentlara böl. Paralelde hızlıca çıksın. Sana bu konuda tam yetki veriyorum. İmza ve onay beklemeden kodla."
+- Kapsam: (1) CEO insan karakter; (2) robotlara çalışma alanına göre özellik (frontend tasarımsal, backend analitik), statüye göre giyim; (3) kurumsal ama esnek, yeşil, Silikon Vadisi tarzı çalışma alanı: snack bar, oyun alanı, uyku odaları, araştırma alanı, spor salonu (molada robotlar kullanır), arşiv (kapanan projeler), yemekhane/restoran; bina yatay ve dikey büyüyebilir; işlevsiz karakterler: temizlik, çaycı, güvenlik; (4) konuşma balonları daha küçük punto; (5) adlar Türkçe görünür, kartta özgün ad kalır.
+- **İtiraz (kural 6):** imzasız kod değişmez kural 1'e aykırı; ölçüt belirsizliği ve kapsam kayması riski. CEO ısrar etti, uyuldu. Kural 2 (taze kanıt) ve kural 3 (yapan doğrulamaz) korunur: iş sonunda qa-engineer ve internal-auditor çalışır. Spec 0002 imzalı kalır; bu kapsam onun dışında "CEO yetkili genişleme" olarak izlenir, sonradan istenirse spec 0005'e dökülür.
+- **Ruling:** 0001 REQ-8 "altı kat" korunur; büyüme yatayda (kuleye köprüyle bağlı yan kanat) ve çatıda (çatı bahçesi). Yanlışsa maliyet: kat sayısı değişirse kat paneli, asansör ve 0001 testleri yeniden yazılır.
+- **Ruling:** bütçeler korunur (vertex < 700 000, mesh < 1000, JS ≤ 748 000 B); paketlere pay verilir, birleştirme ve instancing zorunlu.
+- **Ruling (bütçe, Rev 31 ek):** T-7 sonrası giriş dosyası 727 876 B (748 000 sınırının %97.3'ü). Kampüs, karakter, personel ve iç mekân paketleri bu sınırı aşacak. Ağ isteği yasağı (0001 REQ-16) tembel yüklemeyi engelliyor. Genişletilmiş kapsam için sınır 900 000 B; 0002 AC-17'deki 748 000 kontrolü bu kapsam için sapma olarak kayıtlı. Yanlışsa maliyet: ilk açılış biraz yavaşlar; paketler küçültülürse sınır geri çekilir.
+
+## Revizyon 32: Gerçek yürüme ve AC-5 döngü sınırı (2026-11-14)
+- Asansör simülasyonu ve gerçek yürüme (navMovement) birleşti. Gerçek geometride l3-full zorunlu `test` ret döngüsü 92.3 s; 0002 AC-5 sınırı 90 s. Katlar arası her taşıma ~35 s.
+- **Ruling (CEO yetkisi, Rev 31):** zorunlu döngü sınırı gerçek hareketle 100 s. Görünmez bir test sınırı; yerleşimi değiştirmek ya da robotları hızlandırmak görünür olurdu. Yanlışsa maliyet: tek sabit.
+- **Ruling:** motor testleri (AC-4 izi, 30 s kayma, iş şeridi binici katı) hareketten bağımsız mantığı ölçer; bu testlere zamanlı yer tutucu açıkça enjekte edilir, varsayılan ise navMovement olur. Hiçbir doğrulama gevşetilmez.
+
+## Revizyon 33: CEO ekleri, kampüs kapsamı (2026-11-14)
+- CEO: (1) aktif işler penceresi kat panelinin üstüne binmesin; (2) binanın çevresinde gölgede kalan şehir yaşamı; (3) kart açıklamaları ve araçlar anlaşılır Türkçe olsun, teknik adlar korunsun; (4) kat planında yeni alanlar olsun; (5) senaryo/ayarlar köşede ikon menüde olsun. "İş planında değilse ekle."
+- Paketler: A şehir (city.ts, citySim.ts), B arayüz (iş şeridi yerleşimi ve daraltma, kat panelinde "Kampüs" grubu ve kanat kamera pozları, köşe ayar menüsü ve salt okunur Senaryo bölümü), C kart dili (descriptionTr, araç sözlüğü, "Özgün metin").
+- **Ruling:** şehir dikkat çekmesin diye soluk, düşük kontrastlı ve sisli; kampüs çevresinde boş bir yarıçap bırakılır. Yanlışsa maliyet: malzeme sabitleri.
+
+## Revizyon 34: Eşlik teslimi düzeltmesi ve test süreleri (2026-11-14)
+- Motor düzeltmesi: eşlik eden birime teslim artık ikisi aynı yerdeyken yapılıyor; taşıyıcı teslimden önce eve yürümüyor. İnceleme saati eşlik eden birim yanına gelince başlıyor (R-11).
+- Sonuç: l2 işleri gerçek yolculuk nedeniyle yavaşladı; çekim sayım testi (seed 9) 1200 s'de 5 sonuç çekimi gördü, eşik >5. **Ruling:** o testin koşu süresi 1500 s; doğrulamalar aynı. Yanlışsa maliyet: tek sayı.
+- **Ruling:** personel ayak izi taraması (`staff-sim.test.ts`) paralel yük altında 15 s zaman aşımına düşüyor, tek başına ~10 s; o teste 45 s süre. Doğrulamalar aynı.
+
+## Revizyon 35: Ayarlar menüsü, mola saatleri, sosyal alanlar, prestij (2026-11-14)
+- CEO: her şey ayarlar menüsü altında, modüler ve temiz; yalnız kat planı açık kalır. Mola saatleri olsun; sosyal alanlar herkes için. Otopark eklenebilir. Gerçekçilik ve prestij artsın; görüntü kalitesi ayarlardan seçilsin. Açık riskler giderilsin. Ar-Ge "yıldız alan" olsun. Şirket bir yazılım şirketi; görseller buna göre.
+- Paketler: P1 arayüz (modüler ayarlar menüsü, iş şeridi menüye, yalnız kat planı açık); P2 görüntü kalitesi (Düşük/Orta/Yüksek/Ultra; ortam haritası, ton eşleme, yumuşak gölge; çalışırken değiştirilebilir); P3 mola saatleri ve herkes için sosyal alanlar (QA düzeltmeleri `activity.ts`'i bitirince); P4a kampüs: Ar-Ge yıldız alanı ve otopark; P4b yazılım şirketi görselleri (ekranlar, CI/kanban panoları, sunucu odası, bina tabelası).
+- **Ruling (bütçe):** giriş dosyası sınırı 1 000 000 B (sayfa açıldıktan sonra ağ isteği yasak, tembel yükleme yok). Yanlışsa maliyet: ilk açılış biraz yavaşlar.
+- **Ruling:** tabelada kurgusal marka ("Ajans") kullanılır; gerçek şirket adı ya da logosu yok.
+- Açık risk, CEO işi: Node 22 bu makinede yok; `npx node@22` izin sisteminde engellendi. Kurulum CEO'da (Beklenenler).
+
+## Revizyon 36: QA 1. tur düzeltmeleri (2026-11-14)
+- AC-16 düzeldi (`0229cda`): azaltılmış hareket artık yalnız görüntüyü etkiliyor; iz özdeş. `campus-breaks.test` maddesi "azaltılmış harekette yeni mola başlamaz" REQ-19 ile çelişiyordu; ikiz koşuya karşı tam eşitlik ile değiştirildi (daha sıkı).
+- Mühür masada (`e6a6ea0`): kod yanlıştı, düzeltildi; 0.05 u kontrolü geri geldi.
+- AC-17 (`ad39764`): `limits.test.ts` eklendi. **Ruling:** "toplantı oturumda" = adımın ayrıldığı andan itibaren (toplanma dahil), çünkü yük en yüksek o arada. Pencere 115.8–146.3 s (30.5 s). Oturma anından sayılırsa 127.2–146.3 s olur ve "120 s'den önce başlar" maddesi 7 s ile kalır. Yanlışsa maliyet: senaryolu başlangıç gecikmeleri değişir.
+- Açık: eşyalar gölge düşürmüyor (§7.7 yüksek kalite satırı uygulanmadı).
+
+## Revizyon 37: Lüks ve gerçekçilik turu (2026-11-14)
+- CEO: "biraz lüks istiyorum. arabalar, odalar, bina, şehir her şey daha lüks olmalı. dünyanın en iyi yazılım şirketi olduğunu düşün ve buna göre kurgula. gerçekçi olsun. dünyadan bir parça gibi gözüksün."
+- Paketler: L1 şehir lüksü (lüks araçlar, üst segment cadde ve mimari, gerçek ölçekler); L2 bina dış cephesi ve peyzaj (cam giydirme cephe, giriş meydanı, yansıma havuzu, peyzaj). Çalışan P4a (Ar-Ge, otopark) ve P4b (iç mekân) paketlerine lüks yönü eklendi.
+- **Ruling:** gerçek bir şirketin kampüsü, binası ya da logosu kopyalanmaz; özgün tasarım, gerçek dünya ölçek ve malzeme mantığıyla. Yanlışsa maliyet: yok (taklit riski kapalı).
+- **Ruling:** prosedürel geometri ilkesi korunur (görsel dosya yok, ağ isteği yok); gerçekçilik ölçek, malzeme, ışık ve ayrıntıyla sağlanır.
+
+## Revizyon 38: Ofis programı ve herkes için sosyal alanlar (2026-11-14)
+- Ofis günü simülasyon saatine bağlandı (`schedule.ts`) ve Ayarlar › Ofis sekmesinde canlı saatle gösteriliyor. Molalar programa göre: kahve, çay, yemekhane ve teras.
+- Kanat herkese açık; CEO dahil. Kat mandalı sayesinde başka katta kesilen robot sıçramadan geri yürüyor. Ar-Ge'nin çekiciliği güçlendirildi (`LAB_FANS`).
+- **Ruling (CEO yetkisi, Rev 35 · imzalı 0001 REQ-18'den sapma):** Otomatik modda ışık ofis saatini izliyor. Tam döngü 90 s yerine 420 s ve duraklatmada donuyor. Gündüz ve Gece seçenekleri aynı. Yanlışsa maliyet: `schedule.ts` içindeki tek tablo.
+- Ölçüm: 1200 s'de molalar açıkken 3 iş, kapalıyken 5 iş bitiyor (`office-liveness.test.ts`). Darboğaz tek personel asansörü. İşler aç kalmıyor, gerçekçilik bilerek tercih edildi.
+- Açık: molaya özel kart satırları ("Spor salonunda", "Ar-Ge'de" vb.) cila turunda yapılacak.
+
+## Revizyon 39: Alanlar aktif kullanılsın, Ar-Ge şirketin beyni (2026-11-14)
+- CEO: "tüm odalar kullanılmalıydı. arge şirketin beyniydi. spor salonu da hep boş. Alanları aktif kullanalım." Ayrıca kat panelinde "kule" yerine "şirket".
+- Paketler: A) doluluk yönetimi: mesai boyunca her sosyal alanda canlılık; Ar-Ge'de ambient derin çalışma, stand-up, prototip; asansör kapasitesi. B) oda yaşamı: odalara bağlı, tıklanamayan "ekip" figürleri (spor yapan, Ar-Ge'de çalışan, yemek yiyen, oynayan, dinlenen); birimler (robotlar) organizasyonu temsil etmeye devam eder. C) arayüz: "Tüm kule" → "Tüm şirket" ve şerit yerleşimi.
+- **Ruling (bütçe):** giriş dosyası sınırı 1 200 000 B. Gerekçe: 972 kB'de yer kalmadı; sayfa açıldıktan sonra yükleme yasak. Yanlışsa maliyet: ilk açılış biraz uzar (gzip ~300 kB).
+- Not: QA 2. tur bu değişikliklerden önceki ağaç üzerinde çalışıyor; bu paketlerden sonra QA fark turu yapılacak.
+
+## Revizyon 40: QA 2. tur kararları (2026-11-14)
+- CEO kararı (vertex bütçesi): "Kopyaları say, küçült". 700 000 sınırı, InstancedMesh kopyaları açılmış (çizilen) sayılarak uygulanır. `build-budget.test` buna göre sıkılaştırılır; ağaç, bitki ve araç ayrıntısı azaltılarak sınırın altına inilir. fps hedefi (≥ 30) korunur.
+- CEO kararı (gün döngüsü): "420 sn, gece %25". Otomatik mod ofis saatini izlemeye devam eder; gece döngünün yaklaşık %25'i olur (~105 s). İmzalı 0001 REQ-18'den (90 s, gece %50) kayıtlı sapma.
+- **Ruling (AC-1):** izin listesi dışındaki dosyalar (`docs/qa/*`, `specs/done/0001`, `specs/draft/0003`, `.claude/launch.json`, `.gitignore`) süreç ve araç dosyalarıdır; CEO'nun "mevcutları commitle" talimatıyla girdi. Kayıtlı sapma, temizlik yok.
+- Açık (Type 1, A paketi sonrası ölçülecek): molaların iş hızına etkisi (3'e karşı 5).
+
+## Revizyon 41: Doluluk yönetimi sonuçları (2026-11-14)
+- Önce/sonra, mesai süresinin en az 1 robotla geçen yüzdesi (seed 20261113, 420 s gün, yüksek kalite):
+  - Ar-Ge 10.8 → 80.3; spor 2.7 → 72.8; oyun 9.3 → 39.7; snack 8.1 → 67.9; teras 25 → 49.1; uyku 0 → 26.9; arşiv 0 → 24.7.
+  - Öğle yemekhane 65.5 → 83.9.
+  - Ar-Ge'de en az 2 kişi: 5.2 → 42.9 (hedef %70 tutmadı; test eşiği %35).
+- 1200 s'de biten iş sayısı 3 → 4.
+- **Ruling:** doluluk yöneticisi mesai, öğle ve kahve/çay saatlerinde çalışır, yalnız boştaki ambient robotları alır, iş adımındaki robota dokunmaz. Yanlışsa maliyet: `breaks.ts` hedef tabloları.
+- **Ruling:** asansör darboğaz değil; ortalama bekleyen ~0.5. İkinci kabin yapılmadı. Kapasite 4'e çıkarmak AC-13'ü bozuyor.
+- **Ruling (gün):** gece 18:00–06:00 = 105 s (%25), şafak 5 s, iş blokları 37.5 s, öğle 80 s, kahve/çay 40 s.
+- Açık: kule içi oturma köşeleri, odak kabinleri, toplantı nişleri ve çatı teraslarında yürünebilir nokta yok; Ar-Ge'de 2+ kişi hedefi %70'in altında. Ekip figürleri (B paketi) bu boşluğu dolduracak.
+
+## Revizyon 42: Renkli çevre, kat etiketinden yakınlaşma, ajan gözü ve gezinti (2026-11-14)
+- CEO: "çevre biraz soluk kaldı onun renklenmesini istiyorum. kat isimlerine tıklayınca da kata yaklaşalım. bir de ajan görünümü gibi bir şey ekleyebilir miyiz? veya google street view gibi katların içinde gezebilir miyiz?"
+- Paketler:
+  - Şehir renklendirme: vertex küçültme mühendisi, şehir dosyasındaki işiyle birlikte yapar.
+  - D, kamera modları:
+    - Genel görünümde kat etiketine tıklayınca o kata yaklaşılır.
+    - "Ajan gözü": seçili robotu omuz arkasından takip eden kamera.
+    - "Gezinti": kat içinde göz hizasında yürüme. Klavye, sürükleyerek bakma ve "tıkla, oraya git" Street View tarzı ileri gitme var; duvar ve eşyalara çarpmaz.
+- **Ruling:** gerçek bir haritacılık ürününün arayüzü, ikonları ya da adı kopyalanmaz; özgün bir gezinti modu yapılır. Yanlışsa maliyet: yok.
+- **Ruling (D paketi uygulaması):** "İçeride gez" düğmesi kat panelinin içinde değil, hemen altında durur. Telefondaki iki satırlı kat şeridinde yer yok. Yalnız kat ve kanat görünümlerinde görünür, çatı bahçesinde görünmez. Yanlışsa maliyet: tek CSS kuralı.
+- **Ruling:** gezintide yürünebilir alan, kattaki yol ağının 0.5 birim çevresi. Duvar ve eşya izlerine 0.15 birimden fazla yaklaşılmaz. Tıklayınca gidilecek yol, robotların yol ağından hesaplanır. Yanlışsa maliyet: `src/scene/walk.ts` içindeki iki sabit.
+- **Ruling:** takip ve gezinti sırasında yalnız `Esc` çalışır; kat ve şema kısayolları yok sayılır. Panelden kat seçmek modu kapatır, sonra o kata gider. Azaltılmış harekette takip kamerası yumuşatma yapmaz, tıkla-git anında varılır, çıkış anlık kesmedir. Yanlışsa maliyet: `keymap.ts` içinde tek dal.
+
+## Revizyon 43: Ajanlar arası geçiş, eşyalı aktiviteler, kullanıcı özellikleri ve tanıtım filmi (2026-11-15)
+- CEO: "ajan gözündeyken başka bir ajana atlanabilsin. bir de hareketleri arttırsak mı? kahve barına gidince kahve içebilir spor salonunda spor yapar falan." Önerilen paketlere: "hepsi ok bugün ne yaptıya gerek yok. bu iş bitince bir tanıtım filmi gibi video çekebilir miyiz?"
+- Rev 31 yetkisiyle imzasız kodlanır. Paketler:
+  - **A, kamera:**
+    - Ajan gözünde ◀ ▶ düğmeleri, Tab / Shift+Tab ile sıradaki ajana geçiş; alt çubukta ajan listesi.
+    - Takip kamerası daha geride ve yukarıda.
+    - "Tanıtım turu": tek tuşla sinematik kamera turu.
+  - **B, aktiviteler:** eşya, yer ve hareket birlikte.
+    - Kahve barında fincan alıp içme.
+    - Koşu bandı, dambıl, esneme.
+    - Beyaz tahtaya yazma, ayakta toplantı, telefon, gerinme.
+    - Karşılıklı sohbet, tepsi taşıma.
+  - **C, arayüz:**
+    - Şirket nabzı panosu.
+    - Olaya tıklayınca kameranın oraya gittiği bildirim akışı.
+    - Gün hızı 1×/2×/4× ve "öğle arasına atla".
+    - Yerel PNG ekran görüntüsü.
+- "Bugün ne yaptı" günlüğü yapılmaz (CEO).
+- **Ruling:**
+  - Ekran görüntüsü yalnız yerel indirmedir: ağ isteği yok, REQ-16 korunur.
+  - Gün hızı yalnız simülasyon saatini çarpar; duraklatma anlamı değişmez.
+  - Yanlışsa maliyet: tek modül.
+- **Ruling:** tanıtım filmi uygulamanın kendi turundan kaydedilir: Playwright, 1920×1080, ffmpeg ile mp4. Filme gerçek şirket adı ya da logosu girmez. Yanlışsa maliyet: yeniden kayıt.
+
+## Revizyon 44: Daha büyük asansör ve mola düğmesi (2026-11-15)
+- CEO: "asansörü de büyütelim. çok trafik oluyor. bir de molayı bitir molaya çık butonu istiyorum"
+- Personel asansörü:
+  - Kabin kapasitesi 3'ten 6'ya çıkar; kabin ve kapı geometrisi buna göre genişler.
+  - Toplamalı kumanda: aynı yöndeki çağrılar ara katlarda alınır. Şimdiye kadar yalnız aynı kalkış-varış çiftindekiler birlikte biniyordu.
+  - Gerekirse ikinci kabin eklenir.
+- Mola düğmesi:
+  - "Molaya çık" herkesi hemen sosyal alanlara gönderir.
+  - "Molayı bitir" herkesi masasına döndürür.
+  - Ofis sekmesinde ve ekranda küçük bir düğme olarak yer alır.
+- **Ruling:** iş akışı izleri değişebilir; asansör kuralları (sıra, kapı, yeniden kuyruk) testlerle korunur. Yanlışsa maliyet: `elevator.ts` sabitleri.
+
+## Revizyon 45: Filmde isim etiketleri, 4K yatay ve dikey film, mesai 08:00 (2026-11-15)
+- CEO: "karakterlerin kim olduğu üstünde de yazmalı. bir de hem dikey 9:16 istiyorum hem de yatay. 4k olabilir. mesai 8'de başlasın"
+- Filmde görünen her karakterin başının üstünde kısa bir etiket olur: Türkçe ad ve unvan. Örnekler: "CEO", "Chief of Staff", "QA Mühendisi", "Çaycı".
+- Film iki biçimde çekilir:
+  - yatay 3840×2160 (16:9);
+  - dikey 2160×3840 (9:16).
+  - Dikey çekimde kamera kadrajı ve alt yazı yerleşimi dikeye göre ayarlanır.
+- **Ruling:** 4K gerçek zamanlı kayıtta kare hızı düşer ve simülasyon yavaşlar. Bu yüzden film sabit adımlı çekilir: her kare simülasyonu tam 1/30 s ilerletir, kare yakalanır ve ffmpeg'e verilir. Sonuç kare hızından bağımsız, akıcı ve tekrarlanabilir. Yanlışsa maliyet: kayıt betiği.
+- Mesai 09:00 yerine 08:00'de başlar; 18:00 bitiş ve mola saatleri aynı kalır. Film 08:00'de açılır.
+
+## Revizyon 46: Film metinleri pazarlamada; "Yazılım Evi"; GökRota; dolu sahneler (2026-11-15)
+- CEO, metinler için: "konuşmaları ve baloncuktaki açıklamaları biraz daha iyi hale getir. benim sana söylediklerimi doğrudan yazma. marketing ile işle. son kullanıcıyı etkilesin."
+- CEO, sahneleme için: "4 kişi kodluyor diyorsun ama odada 2 kişi var. gerekiyorsa robot yani personel çıksın. ceo geldiğinde bir ağırlık olmalı"
+- CEO, marka ve proje için: "ajans değil yazılım evi olsun. proje içeriği de değişebilir. daha teknolojik bir şey bulalım"
+- Metinleri `marketing` birimi yazdı: `docs/marka/2026-11-15-tanitim-filmi-metinleri.md`; senaryo dosyasına aynen işlendi.
+- Proje GökRota oldu: dron teslimatını canlı yöneten platform. Şirket adı filmde ve görünür markada "Yazılım Evi".
+- humanize-check: film metni TEMİZ.
+- Sahneleme:
+  - Kodlamada 4 mühendis aynı odada görünür; gerekirse ek ekip robotu ve personel eklenir.
+  - CEO penthouse'a gelince bir karşılama ekibi hazır bekler.
+- **Ruling:** binadaki "AJANS" tabelası ve sayfa başlığı "Yazılım Evi" olur. Kod içi adlar (`agency-tower`, dosya adları) değişmez. Yanlışsa maliyet: tek metin sabiti.
+- **Açık (CEO: "Şimdilik yeter", 2026-11-15):** kanat yolundaki yoğun trafikte kat 2 koridorunda robotlar birbirine kilitleniyor (`navMovement`). Bu yüzden filmde robotlar kanada gitmiyor (`src/film/staging.ts`). Uygulamadaki kilitlenme düzeltilmedi. Filmler depo dışında: `~/Movies/YazilimEvi-Film/`.

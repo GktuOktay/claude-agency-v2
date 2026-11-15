@@ -1,0 +1,32 @@
+export type Tier = 'ceo' | 'management' | 'lead' | 'specialist';
+export const TIERS: readonly Tier[] = ['ceo', 'management', 'lead', 'specialist'];
+
+export interface Unit {
+  id: string;
+  name: string;
+  /** Turkish display name (Rev 31); `name` stays the agent id. */
+  nameTr: string;
+  floor: number;
+  tier: Tier;
+  reportsTo: string | null;
+  independent: boolean;
+  roleTr: string;
+  phrasesTr: string[];
+  /** Turkish description (1-220 code points); `description` stays the original English text. */
+  descriptionTr: string;
+  description: string;
+  tools: string[];
+  model: string | null;
+}
+
+export interface Floor {
+  id: number;
+  nameTr: string;
+}
+
+export interface TowerData {
+  floors: Floor[];
+  units: Unit[];
+}
+
+export type LoadResult = { ok: true; data: TowerData } | { ok: false; error: string };

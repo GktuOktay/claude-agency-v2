@@ -1,0 +1,456 @@
+:root {
+  --bg-1: #fbfaf7;
+  --bg-2: #f1eee8;
+  --bg-3: #e6e2da;
+  --fg: #1f2329;
+  --fg-muted: #6b717b;
+  --panel: rgba(255, 255, 255, 0.92);
+  --panel-border: rgba(31, 35, 41, 0.08);
+  --panel-shadow: 0 1px 2px rgba(31, 35, 41, 0.06), 0 8px 24px rgba(31, 35, 41, 0.1);
+  --accent: #2f66d0;
+  --accent-soft: rgba(47, 102, 208, 0.1);
+  --focus: #b4380c;
+  --pill-dark: #262a31;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --radius: 14px;
+  --radius-sm: 10px;
+  --radius-pill: 999px;
+  --font: Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --touch: 44px;
+}
+* { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  overscroll-behavior: none;
+  height: 100%;
+  color: var(--fg);
+  font-family: var(--font);
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  background: radial-gradient(120% 90% at 50% 30%, var(--bg-1) 0%, var(--bg-2) 62%, var(--bg-3) 100%);
+  transition: background 600ms linear;
+}
+#app { position: fixed; inset: 0; }
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+  min-height: 34px;
+  transition: background-color 120ms ease, border-color 120ms ease;
+}
+button:hover { background: #fff; border-color: rgba(47, 102, 208, 0.35); }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.tower-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+.state-message { margin: 20vh auto 0; max-width: 32rem; text-align: center; font-size: 1.25rem; padding: var(--space-4); }
+.fallback { height: 100%; overflow: auto; padding: var(--space-4); }
+.fallback .unit-list ul { list-style: none; padding: 0; display: grid; gap: var(--space-2); max-width: 36rem; }
+.fallback .unit-list button { width: 100%; text-align: left; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+/* HUD rail: floor panel, org legend and job strip in one flex column, so they never overlap. */
+.hud-rail { position: absolute; z-index: 10; left: var(--space-4); top: var(--space-4); bottom: var(--space-4); width: min(16rem, calc(100vw - 2rem)); display: flex; flex-direction: column; align-items: stretch; gap: var(--space-2); pointer-events: none; }
+.hud-rail > * { pointer-events: auto; }
+
+/* Floor panel: light card, accent dot per floor, current floor marked by text marker + weight + bar. */
+.floor-panel {
+  flex: 0 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius);
+  box-shadow: var(--panel-shadow);
+  padding: 6px;
+  backdrop-filter: blur(8px);
+}
+.floor-panel button {
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: transparent;
+  border: 1px solid transparent;
+  font-size: 0.8rem;
+  line-height: 1.25;
+  padding: 6px 8px;
+  position: relative;
+}
+/* Groups "Bina" / "Kampüs" (Rev 31 UI pass); campus areas get a square marker (shape, not colour). */
+.panel-group { display: flex; flex-direction: column; gap: 2px; }
+.panel-group + .panel-group { margin-top: var(--space-1); padding-top: var(--space-1); border-top: 1px solid var(--panel-border); }
+.panel-group-label { margin: 2px 8px; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--fg-muted); }
+.floor-panel .is-campus .dot { border-radius: 2px; background: #7c8a6a; }
+.floor-panel .is-campus .num { display: none; }
+.floor-panel .short { display: none; }
+.floor-panel .num { font-variant-numeric: tabular-nums; font-weight: 700; }
+.floor-panel button:hover { background: rgba(31, 35, 41, 0.04); border-color: transparent; }
+.floor-panel button[aria-current='true'] { background: var(--accent-soft); font-weight: 700; color: #173a7a; }
+.floor-panel button[aria-current='true']::before {
+  content: '';
+  position: absolute;
+  left: -1px;
+  top: 8px;
+  bottom: 8px;
+  width: 3px;
+  border-radius: 3px;
+  background: var(--accent);
+}
+.floor-panel .dot { width: 8px; height: 8px; border-radius: 50%; flex: none; background: var(--floor-accent, #9aa1ab); }
+.floor-panel button[data-floor='all'] .dot { background: transparent; border: 2px solid #9aa1ab; }
+.floor-panel .marker { display: inline-block; min-width: 0.9em; color: var(--accent); font-size: 0.7rem; }
+/* Corner settings menu (replaces the toolbar): icon button + non-modal popover. */
+.settings { position: absolute; z-index: 14; right: var(--space-4); top: var(--space-4); }
+.settings-button { display: grid; place-items: center; min-height: var(--touch); min-width: var(--touch); padding: 0; border-radius: var(--radius-pill); box-shadow: var(--panel-shadow); }
+.settings-button[aria-expanded='true'] { background: var(--pill-dark); color: #fff; }
+.settings-button .knob { fill: var(--bg-1); }
+.settings-button { position: relative; }
+/* Desktop: side panel under the corner button, full height, internal scroll. Phones: bottom sheet (below). */
+.settings-panel { position: fixed; z-index: 15; right: var(--space-4); top: calc(var(--space-4) + var(--touch) + var(--space-2)); bottom: var(--space-4); width: min(24rem, calc(100vw - 16px)); overflow-y: auto; overscroll-behavior: contain; background: var(--panel); border: 1px solid var(--panel-border); border-radius: var(--radius); box-shadow: var(--panel-shadow); padding: var(--space-3); backdrop-filter: blur(8px); }
+.settings-panel[hidden] { display: none; }
+.settings-title { margin: 0 0 var(--space-2); font-size: 0.95rem; }
+.settings-controls { display: grid; gap: var(--space-2); }
+.settings-controls > button { min-height: var(--touch); border-radius: var(--radius-pill); text-align: left; padding: 6px var(--space-4); font-size: 0.85rem; }
+.settings-controls > button[aria-pressed='true'] { background: var(--pill-dark); color: #fff; }
+.settings-controls > button[aria-pressed='true']::before { content: '✓ '; }
+.settings-controls .segmented, .settings-section .segmented { box-shadow: none; justify-content: space-between; display: flex; }
+.settings-controls .segmented button, .settings-section .segmented button { min-height: var(--touch); flex: 1; }
+/* Active-job badge: a bordered round shape with the number (never colour alone); hidden while open. */
+.settings-badge { position: absolute; top: -4px; right: -4px; min-width: 20px; height: 20px; padding: 0 5px; display: grid; place-items: center; border: 2px solid var(--bg-1); border-radius: var(--radius-pill); background: var(--pill-dark); color: #fff; font-size: 11px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; pointer-events: none; }
+.settings-badge[hidden] { display: none; }
+/* Tabs: wrap onto two rows on narrow screens (no horizontal scroll); selection by weight, bar and aria-selected. */
+.settings-tabs { display: flex; flex-wrap: wrap; gap: var(--space-1); margin-bottom: var(--space-3); padding-bottom: var(--space-2); border-bottom: 1px solid var(--panel-border); }
+.settings-tab { min-height: var(--touch); flex: 1 1 auto; padding: 4px var(--space-3); border-radius: var(--radius-sm); font-size: 0.82rem; background: transparent; border: 1px solid transparent; }
+.settings-tab[aria-selected='true'] { font-weight: 700; border-color: var(--pill-dark); box-shadow: inset 0 -3px 0 var(--pill-dark); }
+.settings-tabpanel[hidden] { display: none; }
+.settings-section { display: grid; gap: var(--space-3); font-size: 0.85rem; }
+.quality { margin: 0; padding: 0; border: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-2); }
+.quality legend { padding: 0; margin-bottom: var(--space-1); font-weight: 600; font-size: 0.82rem; }
+.quality-option { min-height: var(--touch); display: flex; align-items: center; gap: var(--space-2); padding: 4px var(--space-3); border: 1px solid var(--panel-border); border-radius: var(--radius-sm); cursor: pointer; }
+.quality-option input { width: 20px; height: 20px; margin: 0; accent-color: var(--pill-dark); }
+.quality-option:has(input:checked) { border-color: var(--pill-dark); font-weight: 700; }
+.quality-option:has(input:focus-visible) { outline: 3px solid var(--focus); outline-offset: 2px; }
+.schedule-box h3 { margin: 0; font-size: 0.85rem; }
+.schedule-now { margin: 2px 0 var(--space-1); font-weight: 600; font-variant-numeric: tabular-nums; }
+.schedule { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; font-variant-numeric: tabular-nums; }
+.schedule-slot { padding: 6px var(--space-2); border-left: 3px solid transparent; border-radius: 4px; }
+.schedule-slot[aria-current='true'] { border-left-color: var(--pill-dark); font-weight: 700; background: var(--accent-soft); }
+.key-list { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: var(--space-1) var(--space-3); align-items: baseline; }
+.key-list dt { margin: 0; }
+.key-list dd { margin: 0; }
+.key-list kbd { display: inline-block; min-width: 2.2em; padding: 2px 6px; text-align: center; border: 1px solid var(--panel-border); border-bottom-width: 2px; border-radius: 6px; font-family: ui-monospace, monospace; font-size: 0.8rem; }
+/* The job strip inside the menu: no card chrome of its own, the panel scrolls. */
+.settings-jobs .job-strip { margin: 0; max-height: none; overflow: visible; background: transparent; border: 0; box-shadow: none; padding: 0; }
+.settings-scenario { font-size: 0.82rem; }
+.settings-scenario h3 { margin: 0; font-size: 0.85rem; }
+.settings-note { margin: 2px 0 var(--space-2); color: var(--fg-muted); font-size: 0.75rem; }
+.settings-scenario dl { margin: 0; display: grid; grid-template-columns: 1fr; gap: 2px; }
+.settings-scenario dt { font-weight: 600; color: var(--fg-muted); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; margin-top: var(--space-1); }
+.settings-scenario dd { margin: 0; overflow-wrap: anywhere; }
+.settings-scenario ul { margin: 0; padding-left: 1.1em; }
+.settings-seed { font-variant-numeric: tabular-nums; font-family: ui-monospace, monospace; }
+.segmented { display: inline-flex; padding: 3px; gap: 2px; background: var(--panel); border: 1px solid var(--panel-border); border-radius: var(--radius-pill); box-shadow: var(--panel-shadow); }
+.segmented button { border: 0; background: transparent; border-radius: var(--radius-pill); padding: 4px 12px; min-height: 30px; font-size: 0.82rem; }
+.segmented button[aria-pressed='true'] { background: var(--pill-dark); color: #fff; font-weight: 600; }
+.segmented button[aria-pressed='true']::before { content: '✓ '; }
+.segmented button:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* Org-mode legend: text names both line styles; swatches are decorative. */
+.org-legend { position: absolute; left: calc(100% + var(--space-4)); bottom: 0; width: max-content; max-width: calc(100vw - 16rem - 3 * var(--space-4)); background: var(--panel); border: 1px solid var(--panel-border); border-radius: var(--radius); box-shadow: var(--panel-shadow); padding: 10px 16px; font-size: 0.82rem; display: flex; gap: 18px; align-items: center; flex-wrap: wrap; }
+.org-legend[hidden] { display: none; }
+.org-legend p { margin: 0; display: inline-flex; align-items: center; gap: 8px; }
+.org-legend-title { font-weight: 700; }
+.org-legend .swatch { display: inline-block; width: 28px; height: 0; border-top: 3px solid #6a9cf0; border-radius: 2px; }
+.org-legend .swatch.dashed { border-top-style: dashed; border-color: #ffa94d; }
+
+/* Robot card. */
+.card-host { z-index: 12; position: absolute; right: var(--space-4); top: 64px; bottom: var(--space-4); width: min(24rem, calc(100vw - 2rem)); pointer-events: none; }
+.card {
+  pointer-events: auto;
+  max-height: 100%;
+  overflow: auto;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius);
+  box-shadow: var(--panel-shadow);
+  padding: var(--space-4) calc(var(--space-4) + 4px);
+  position: relative;
+  backdrop-filter: blur(8px);
+}
+.card-close { position: absolute; right: var(--space-2); top: var(--space-2); min-width: var(--touch); min-height: var(--touch); padding: 0; display: grid; place-items: center; border-radius: var(--radius-pill); font-size: 1.1rem; line-height: 1; }
+.card-title { margin: 0 0 var(--space-2); padding-right: 3rem; font-size: 1.1rem; }
+.card dl { margin: 0; display: grid; grid-template-columns: max-content 1fr; gap: 10px var(--space-4); padding-right: 2.5rem; font-size: 0.9rem; }
+.card dt { font-weight: 600; color: var(--fg-muted); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; padding-top: 2px; }
+.card dd { margin: 0; overflow-wrap: anywhere; line-height: 1.4; }
+.card dd:first-of-type { font-size: 1.1rem; font-weight: 700; }
+
+/* DOM labels over the canvas (aria-hidden; text via textContent). */
+.overlay { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 1; }
+.overlay * { pointer-events: none; }
+.fps { z-index: 10; }
+.overlay > * { position: absolute; left: 0; top: 0; will-change: transform; }
+.overlay > [hidden] { display: none; }
+.room-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--pill-dark);
+  color: #fff;
+  border-radius: var(--radius-pill);
+  padding: 4px 10px 4px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(20, 22, 26, 0.18);
+}
+.robot-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #fff;
+  color: var(--fg);
+  border-radius: var(--radius-pill);
+  padding: 3px 9px 3px 7px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: 0 0 0 1px rgba(31, 35, 41, 0.12), 0 1px 2px rgba(31, 35, 41, 0.08), 0 4px 12px rgba(31, 35, 41, 0.14);
+}
+.robot-label.is-active { outline: 2px solid var(--accent); outline-offset: 1px; }
+/* Rev 38 de-clutter: a pill with no room near its robot fades (zone / floor labels keep priority). */
+.robot-label.is-faded { opacity: 0.22; }
+.room-label .dot, .robot-label .dot { width: 7px; height: 7px; border-radius: 50%; flex: none; }
+.robot-label .tag { color: var(--fg-muted); font-weight: 500; font-size: 10px; }
+.bubble {
+  animation: bubble-in 220ms ease-out;
+  background: #fff;
+  color: var(--fg);
+  border-radius: 10px;
+  padding: 4px 8px;
+  font-size: 11px; /* visual-standards minimum; CEO asked smaller than 12px */
+  max-width: 28ch;
+  width: max-content;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  box-shadow: 0 0 0 1px rgba(31, 35, 41, 0.12), 0 1px 2px rgba(31, 35, 41, 0.08), 0 6px 16px rgba(31, 35, 41, 0.14);
+}
+.fps { position: absolute; left: var(--space-4); bottom: var(--space-4); background: rgba(20, 22, 26, 0.8); color: #fff; padding: 2px var(--space-2); border-radius: 6px; font: 12px ui-monospace, monospace; }
+.fps[hidden] { display: none; }
+@keyframes bubble-in { from { opacity: 0; } to { opacity: 1; } }
+
+/* Job strip (0002 REQ-11): bottom-left card on desktop; state shown in words and symbols, never colour alone. */
+.job-strip { flex: 0 0 auto; margin-top: auto; max-height: 40vh; overflow-y: auto; background: var(--panel); border: 1px solid var(--panel-border); border-radius: var(--radius); box-shadow: var(--panel-shadow); padding: var(--space-2) var(--space-3); font-size: 0.82rem; }
+.job-top { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
+.job-collapse { min-height: var(--touch); min-width: var(--touch); font-size: 0.78rem; flex: none; }
+.job-collapse[aria-expanded='false']::before { content: '▸ '; }
+.job-collapse[aria-expanded='true']::before { content: '▾ '; }
+.job-body[hidden] { display: none; }
+/* Collapsed: a compact pill (heading + "Göster · n iş"), no longer a panel over the scene. */
+.job-strip.is-collapsed { align-self: flex-start; max-width: 100%; border-radius: var(--radius-pill); padding: 2px 4px 2px var(--space-3); overflow: hidden; }
+.job-strip.is-collapsed h2 { margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.job-strip.is-collapsed .job-collapse { border-radius: var(--radius-pill); }
+.job-strip h2 { margin: 0 0 var(--space-1); font-size: 0.78rem; font-weight: 700; letter-spacing: 0.04em; color: var(--fg-muted); }
+.job-strip h2:focus { outline: none; }
+.job-strip h2:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.job-empty { margin: 0; color: var(--fg-muted); }
+.job-empty[hidden], .job[hidden], .job-more[hidden], .job-steps[hidden] { display: none; }
+.job-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-1); }
+.job { display: grid; grid-template-columns: 1fr auto; gap: var(--space-1); align-items: start; }
+.job-entry { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; width: 100%; min-height: var(--touch); padding: 6px var(--space-2); margin: 0; overflow-wrap: anywhere; }
+.job-entry.is-done { grid-column: 1 / -1; border: 1px dashed var(--panel-border); border-radius: var(--radius-sm); }
+.job-head { font-weight: 600; }
+.job-step, .job-loops, .job-pause { color: var(--fg-muted); }
+.job-pause { font-weight: 600; color: var(--fg); }
+.job-steps-toggle, .job-more { min-height: var(--touch); min-width: var(--touch); font-size: 0.78rem; }
+.job-steps-toggle[aria-expanded='true'] { background: var(--accent-soft); }
+.job-steps { grid-column: 1 / -1; margin: 0; padding: 0 0 0 var(--space-2); list-style: none; display: grid; gap: 2px; color: var(--fg-muted); }
+.job-steps .mark-now { color: var(--fg); font-weight: 600; }
+.job-more { margin-top: var(--space-1); }
+.is-night .job-strip { box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.18), 0 2px 10px rgba(0, 0, 0, 0.4); }
+html.is-org .job-strip { opacity: 0.92; }
+
+/* Org mode: a darker neutral backdrop so the faint tower recedes and the glowing lines read. */
+html.is-org body { background: radial-gradient(120% 90% at 50% 30%, #4b515b 0%, #343941 62%, #25292f 100%); }
+html.is-org .robot-label { box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.25), 0 4px 12px rgba(0, 0, 0, 0.35); }
+
+/* Night: chrome stays readable on the dark sky. */
+.is-night .room-label { box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.18), 0 2px 10px rgba(0, 0, 0, 0.4); }
+.is-night .robot-label, .is-night .bubble { box-shadow: 0 0 14px rgba(255, 214, 150, 0.35); }
+
+/* Below 768 px: the card is a bottom sheet (at most 60 % of the height, internal scroll). */
+@media (max-width: 767px) {
+  .card-host { left: 0; right: 0; top: auto; bottom: 0; width: 100%; height: auto; max-height: 60vh; display: flex; align-items: flex-end; }
+  .card { width: 100%; max-height: 60vh; border-radius: 18px 18px 0 0; padding-bottom: calc(var(--space-4) + env(safe-area-inset-bottom, 0px)); }
+  .card dl { grid-template-columns: 1fr; gap: 2px; }
+  .card dd { margin-bottom: 8px; }
+  /* Floor panel: compact strip at the top, 44x44 targets, number only (name stays for screen readers). */
+  /* Rail spans the screen: floor strip on top, legend and job strip at the bottom. */
+  .hud-rail { left: 8px; right: 8px; top: 8px; bottom: 8px; width: auto; gap: 6px; }
+  .floor-panel { flex: none; flex-direction: row; overflow: visible; gap: 4px; padding: 4px; border-radius: var(--radius-pill); }
+  .floor-panel:not(.has-groups) { flex-wrap: wrap; border-radius: 26px; }
+  .floor-panel button { min-width: var(--touch); min-height: var(--touch); justify-content: center; padding: 4px 10px; flex: none; }
+  .floor-panel .name { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .floor-panel button[data-floor='all'] .short { display: inline; }
+  .floor-panel button[aria-current='true']::before { left: 10px; right: 10px; top: auto; bottom: 3px; width: auto; height: 3px; }
+  .floor-panel .marker { display: none; }
+  .panel-group { flex-direction: row; align-items: center; gap: 4px; flex: none; }
+  .panel-group + .panel-group { margin-top: 0; padding-top: 0; border-top: 0; margin-left: 2px; padding-left: 4px; border-left: 1px solid var(--panel-border); }
+  .panel-group-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .floor-panel .is-campus .num { display: inline; }
+  /* Rev 38: two rows at 375 px, no hidden sideways scroll: floors 5..0 on top; "Tüm şirket" wraps to the second
+     row (short label "Şirket" on phones), the campus areas share that row (same grid cell, bottom-aligned, offset past it). */
+  .floor-panel.has-groups { display: grid; grid-template-columns: max-content; border-radius: 26px; }
+  .floor-panel.has-groups .panel-group:first-child { grid-area: 1 / 1; flex-wrap: wrap; width: calc(6 * var(--touch) + 5 * 4px + 2px); }
+  .floor-panel.has-groups .is-campus { grid-area: 1 / 1; align-self: end; margin-left: calc(4.5rem + 6px); }
+  /* Fixed widths, never content-sized: six floors always fill row 1 exactly (a 45 px digit button would push
+     floor 0 onto row 2 and under the campus areas), the "Şirket" button never paints past its box. */
+  .floor-panel.has-groups .panel-group:first-child button:not([data-floor='all']) { width: var(--touch); padding: 4px 0; gap: 4px; }
+  .floor-panel.has-groups button[data-floor='all'] { width: 4.5rem; padding: 4px 6px; gap: 0; overflow: hidden; white-space: nowrap; }
+  .floor-panel.has-groups button[data-floor='all'] .dot { display: none; }
+  .floor-panel.has-groups .is-campus button { padding: 4px 8px; gap: 0; }
+  .floor-panel.has-groups .is-campus .dot { display: none; }
+  .settings { right: 8px; top: 8px; }
+  /* Settings: bottom sheet, full width, at most 75 % of the height, internal scroll. */
+  .settings-panel { left: 0; right: 0; top: auto; bottom: 0; width: auto; max-height: 75vh; border-radius: 18px 18px 0 0; padding-bottom: calc(var(--space-4) + env(safe-area-inset-bottom, 0px)); }
+  /* Floor strip leaves the top-right corner to the settings button. */
+  .floor-panel { margin-right: calc(var(--touch) + 8px); }
+  .segmented button { min-width: var(--touch); padding: 4px 10px; }
+  .org-legend { position: static; align-self: center; margin-top: auto; max-width: 100%; }
+  .org-legend:not([hidden]) + .job-strip { margin-top: 0; }
+  /* Strip at the bottom (the top floors and their labels stay clear); the card sheet opens above it. */
+  .job-strip { max-height: 28vh; }
+}
+
+/* Below 375 px the two-row strip does not fit beside the settings button: the floors wrap inside the free width
+   and the campus areas take their own row (no overlap, no sideways scroll, 44 px targets kept). */
+@media (max-width: 374px) {
+  .floor-panel.has-groups { grid-template-columns: minmax(0, 1fr); }
+  .floor-panel.has-groups .panel-group:first-child { width: auto; }
+  .floor-panel.has-groups .is-campus { grid-area: 2 / 1; align-self: start; flex-wrap: wrap; margin-left: 0; padding-left: 0; border-left: 0; }
+}
+
+/* The panel slides in only when motion is allowed (REQ-20). */
+@media (prefers-reduced-motion: no-preference) {
+  .settings-panel:not([hidden]) { animation: settings-in 160ms ease-out; }
+  .robot-label { transition: opacity 160ms ease-out; }
+}
+@keyframes settings-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+@media (prefers-reduced-motion: reduce) {
+  button, html, body { transition: none; }
+  .bubble { animation: none; }
+}
+
+/* Original English text under a disclosure on the robot card. */
+.card-original { margin-top: 6px; font-size: 0.8rem; color: var(--fg-muted); }
+.card-original summary { cursor: pointer; display: list-item; box-sizing: border-box; min-height: var(--touch); min-width: var(--touch); padding: 12px 0; }
+.card-original p { margin: 4px 0 0; }
+
+/* KARARLAR Rev 42 camera modes: "Takip et" on the card, "İçeride gez" under the floor panel, the mode bar. */
+.card-follow { min-width: var(--touch); min-height: var(--touch); margin: 0 0 var(--space-3); padding: 6px var(--space-4); border-radius: var(--radius-pill); background: var(--pill-dark); color: #fff; font-weight: 600; }
+.card-follow:hover { background: var(--pill-dark); color: #fff; border-color: transparent; box-shadow: 0 0 0 3px var(--accent-soft); }
+.walk-enter { min-width: var(--touch); min-height: var(--touch); align-self: flex-start; padding: 6px var(--space-4); border-radius: var(--radius-pill); background: var(--panel); border: 1px solid var(--panel-border); box-shadow: var(--panel-shadow); font-size: 0.85rem; font-weight: 600; }
+.walk-enter[hidden], .camera-mode[hidden] { display: none; }
+.camera-mode { position: absolute; z-index: 16; left: 50%; top: var(--space-4); transform: translateX(-50%); max-width: min(36rem, calc(100vw - 2 * var(--space-4))); display: flex; align-items: center; gap: var(--space-3); padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4); background: var(--panel); border: 1px solid var(--panel-border); border-radius: var(--radius); box-shadow: var(--panel-shadow); backdrop-filter: blur(8px); }
+.camera-mode-text { min-width: 0; }
+.camera-mode-title { margin: 0; font-weight: 700; font-size: 0.9rem; overflow-wrap: anywhere; }
+.camera-mode-hint { margin: 2px 0 0; color: var(--fg-muted); font-size: 0.75rem; }
+.camera-mode-exit { min-width: var(--touch); min-height: var(--touch); flex: none; padding: 6px var(--space-4); border-radius: var(--radius-pill); background: var(--pill-dark); color: #fff; font-weight: 600; }
+.camera-mode-exit:hover { background: var(--pill-dark); color: #fff; }
+/* Walking: only the scene and the mode bar (with its exit button) stay on screen. */
+html.is-walk .hud-rail, html.is-walk .settings, html.is-walk .settings-panel, html.is-walk .overlay, html.is-walk .card-host { display: none; }
+html.is-follow .walk-enter { display: none; }
+/* Rev 43: "Ajan gözü" switching row (◀ picker ▶) under the title, and the "Tanıtım turu" view. */
+.camera-mode { flex-wrap: wrap; }
+.camera-mode-switch { flex: 1 0 100%; display: flex; align-items: center; gap: var(--space-2); }
+.camera-mode-switch[hidden], .camera-mode-step[hidden], .camera-mode-pick[hidden] { display: none; }
+.camera-mode-step { min-width: var(--touch); min-height: var(--touch); flex: none; padding: 0; display: grid; place-items: center; border-radius: var(--radius-pill); font-size: 0.9rem; }
+.camera-mode-pick { min-width: var(--touch); min-height: var(--touch); flex: 1 1 auto; max-width: 100%; padding: 4px var(--space-3); border-radius: var(--radius-sm); border: 1px solid var(--panel-border); background: var(--panel); color: inherit; font: inherit; font-size: 0.85rem; }
+.tour-exit { position: absolute; z-index: 20; right: var(--space-4); bottom: calc(var(--space-4) + env(safe-area-inset-bottom, 0px)); min-height: var(--touch); min-width: var(--touch); padding: 6px var(--space-4); border-radius: var(--radius-pill); background: var(--pill-dark); color: #fff; font-weight: 600; opacity: 0.85; }
+.tour-exit:hover, .tour-exit:focus-visible { background: var(--pill-dark); color: #fff; opacity: 1; }
+.tour-exit[hidden] { display: none; }
+html.is-tour #app > :not(.tower-canvas):not(.tour-exit), html.is-tour body > :not(#app) { display: none !important; }
+html.is-film #app > :not(.tower-canvas):not(.film-overlay), html.is-film body > :not(#app) { display: none !important; }
+/* Promo film (Rev 43): lower-third caption with a small scene title, dialogue bubbles; film mode only. */
+.film-overlay { display: none; position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 2; }
+html.is-film .film-overlay { display: block; }
+.film-overlay > .film-bubble { position: absolute; left: 0; top: 0; font-size: 15px; max-width: 32ch; animation: none; will-change: transform, opacity; }
+.film-overlay > [hidden] { display: none; }
+.film-caption {
+  position: absolute; left: 50%; bottom: 9%; transform: translateX(-50%);
+  max-width: min(72ch, 88vw); padding: 10px 22px 12px; border-radius: 12px;
+  background: rgba(14, 16, 20, 0.62); color: #fff; text-align: center;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.25);
+}
+.film-caption-title { margin: 0 0 2px; font-size: clamp(12px, 1.1vw, 16px); letter-spacing: 0.12em; text-transform: uppercase; opacity: 0.8; }
+.film-caption-text {
+  margin: 0; font-size: clamp(18px, 2.2vw, 34px); line-height: 1.25; font-weight: 600;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+html.is-film .tower-canvas { cursor: none; }
+/* Rev 45 name tags: Turkish name and short role above every character on screen. */
+.film-overlay > .film-label {
+  position: absolute; left: 0; top: 0; display: flex; align-items: baseline; gap: 6px; white-space: nowrap;
+  height: 22px; padding: 2px 9px; border-radius: var(--radius-pill); box-sizing: border-box;
+  background: rgba(14, 16, 20, 0.66); color: #fff; font-size: 13px; font-weight: 600; line-height: 18px;
+  will-change: transform, opacity;
+}
+.film-label-role { font-size: 10px; font-weight: 500; opacity: 0.8; text-transform: uppercase; letter-spacing: 0.06em; }
+/* Rev 45: portrait film (9:16): caption above the bottom 14 % and across the safe width. */
+@media (orientation: portrait) {
+  .film-caption { bottom: 14%; max-width: 88vw; width: 88vw; box-sizing: border-box; }
+  .film-caption-text { font-size: clamp(18px, 4.1vw, 48px); }
+  .film-caption-title { font-size: clamp(12px, 1.9vw, 22px); }
+}
+@media (max-width: 767px) {
+  .camera-mode { top: auto; bottom: calc(var(--space-2) + env(safe-area-inset-bottom, 0px)); width: calc(100vw - 2 * var(--space-2)); max-width: none; }
+  .walk-enter { margin-top: auto; }
+}
+
+/* KARARLAR Rev 43 C: "Olay akışı" toast, bottom-right corner: the floor panel rail is the left column (top strip on
+   phones), the robot card (z 12) and the settings sheet (z 14) cover it; small and quiet. */
+.event-feed { position: absolute; z-index: 11; right: var(--space-4); bottom: var(--space-4); max-width: min(20rem, calc(100vw - 20rem)); pointer-events: none; }
+.event-feed[hidden] { display: none; }
+.event-feed ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-1); align-items: flex-end; }
+.event-feed button { pointer-events: auto; min-height: var(--touch); max-width: 100%; display: flex; align-items: baseline; gap: var(--space-2); padding: 6px var(--space-3); border-radius: var(--radius-sm); background: var(--panel); border: 1px solid var(--panel-border); box-shadow: var(--panel-shadow); font-size: 0.8rem; text-align: left; }
+.feed-time { color: var(--fg-muted); font-variant-numeric: tabular-nums; flex: none; }
+.feed-text { overflow-wrap: anywhere; }
+.event-feed li:nth-child(n + 2) button { opacity: 0.85; }
+/* Nabız tab: figures and the recent events. */
+.pulse { margin: 0 0 var(--space-3); display: grid; grid-template-columns: 1fr auto; gap: 6px var(--space-3); font-size: 0.85rem; }
+.pulse dt { color: var(--fg-muted); }
+.pulse dd { margin: 0; font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.pulse-events ul { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-1); }
+.pulse-events button { min-height: var(--touch); width: 100%; display: flex; gap: var(--space-2); align-items: baseline; padding: 6px var(--space-3); border-radius: var(--radius-sm); text-align: left; font-size: 0.82rem; }
+.pulse-box h3, .pulse-events h3 { margin: 0 0 4px; font-size: 0.9rem; }
+.view-extras { display: grid; gap: var(--space-3); justify-items: start; margin-bottom: var(--space-3); }
+.view-extras > .screenshot { justify-self: stretch; }
+.day-speed { margin: 0; padding: 0; border: 0; min-width: 0; }
+.day-speed legend { font-size: 0.85rem; font-weight: 600; margin-bottom: 4px; }
+.lunch-jump > button, .screenshot > button { min-height: var(--touch); width: 100%; border-radius: var(--radius-pill); text-align: left; padding: 6px var(--space-4); font-size: 0.85rem; }
+.lunch-jump .settings-note:empty, .screenshot .settings-note:empty { display: none; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+@media (max-width: 767px) {
+  .event-feed { right: 8px; bottom: calc(8px + env(safe-area-inset-bottom, 0px)); max-width: min(16rem, calc(100vw - 11rem)); }
+  .event-feed li:nth-child(n + 4) { display: none; }
+  html.is-follow .event-feed, html.is-walk .event-feed { display: none; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .event-feed li { animation: feed-in 180ms ease-out; }
+}
+@keyframes feed-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+/* KARARLAR Rev 44: on-screen "Molaya çık / Molayı bitir" in the HUD rail, under the floor panel (never over it). */
+.break-screen { min-width: var(--touch); min-height: var(--touch); align-self: flex-start; padding: 6px var(--space-4); border-radius: var(--radius-pill); background: var(--panel); border: 1px solid var(--panel-border); box-shadow: var(--panel-shadow); font-size: 0.85rem; font-weight: 600; }
+.break-toggle button { min-height: var(--touch); }

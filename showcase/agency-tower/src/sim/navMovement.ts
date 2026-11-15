@@ -1,0 +1,722 @@
+// Real Movement for the workflow engine (spec 0002 REQ-13, REQ-14, REQ-17, REQ-19, §7.5b, §7.5c, AC-12,
+// AC-13). Same floor: one walk leg on the nav.ts route + offset path at 1.2 u/s. Other floor: walk to a
+// landing waiting spot, call (button gesture), call-wait, ride the east staff cabin (elevator.ts), walk
+// on. Robots keep ROBOT_SEPARATION while walking unless both stand in §7.5c zones; a walker yields
+// (stands) while its next step would break that, at most MAX_YIELD_S per wait. Pure and deterministic:
+// it draws no random numbers; time comes only from step(dt) (the 0002 simulation clock).
+import hierarchy from '../data/hierarchy.json';
+import { TIERS } from '../data/types';
+import { createElevator, type Elevator, type ElevatorPolicy } from './elevator';
+import { FLOOR_COUNT, LANDING_APRON, LANDING_SEPARATION, ROBOT_SEPARATION, STAFF_LANDING, STAFF_SHAFT, floorLayout, floorY, separationExempt, type FloorLayout, type XZ } from './layout';
+import type { MovePhase, Movement, Target } from './movement';
+import { buildCampusGraph, buildFloorGraph, offsetPath, pathLength, pointAlong, projectOnSegment, shortestPath, type FloorGraph } from './nav';
+
+export const WALK_SPEED = 1.2;
+/** Call-button gesture at the waiting spot before the call registers (part of the cabin-arrival wait). */
+export const CALL_GESTURE_S = 0.5;
+/** Longest single yield wait (AC-12); after it the walker goes on. */
+export const MAX_YIELD_S = 6;
+/** A give-way ends once the priority walker is this far away (separation + one lane width). */
+export const GIVE_WAY_CLEAR = 0.95;
+
+export interface Pos3 {
+  floor: number;
+  x: number;
+  y: number;
+  z: number;
+}
+
+export interface LegRecord {
+  unit: string;
+  kind: 'walk' | 'ride';
+  floor: number;
+  start: number;
+  end: number;
+  /** Walk: offset path length. */
+  length: number;
+  /** Walk: total yield wait. */
+  yields: number;
+  /** Walk: longest single yield wait. */
+  maxYield: number;
+  /** Ride: cabin-arrival wait reported by the elevator (call to ride start). */
+  waited?: number;
+  /** Ride: floors travelled. */
+  floors?: number;
+}
+
+export interface NavMovementOptions {
+  units: ReadonlyMap<string, number>;
+  /** Per-floor layouts in the scene's desk order; default from the unit map (layoutsFromUnits). */
+  layouts?: readonly FloorLayout[];
+  /** Keep the leg log and the elevator log (tests). */
+  record?: boolean;
+  /** Floor the staff cabin starts at (default 0). */
+  cabinFloor?: number;
+  /** Route into the campus wing over the sky-bridges on wing levels (KARARLAR rev 31; default on). */
+  campus?: boolean;
+  /** Staff elevator dispatch (default `collective`, Rev 44; `legacy` for the before/after measurement). */
+  elevatorPolicy?: ElevatorPolicy;
+}
+
+export interface NavMovement extends Movement {
+  readonly elevator: Elevator;
+  layout(floor: number): FloorLayout;
+  /** World-ish position: floor-local x/z, y = floor height (walkers) or cabin y (riders). */
+  position(unit: string): Pos3;
+  /** Reduced motion (REQ-19): the start of the current leg until it ends; otherwise position(). */
+  renderPosition(unit: string, reduced: boolean): Pos3;
+  /** Counter that changes whenever a leg starts or ends (render hook for reduced motion). */
+  legIndex(unit: string): number;
+  /** Graph node the unit stands at (or last passed), for tests and rendering. */
+  nodeOf(unit: string): string | null;
+  legLog(): readonly LegRecord[];
+  /** Callers on `floor` held away from the landing because all its waiting spots are taken (elevator backlog). */
+  awaitingSpot(floor: number): number;
+}
+
+const HIERARCHY_TIERS: ReadonlyMap<string, string> = new Map(hierarchy.units.map((u) => [u.id, u.tier]));
+
+/**
+ * Layouts from the unit map with the scene's desk order (ui/unitList sortUnits: tier, then id; a unit's
+ * name is its id). Tiers default to the committed hierarchy; unknown units sort last.
+ */
+export function layoutsFromUnits(units: ReadonlyMap<string, number>, tiers: ReadonlyMap<string, string> = HIERARCHY_TIERS): FloorLayout[] {
+  const rank = (id: string): number => {
+    const i = (TIERS as readonly string[]).indexOf(tiers.get(id) ?? '');
+    return i < 0 ? TIERS.length : i;
+  };
+  return Array.from({ length: FLOOR_COUNT }, (_, f) =>
+    floorLayout(
+      f,
+      [...units]
+        .filter(([, fl]) => fl === f)
+        .map(([id]) => id)
+        .sort((a, b) => rank(a) - rank(b) || (a < b ? -1 : a > b ? 1 : 0))
+        .map((id) => ({ id, ceo: tiers.get(id) === 'ceo' })),
+    ),
+  );
+}
+
+type Plan = { kind: 'walk'; floor: number; to: string } | { kind: 'ride'; from: number; to: number; wait: string };
+
+interface WalkLeg {
+  kind: 'walk';
+  floor: number;
+  to: string;
+  nodes: string[];
+  points: XZ[];
+  /** Arc length at which each node of `nodes` is passed. */
+  nodeS: number[];
+  length: number;
+  s: number;
+  /** Furthest arc length reached (backing up re-covers ground below it). */
+  sMax: number;
+  /** Unit this walker is giving way to (backing up or holding), or null. */
+  giveWay: string | null;
+  start: number;
+  yields: number;
+  yieldT: number;
+  maxYield: number;
+  startPos: Pos3;
+  /**
+   * Walk-in boarding (CEO film review: callers appeared inside the cabin): this walk takes the caller from its landing
+   * waiting spot through the open cabin door to its rider spot; the ride leg resumes once it is there.
+   */
+  ride?: RideLeg;
+  /** Walk-in boarding, before the doors open: stepping toward the door as the cabin arrives (stops short of it). */
+  approach?: boolean;
+}
+
+interface RideLeg {
+  kind: 'call' | 'call-wait' | 'ride';
+  from: number;
+  to: number;
+  wait: string;
+  t: number;
+  start: number;
+  rider: number;
+  startPos: Pos3;
+  /** Walk-in boarding: the last steps to the rider spot, walked inside the cabin (it may already be moving). */
+  inside?: { points: XZ[]; s: number; length: number };
+}
+
+/** A caller steps toward the cabin door this long before the cabin stops for it (walk-in boarding). */
+export const APPROACH_S = 3;
+/** An approaching caller stops this far west of the cabin door plane until the doors open for it. */
+const APPROACH_HOLD = 0.25;
+/** A boarder counts as aboard (the doors may close) once it is this far inside the cabin door plane. */
+const ABOARD_DEPTH = 0.25;
+/** Graph node at the cabin door (end of the corridor aisle). */
+const STAFF_LANDING_ENTRY = `t:${STAFF_LANDING.entry.x.toFixed(3)},${STAFF_LANDING.entry.z.toFixed(3)}`;
+
+interface Unit {
+  id: string;
+  floor: number;
+  x: number;
+  z: number;
+  node: string | null;
+  target: Target;
+  /** Resolved destination node on target.floor. */
+  dest: string;
+  plan: Plan[];
+  leg: WalkLeg | RideLeg | null;
+  /** moveTo while walking: re-path from this point via the next node. */
+  reroute: { x: number; z: number; via: string } | null;
+  /** moveTo while riding: plan again on arrival. */
+  replan: boolean;
+  legNo: number;
+}
+
+const EPS = 1e-9;
+const d2 = (a: XZ, b: XZ): number => Math.hypot(a.x - b.x, a.z - b.z);
+const sameTarget = (a: Target, b: Target): boolean => a.floor === b.floor && a.spot === b.spot;
+
+/** Inside the staff cabin's floor plate (floor-local x/z while the cabin stands at the landing). */
+const inCabin = (p: XZ): boolean => Math.abs(p.x - STAFF_SHAFT.x) <= STAFF_SHAFT.cabinHalf + EPS && Math.abs(p.z - STAFF_SHAFT.z) <= STAFF_SHAFT.cabinHalf + EPS;
+
+const inApron = (p: XZ): boolean => Math.abs(p.x - LANDING_APRON.x) <= LANDING_APRON.r + EPS && Math.abs(p.z - LANDING_APRON.z) <= LANDING_APRON.r + EPS;
+const onLanding = (p: XZ): boolean => inCabin(p) || inApron(p);
+
+const NAV_INSTANCES = new WeakSet<Movement>();
+/** True for a Movement made by createNavMovement (render hooks: elevator, positions). */
+export const isNavMovement = (m: Movement): m is NavMovement => NAV_INSTANCES.has(m);
+
+export function createNavMovement(opts: NavMovementOptions): NavMovement {
+  const record = opts.record ?? false;
+  const layouts = opts.layouts ? [...opts.layouts] : layoutsFromUnits(opts.units);
+  // Campus graphs are additive (every tower node and edge kept), so tower routes are unchanged.
+  const graphs: FloorGraph[] = layouts.map((l) => (opts.campus ?? true ? buildCampusGraph(l) : buildFloorGraph(l)));
+  const elevator = createElevator({ startFloor: opts.cabinFloor ?? 0, record, walkIn: true, ...(opts.elevatorPolicy ? { policy: opts.elevatorPolicy } : {}) });
+  const legs: LegRecord[] = [];
+  let time = 0;
+
+  const graph = (floor: number): FloorGraph => {
+    const g = graphs[floor];
+    if (!g) throw new Error(`no floor ${floor}`);
+    return g;
+  };
+  const nodeXZ = (floor: number, id: string): XZ => {
+    const n = graph(floor).nodes.get(id);
+    if (!n) throw new Error(`no node ${id} on floor ${floor}`);
+    return n;
+  };
+  const deskOwner = (floor: number): string | undefined => layouts[floor]?.desks.find((d) => d.wide)?.owner;
+
+  /** Callers held where they are because every waiting spot of their landing is taken. */
+  const spotWait = new Set<string>();
+  const units = new Map<string, Unit>();
+  for (const [id, floor] of [...opts.units].sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0))) {
+    const home = `home:${id}`;
+    const p = nodeXZ(floor, home);
+    units.set(id, { id, floor, x: p.x, z: p.z, node: home, target: { floor, spot: home }, dest: home, plan: [], leg: null, reroute: null, replan: false, legNo: 0 });
+  }
+  const order = [...units.values()];
+  const get = (id: string): Unit => {
+    const u = units.get(id);
+    if (!u) throw new Error(`unknown unit ${id}`);
+    return u;
+  };
+
+  const riding = (u: Unit): boolean => u.leg !== null && u.leg.kind === 'ride';
+  /** The ride leg of a rider, including a caller walking into the cabin (boarding walk). */
+  const rideOf = (u: Unit): RideLeg | null => (u.leg ? (u.leg.kind === 'ride' ? u.leg : u.leg.kind === 'walk' ? (u.leg.ride ?? null) : null) : null);
+  const position = (u: Unit): Pos3 => {
+    if (u.leg && u.leg.kind === 'ride') {
+      const inside = u.leg.inside;
+      const spot = inside ? pointAlong(inside.points, inside.s) : (STAFF_LANDING.riderSpots[Math.max(0, u.leg.rider)] ?? STAFF_LANDING.entry);
+      const y = elevator.cabinY();
+      return { floor: elevator.state().floor, x: spot.x, y, z: spot.z };
+    }
+    return { floor: u.floor, x: u.x, y: floorY(u.floor), z: u.z };
+  };
+
+  // ------------------------------------------------------------ spot resolution
+  /** Nodes claimed by other units on a floor: their destinations, waiting spots and where they stand. */
+  const claimed = (floor: number, self: Unit): Set<string> => {
+    const out = new Set<string>();
+    for (const v of order) {
+      if (v === self) continue;
+      if (v.target.floor === floor) out.add(v.dest);
+      for (const p of v.plan) if (p.kind === 'ride' && p.from === floor) out.add(p.wait);
+      if (v.leg && v.leg.kind !== 'walk' && v.leg.from === floor && v.leg.kind !== 'ride') out.add(v.leg.wait);
+      if (v.floor === floor && v.node && !v.leg && v.plan.length === 0) out.add(v.node);
+    }
+    return out;
+  };
+  const pick = (floor: number, self: Unit, options: string[]): string => {
+    const g = graph(floor);
+    const have = options.filter((o) => g.nodes.has(o));
+    const taken = claimed(floor, self);
+    return have.find((o) => !taken.has(o)) ?? have[0] ?? (() => { throw new Error(`no spot among ${options.join(',')} on floor ${floor}`); })();
+  };
+  const range = (prefix: string, n: number): string[] => Array.from({ length: n }, (_, i) => `${prefix}${i}`);
+
+  function resolve(u: Unit, t: Target): string {
+    const [kind, owner] = t.spot.split(':');
+    switch (kind) {
+      case 'home':
+        return pick(t.floor, u, [t.spot]);
+      case 'desk':
+        if (owner === u.id || owner === undefined) return pick(t.floor, u, [`seat:${owner ?? u.id}`]);
+        return pick(t.floor, u, [`pair:${owner}`, `seat:${owner}`]);
+      case 'handover':
+        return owner !== undefined && owner === deskOwner(t.floor) ? pick(t.floor, u, range('signing:', 2)) : pick(t.floor, u, [`handover:${owner}:1`, `handover:${owner}:0`]);
+      case 'signing-desk':
+        return u.id === deskOwner(t.floor) ? pick(t.floor, u, [`seat:${u.id}`]) : pick(t.floor, u, range('signing:', 2));
+      case 'meeting-room':
+        // `meeting-room:lead` (REQ-15): the meeting lead stands at the whiteboard; the others sit.
+        // `meeting-room:sign` (AC-7): the lane-3 signer stamps at the sign table.
+        if (owner === 'lead') return pick(t.floor, u, ['mlead']);
+        if (owner === 'sign') return pick(t.floor, u, ['msign', ...range('mseat:', 6)]);
+        return pick(t.floor, u, [...range('mseat:', 6), 'msign']);
+      case 'landing':
+        return pick(t.floor, u, range('wait:', 3));
+      default:
+        return pick(t.floor, u, [t.spot]);
+    }
+  }
+
+  // ------------------------------------------------------------ planning
+  function plan(u: Unit, t: Target): void {
+    spotWait.delete(u.id);
+    u.target = t;
+    u.dest = resolve(u, t);
+    u.plan = [];
+    if (u.floor === t.floor) {
+      if (!(u.node === u.dest && !u.reroute)) u.plan.push({ kind: 'walk', floor: t.floor, to: u.dest });
+      return;
+    }
+    const wait = pick(u.floor, u, range('wait:', 3));
+    u.plan.push({ kind: 'walk', floor: u.floor, to: wait }, { kind: 'ride', from: u.floor, to: t.floor, wait }, { kind: 'walk', floor: t.floor, to: u.dest });
+  }
+
+  function startLeg(u: Unit): void {
+    const p = u.plan[0];
+    if (!p) return;
+    const ride = u.plan[1];
+    if (p.kind === 'walk' && ride && ride.kind === 'ride' && ride.from === p.floor && ride.wait === p.to) {
+      // Door-jam fix: with all three waiting spots of the landing taken, a caller waits where it is until one frees
+      // (callers crowding the corridor round the waiting spots blocked each other and the boarders).
+      const taken = claimed(p.floor, u);
+      // The call-panel spot takes a fourth caller (clear of the waiting spots and the boarders' lane).
+      const free = [...range('wait:', 3), 'call'].find((w) => !taken.has(w));
+      if (free === undefined) {
+        spotWait.add(u.id);
+        return;
+      }
+      p.to = free;
+      ride.wait = free;
+    }
+    spotWait.delete(u.id);
+    u.plan.shift();
+    u.legNo++;
+    const startPos = position(u);
+    if (p.kind === 'ride') {
+      u.leg = { kind: 'call', from: p.from, to: p.to, wait: p.wait, t: 0, start: time, rider: -1, startPos };
+      return;
+    }
+    u.leg = walkLeg(u, p.floor, p.to, startPos);
+  }
+
+  /** A walk leg from where u stands (or its reroute point) to node `to` on `floor`. */
+  function walkLeg(u: Unit, floor: number, to: string, startPos: Pos3): WalkLeg {
+    const g = graph(floor);
+    const fromNode = u.reroute?.via ?? u.node;
+    const nodes = fromNode ? shortestPath(g, fromNode, to) : null;
+    if (!nodes) throw new Error(`no route for ${u.id} to ${to}`);
+    let points = offsetPath(g, nodes);
+    const at = points[0];
+    if (u.reroute) points = [{ x: u.reroute.x, z: u.reroute.z }, ...points];
+    // A walker standing off its node (a cut-short walk) starts where it stands, never at the node (no jump).
+    else if (u.floor === floor && at && d2(at, u) > EPS) points = [{ x: u.x, z: u.z }, ...points];
+    u.reroute = null;
+    const nodeS: number[] = [];
+    let from = 0;
+    for (const id of nodes) {
+      const s = arcOf(points, nodeXZ(floor, id), from);
+      nodeS.push(s);
+      from = s;
+    }
+    return { kind: 'walk', floor, to, nodes, points, nodeS, length: pathLength(points), s: 0, sMax: 0, giveWay: null, start: time, yields: 0, yieldT: 0, maxYield: 0, startPos };
+  }
+
+  /** Walk-in boarding: the caller walks from where it waits through the open door to its rider spot. */
+  function startBoardWalk(u: Unit, ride: RideLeg, approach = false): void {
+    const prev = u.leg;
+    if (prev && prev.kind === 'walk' && prev.s > EPS) {
+      // From an approach walk: on from where it stands, via the next node ahead.
+      let k = 0;
+      while (k < prev.nodeS.length && (prev.nodeS[k] ?? 0) <= prev.s + EPS) k++;
+      const via = prev.nodes[Math.min(k, prev.nodes.length - 1)];
+      if (via !== undefined) u.reroute = { x: u.x, z: u.z, via };
+    }
+    ride.rider = approach ? -1 : elevator.riderIndex(u.id);
+    const spot = approach ? STAFF_LANDING_ENTRY : `cabin:${Math.max(0, ride.rider)}`;
+    const leg = walkLeg(u, ride.from, spot, prev && prev.kind === 'walk' ? prev.startPos : position(u));
+    leg.ride = ride;
+    if (approach) leg.approach = true;
+    u.leg = leg;
+    u.legNo++;
+  }
+
+  /** Walk-in boarding cut short (the doors closed first): the caller waits where it stands for the next cabin. */
+  function abortBoardWalk(u: Unit, leg: WalkLeg, ride: RideLeg): void {
+    let k = 0;
+    while (k < leg.nodeS.length && (leg.nodeS[k] ?? 0) <= leg.s + EPS) k++;
+    const via = leg.nodes[Math.min(k, leg.nodes.length - 1)];
+    if (via !== undefined && leg.s > EPS) u.reroute = { x: u.x, z: u.z, via };
+    ride.kind = 'call-wait';
+    ride.rider = -1;
+    u.leg = ride;
+    u.legNo++;
+  }
+
+  function endLeg(u: Unit): void {
+    const leg = u.leg;
+    if (!leg) return;
+    if (leg.kind === 'walk' && leg.ride && leg.approach) return;
+    if (leg.kind === 'walk' && leg.ride) {
+      // Boarding walk done: the rider stands at its rider spot (the ride leg's position from now on).
+      const end = nodeXZ(leg.floor, leg.to);
+      u.x = end.x;
+      u.z = end.z;
+      u.node = leg.to;
+      leg.ride.kind = 'ride';
+      u.leg = leg.ride;
+      u.legNo++;
+      elevator.boarded(u.id);
+      return;
+    }
+    if (leg.kind === 'walk') {
+      if (record) legs.push({ unit: u.id, kind: 'walk', floor: leg.floor, start: leg.start, end: time, length: leg.length, yields: leg.yields, maxYield: leg.maxYield });
+      const end = nodeXZ(leg.floor, leg.to);
+      u.x = end.x;
+      u.z = end.z;
+      u.node = leg.to;
+    }
+    u.leg = null;
+    u.legNo++;
+  }
+
+  // ------------------------------------------------------------ separation (REQ-13, §7.5c)
+  const walking = (v: Unit): boolean => v.leg !== null && v.leg.kind === 'walk';
+  const boardingWalk = (v: Unit): boolean => v.leg !== null && v.leg.kind === 'walk' && v.leg.ride !== undefined;
+  /** Would u at p break the separation with v? Two walkers keep it even inside zones (stricter than §7.5c). */
+  function conflict(u: Unit, p: XZ, v: Unit): boolean {
+    if (v === u || v.floor !== u.floor || riding(v)) return false;
+    const layout = layouts[u.floor];
+    if (!layout) return false;
+    const q = { x: v.x, z: v.z };
+    const d = d2(p, q);
+    if (d >= ROBOT_SEPARATION - EPS) return false;
+    if (!walking(v) && separationExempt(layout, p, q)) return false;
+    // Riders stepping out of the cabin together (§7.5c cabin zone): they stand this close while riding already. On
+    // the landing (cabin or apron) two walkers keep LANDING_SEPARATION, so a full cabin empties at once.
+    if (inCabin(p) && inCabin(q)) return false;
+    if (onLanding(p) && onLanding(q) && d >= LANDING_SEPARATION - EPS) return false;
+    // Callers of one stop walk into the cabin as a group (the mirror of the riders stepping out together).
+    if (boardingWalk(u) && boardingWalk(v) && d >= LANDING_SEPARATION - EPS) return false;
+    // Moving away from a robot already too close is allowed (it only ever widens the gap).
+    return d <= d2({ x: u.x, z: u.z }, q) + EPS;
+  }
+  const blocker = (u: Unit, p: XZ): Unit | null => order.find((v) => conflict(u, p, v)) ?? null;
+  /** Door sensor of the staff cabin: a walker on the cabin's floor still stands in the cabin or its doorway. */
+  const doorBlocked = (): boolean => {
+    const f = elevator.state().floor;
+    return order.some((v) => walking(v) && v.floor === f && v.x > STAFF_LANDING.doorClearX);
+  };
+  const nextOf = (v: Unit, dt: number): XZ | null => {
+    const leg = v.leg;
+    return leg && leg.kind === 'walk' ? pointAlong(leg.points, Math.min(leg.length, leg.s + WALK_SPEED * dt)) : null;
+  };
+
+  /** Arc length one step back along u's own path, if that closes on no robot; else null. */
+  function backPos(u: Unit, dt: number): number | null {
+    const leg = u.leg;
+    if (!leg || leg.kind !== 'walk' || leg.s <= EPS) return null;
+    const back = Math.max(0, leg.s - WALK_SPEED * dt);
+    const bp = pointAlong(leg.points, back);
+    return order.some((v) => conflict(u, bp, v)) ? null : back;
+  }
+
+  function place(u: Unit, leg: WalkLeg, s: number): void {
+    const p = pointAlong(leg.points, s);
+    leg.s = s;
+    u.x = p.x;
+    u.z = p.z;
+    let k = 0;
+    while (k < leg.nodeS.length && (leg.nodeS[k] ?? 0) <= s + EPS) k++;
+    // A boarder keeps its waiting spot as its node until it is aboard (it is still a caller).
+    if (!leg.ride) u.node = leg.nodes[Math.max(0, k - 1)] ?? u.node;
+  }
+
+  /** Riders of the stop still getting out: exiting riders aboard, or walkers (not boarders) in the cabin or its doorway. */
+  const landingBusy = (floor: number): boolean =>
+    order.some(
+      (v) =>
+        (v.leg !== null && v.leg.kind === 'ride' && v.leg.to === floor && elevator.state().floor === floor) ||
+        (v.floor === floor && walking(v) && !boardingWalk(v) && v.x > STAFF_LANDING.doorClearX),
+    );
+
+  function walk(u: Unit, leg: WalkLeg, dt: number, frozen: (unit: string) => boolean): void {
+    const s = Math.min(leg.length, leg.s + WALK_SPEED * dt);
+    const p = pointAlong(leg.points, s);
+    // An approaching caller stops short of the door until it opens for it.
+    if (leg.approach && p.x > STAFF_SHAFT.x - STAFF_SHAFT.cabinHalf - APPROACH_HOLD) return;
+    // Let them out first: a boarder stops at the edge of the landing while the stop's riders are still getting out.
+    if (leg.ride && p.x > STAFF_LANDING.doorClearX - ROBOT_SEPARATION && u.x <= STAFF_LANDING.doorClearX - ROBOT_SEPARATION + EPS && landingBusy(u.floor)) {
+      leg.yieldT += dt;
+      leg.yields += dt;
+      leg.maxYield = Math.max(leg.maxYield, leg.yieldT);
+      return;
+    }
+    // Give-way latch: after backing up for a priority walker, hold or keep backing until it is clear.
+    if (leg.giveWay !== null) {
+      const g = units.get(leg.giveWay);
+      // Door-jam fix: two walkers never give way to each other at once (both backing off, side by side, for seconds).
+      const gLeg = g?.leg;
+      const mutualLatch = gLeg !== undefined && gLeg !== null && gLeg.kind === 'walk' && gLeg.giveWay === u.id;
+      if (!g || !walking(g) || g.floor !== u.floor || d2(g, u) >= GIVE_WAY_CLEAR || mutualLatch) leg.giveWay = null;
+    }
+    const b = leg.giveWay !== null ? (units.get(leg.giveWay) ?? null) : blocker(u, p);
+    if (b && leg.yieldT + dt <= MAX_YIELD_S + EPS) {
+      // Mutual block (merge at a junction, converging riders): the lower-priority walker backs up along
+      // its own path to make room; the other goes on next step. Either way the time is a yield wait.
+      const bNext = !frozen(b.id) ? nextOf(b, dt) : null;
+      const mutual = bNext !== null && conflict(b, bNext, u);
+      // The walker that can back up without closing on anyone gives way; if both can, the higher id does.
+      const uBack = backPos(u, dt);
+      const bBack = mutual ? backPos(b, dt) : null;
+      if (leg.giveWay !== null || (mutual && uBack !== null && (bBack === null || u.id > b.id))) {
+        leg.giveWay = b.id;
+        if (uBack !== null) place(u, leg, uBack);
+      }
+      leg.yieldT += dt;
+      leg.yields += dt;
+      leg.maxYield = Math.max(leg.maxYield, leg.yieldT);
+      return;
+    }
+    // Re-covering ground lost while backing up also counts as yield time (walk time = length / 1.2 + yields).
+    const gained = Math.max(0, s - leg.sMax);
+    const done = s >= leg.length - EPS;
+    if (!done) {
+      const lost = dt - gained / WALK_SPEED;
+      if (lost > EPS) leg.yields += lost;
+    }
+    leg.yieldT = gained > EPS ? 0 : leg.yieldT + dt;
+    leg.maxYield = Math.max(leg.maxYield, leg.yieldT);
+    leg.sMax = Math.max(leg.sMax, s);
+    place(u, leg, s);
+    if (done) endLeg(u);
+    else if (leg.ride && !leg.approach && u.x >= STAFF_SHAFT.x - STAFF_SHAFT.cabinHalf + ABOARD_DEPTH - EPS) {
+      // Aboard: the rest of the way to the rider spot is walked inside the cabin, so the doors need not wait for it.
+      const rest = [{ x: u.x, z: u.z }, ...leg.points.filter((_, i) => i > 0 && arcAt(leg.points, i) > s + EPS)];
+      const ride = leg.ride;
+      ride.inside = { points: rest, s: 0, length: pathLength(rest) };
+      ride.kind = 'ride';
+      u.node = leg.to;
+      u.leg = ride;
+      u.legNo++;
+      elevator.boarded(u.id);
+    }
+  }
+  /** Arc length of polyline vertex i. */
+  function arcAt(points: readonly XZ[], i: number): number {
+    let acc = 0;
+    for (let k = 1; k <= i; k++) {
+      const a = points[k - 1];
+      const b = points[k];
+      if (a && b) acc += d2(a, b);
+    }
+    return acc;
+  }
+
+  function arrive(u: Unit, leg: RideLeg): void {
+    const spot = `cabin:${Math.max(0, leg.rider)}`;
+    // A rider still stepping to its spot gets off from where it stands (its exit walk starts there).
+    const p = leg.inside && leg.inside.s < leg.inside.length - EPS ? pointAlong(leg.inside.points, leg.inside.s) : nodeXZ(leg.to, spot);
+    if (record) legs.push({ unit: u.id, kind: 'ride', floor: leg.from, start: leg.start, end: time, length: 0, yields: 0, maxYield: 0, waited: leg.rider >= 0 ? waitedOf(u.id) : 0, floors: Math.abs(leg.to - leg.from) });
+    u.floor = leg.to;
+    u.x = p.x;
+    u.z = p.z;
+    u.node = spot;
+    elevator.clear(u.id);
+    endLeg(u);
+    if (u.replan) {
+      u.replan = false;
+      plan(u, u.target);
+    }
+  }
+  const waitedOf = (id: string): number => {
+    const log = elevator.log();
+    for (let i = log.length - 1; i >= 0; i--) {
+      const e = log[i];
+      if (e && e.type === 'ride-start' && e.unit === id) return e.waited ?? 0;
+    }
+    return 0;
+  };
+
+  const phaseOf = (u: Unit): MovePhase => {
+    const leg = u.leg;
+    // A boarder walking in is still waiting for the elevator; the ride (and the floor change) starts once aboard.
+    if (leg) return leg.kind === 'walk' && leg.ride ? 'call-wait' : leg.kind;
+    const p = u.plan[0];
+    if (!p) return 'still';
+    return p.kind === 'walk' ? 'walk' : 'call';
+  };
+
+  const mv: NavMovement = {
+    elevator,
+    layout(floor) {
+      const l = layouts[floor];
+      if (!l) throw new Error(`no floor ${floor}`);
+      return l;
+    },
+    moveTo(id, t) {
+      const u = get(id);
+      if (sameTarget(u.target, t) && (u.leg || u.plan.length || u.node === u.dest)) return;
+      const leg = u.leg;
+      if (leg && rideOf(u)) {
+        u.target = t;
+        u.replan = true;
+        return;
+      }
+      if (leg && (leg.kind === 'call' || leg.kind === 'call-wait')) {
+        elevator.cancel(id);
+        u.leg = null;
+        u.legNo++;
+      }
+      if (leg && leg.kind === 'walk') {
+        let k = 0;
+        while (k < leg.nodeS.length && (leg.nodeS[k] ?? 0) <= leg.s + EPS) k++;
+        const via = leg.nodes[Math.min(k, leg.nodes.length - 1)];
+        u.leg = null;
+        u.legNo++;
+        if (via !== undefined && leg.s > EPS && leg.s < leg.length - EPS) u.reroute = { x: u.x, z: u.z, via };
+        else if (leg.s >= leg.length - EPS) u.node = leg.to;
+      }
+      plan(u, t);
+    },
+    isAt(id, t) {
+      const u = get(id);
+      return !u.leg && u.plan.length === 0 && !u.replan && sameTarget(u.target, t) && u.node === u.dest && u.floor === t.floor;
+    },
+    phase: (id) => phaseOf(get(id)),
+    floorOf(id) {
+      const u = get(id);
+      return u.leg && u.leg.kind === 'ride' ? u.leg.to : u.floor;
+    },
+    step(dt, frozen) {
+      if (!(dt > 0)) return;
+      time += dt;
+      // Leg starts, call gestures and selection holds (before the cabin moves).
+      for (const u of order) {
+        const fz = frozen(u.id);
+        if (!u.leg && u.plan.length && !fz) startLeg(u);
+        const leg = u.leg;
+        if (!leg || leg.kind === 'walk') continue;
+        if (leg.kind === 'call-wait') {
+          const st = elevator.status(u.id);
+          if (fz && st === 'queued') elevator.hold(u.id, true);
+          else if (!fz && st === 'held') elevator.hold(u.id, false);
+        }
+      }
+      elevator.step(dt, doorBlocked);
+      // Calls register after the cabin moved, so every caller spends at least one step in call-wait.
+      for (const u of order) {
+        const leg = u.leg;
+        if (!leg || leg.kind !== 'call' || frozen(u.id)) continue;
+        leg.t += dt;
+        if (leg.t + EPS >= CALL_GESTURE_S) {
+          leg.kind = 'call-wait';
+          leg.start = time;
+          elevator.call(u.id, leg.from, leg.to);
+        }
+      }
+      for (const u of order) {
+        const leg = u.leg;
+        if (!leg || leg.kind === 'call') continue;
+        const st = elevator.status(u.id);
+        if (leg.kind === 'walk') {
+          if (leg.ride && leg.approach) {
+            if (st === 'boarding' && elevator.awaiting(u.id)) startBoardWalk(u, leg.ride);
+          } else if (leg.ride && st === 'queued') abortBoardWalk(u, leg, leg.ride);
+          continue;
+        }
+        if (leg.kind === 'call-wait' && st === 'queued' && !frozen(u.id)) {
+          // The cabin is about to stop for this caller: it steps toward the door.
+          const eta = elevator.arrivingFor(u.id, leg.from);
+          if (eta !== null && eta <= APPROACH_S + EPS) startBoardWalk(u, leg, true);
+        } else if (leg.kind === 'call-wait' && st === 'boarding' && elevator.awaiting(u.id)) startBoardWalk(u, leg);
+        else if (leg.kind === 'call-wait' && (st === 'boarding' || st === 'riding')) {
+          leg.kind = 'ride';
+          leg.rider = elevator.riderIndex(u.id);
+          u.legNo++;
+        } else if (leg.kind === 'ride' && (st === 'alighting' || st === 'arrived')) arrive(u, leg);
+      }
+      for (const u of order) {
+        const inside = u.leg && u.leg.kind === 'ride' ? u.leg.inside : undefined;
+        if (inside) inside.s = Math.min(inside.length, inside.s + WALK_SPEED * dt);
+      }
+      for (const u of order) {
+        const leg = u.leg;
+        // A boarder walks in even while selected (the cabin waits for it; riders are never frozen).
+        if (!leg || leg.kind !== 'walk' || (frozen(u.id) && !leg.ride)) continue;
+        walk(u, leg, dt, frozen);
+      }
+    },
+    position: (id) => position(get(id)),
+    renderPosition(id, reduced) {
+      const u = get(id);
+      if (!reduced || !u.leg) return position(u);
+      return { ...u.leg.startPos };
+    },
+    legIndex: (id) => get(id).legNo,
+    awaitingSpot: (floor) => [...spotWait].filter((id) => get(id).floor === floor).length,
+    nodeOf: (id) => get(id).node,
+    legLog: () => legs,
+    snapshot() {
+      return [
+        ...order.map((u) => ({
+          id: u.id,
+          floor: u.floor,
+          x: u.x,
+          z: u.z,
+          node: u.node,
+          target: { ...u.target },
+          dest: u.dest,
+          plan: u.plan.map((p) => ({ ...p })),
+          leg: u.leg ? { ...u.leg, startPos: { ...u.leg.startPos }, ...(u.leg.kind === 'walk' && u.leg.ride ? { ride: { ...u.leg.ride, startPos: { ...u.leg.ride.startPos } } } : {}) } : null,
+          reroute: u.reroute ? { ...u.reroute } : null,
+          replan: u.replan,
+          legNo: u.legNo,
+        })),
+        { id: '#elevator', time, elevator: elevator.snapshot() },
+      ];
+    },
+  };
+  NAV_INSTANCES.add(mv);
+  return mv;
+}
+
+/** Arc length of the polyline point nearest to p, searching from arc length `from` on. */
+function arcOf(points: readonly XZ[], p: XZ, from: number): number {
+  let acc = 0;
+  let best = from;
+  let bestD = Infinity;
+  for (let i = 1; i < points.length; i++) {
+    const a = points[i - 1];
+    const b = points[i];
+    if (!a || !b) continue;
+    const l = d2(a, b);
+    const pr = projectOnSegment(p, a, b);
+    const s = acc + l * pr.t;
+    const d = d2(pr.point, p);
+    if (s + EPS >= from && d < bestD - EPS) {
+      bestD = d;
+      best = s;
+    }
+    acc += l;
+  }
+  return best;
+}

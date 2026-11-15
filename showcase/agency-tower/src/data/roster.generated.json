@@ -1,0 +1,233 @@
+{
+  "schemaVersion": 1,
+  "sourceSha256": "393505f7f7dffc64993c92f347c68a5c6d716ffe9278361a0efe8a035f57c3f4",
+  "agents": [
+    {
+      "name": "appsec",
+      "description": "Application security review: threat model before signature; code, dependency, secret and config review before delivery (OWASP). Read-only.",
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Bash"
+      ],
+      "model": "sonnet"
+    },
+    {
+      "name": "architecture-board",
+      "description": "Independent review of a spec's architecture and any new technology or dependency; keeps STACK.md and ADRs. Use before signature.",
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Write",
+        "Edit"
+      ],
+      "model": "sonnet"
+    },
+    {
+      "name": "business-analyst",
+      "description": "Turns the CEO's description into a signable spec. Use for any new job or change, before code.",
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Write",
+        "Edit"
+      ],
+      "model": "sonnet"
+    },
+    {
+      "name": "delivery-manager",
+      "description": "Plan, issues, branches, PRs, CI tracking and status reports from a signed spec. Writes no code.",
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Write",
+        "Edit",
+        "Bash"
+      ],
+      "model": "sonnet"
+    },
+    {
+      "name": "devops-sre",
+      "description": "Docker, CI, deploy package (steps, rollback, health check), Cloudflare/Plesk checklist, backup, monitoring. Prepares, never deploys.",
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Write",
+        "Edit",
+        "MultiEdit",
+        "Bash"
+      ],
+      "model": "sonnet"
+    },
+    {
+      "name": "dotnet-engineer",
+      "description": ".NET (C#/ASP.NET Core/EF Core) implementation of a signed spec, test first.",
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Write",
+        "Edit",
+        "MultiEdit",
+        "Bash"
+      ],
+      "model": "sonnet"
+    },
+    {
+      "name": "internal-auditor",
+      "description": "Independent audit of finished work against spec, rules and evidence; read-only. Use before calling anything done.",
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Bash"
+      ],
+      "model": "sonnet"
+    },
+    {
+      "name": "marketing",
+      "description": "Store, in-product and social copy, brand guide, asset briefs. Drafts only; publishing needs CEO approval.",
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Write",
+        "Edit"
+      ],
+      "model": "sonnet"
+    },
+    {
+      "name": "polyglot-engineer",
+      "description": "Reads and ports systems outside .NET/React (Django, Vue, PHP, Java, Go): behavior inventory and parity tests.",
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Write",
+        "Edit",
+        "MultiEdit",
+        "Bash"
+      ],
+      "model": "sonnet"
+    },
+    {
+      "name": "product-manager",
+      "description": "Sourced market research and a do/don't/do-differently decision; roadmap and feedback. Use for new ideas.",
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "WebSearch",
+        "WebFetch",
+        "Write",
+        "Edit"
+      ],
+      "model": "sonnet"
+    },
+    {
+      "name": "qa-engineer",
+      "description": "Maps every acceptance criterion to evidence, probes tests by breaking code, writes failing reproduction tests. No production code.",
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Bash",
+        "Write",
+        "Edit"
+      ],
+      "model": "sonnet"
+    },
+    {
+      "name": "quality-office",
+      "description": "Requirement-to-evidence traceability and the compliance checklist (privacy law, licenses, store rules). No legal opinion.",
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Bash",
+        "Write",
+        "Edit"
+      ],
+      "model": "sonnet"
+    },
+    {
+      "name": "react-engineer",
+      "description": "React/TypeScript/Vite implementation of a signed spec, test first, all UX states.",
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Write",
+        "Edit",
+        "MultiEdit",
+        "Bash"
+      ],
+      "model": "sonnet"
+    },
+    {
+      "name": "scout",
+      "description": "Finds and compares ready-made solutions (APIs, repos, libraries, MCP, skills) with sources; installs nothing.",
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "WebSearch",
+        "WebFetch",
+        "Write",
+        "Edit"
+      ],
+      "model": "sonnet"
+    },
+    {
+      "name": "software-architect",
+      "description": "Designs solution architecture and migration plans before the spec, with options and trade-offs. Does not approve its own design.",
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Write",
+        "Edit"
+      ],
+      "model": "opus"
+    },
+    {
+      "name": "spec-critic",
+      "description": "Adversarial read of a spec from the file alone; lists unanswered questions. Use before signature.",
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob"
+      ],
+      "model": "sonnet"
+    },
+    {
+      "name": "talent-capacity",
+      "description": "Bottleneck, missing-expertise and token-cost reports from scorecards. Recommendations only.",
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Write",
+        "Edit"
+      ],
+      "model": "haiku"
+    },
+    {
+      "name": "tech-comms",
+      "description": "Source text for customer documents: manuals, release notes, summaries. Writes only to docs/dis/.",
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Write",
+        "Edit"
+      ],
+      "model": "sonnet"
+    }
+  ]
+}
