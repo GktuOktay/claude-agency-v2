@@ -375,3 +375,36 @@ html.is-follow .walk-enter { display: none; }
   .camera-mode { top: auto; bottom: calc(var(--space-2) + env(safe-area-inset-bottom, 0px)); width: calc(100vw - 2 * var(--space-2)); max-width: none; }
   .walk-enter { margin-top: auto; }
 }
+
+/* KARARLAR Rev 43 C: "Olay akışı" toast, bottom-right corner: the floor panel rail is the left column (top strip on
+   phones), the robot card (z 12) and the settings sheet (z 14) cover it; small and quiet. */
+.event-feed { position: absolute; z-index: 11; right: var(--space-4); bottom: var(--space-4); max-width: min(20rem, calc(100vw - 20rem)); pointer-events: none; }
+.event-feed[hidden] { display: none; }
+.event-feed ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-1); align-items: flex-end; }
+.event-feed button { pointer-events: auto; min-height: var(--touch); max-width: 100%; display: flex; align-items: baseline; gap: var(--space-2); padding: 6px var(--space-3); border-radius: var(--radius-sm); background: var(--panel); border: 1px solid var(--panel-border); box-shadow: var(--panel-shadow); font-size: 0.8rem; text-align: left; }
+.feed-time { color: var(--fg-muted); font-variant-numeric: tabular-nums; flex: none; }
+.feed-text { overflow-wrap: anywhere; }
+.event-feed li:nth-child(n + 2) button { opacity: 0.85; }
+/* Nabız tab: figures and the recent events. */
+.pulse { margin: 0 0 var(--space-3); display: grid; grid-template-columns: 1fr auto; gap: 6px var(--space-3); font-size: 0.85rem; }
+.pulse dt { color: var(--fg-muted); }
+.pulse dd { margin: 0; font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.pulse-events ul { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-1); }
+.pulse-events button { min-height: var(--touch); width: 100%; display: flex; gap: var(--space-2); align-items: baseline; padding: 6px var(--space-3); border-radius: var(--radius-sm); text-align: left; font-size: 0.82rem; }
+.pulse-box h3, .pulse-events h3 { margin: 0 0 4px; font-size: 0.9rem; }
+.view-extras { display: grid; gap: var(--space-3); justify-items: start; margin-bottom: var(--space-3); }
+.view-extras > .screenshot { justify-self: stretch; }
+.day-speed { margin: 0; padding: 0; border: 0; min-width: 0; }
+.day-speed legend { font-size: 0.85rem; font-weight: 600; margin-bottom: 4px; }
+.lunch-jump > button, .screenshot > button { min-height: var(--touch); width: 100%; border-radius: var(--radius-pill); text-align: left; padding: 6px var(--space-4); font-size: 0.85rem; }
+.lunch-jump .settings-note:empty, .screenshot .settings-note:empty { display: none; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+@media (max-width: 767px) {
+  .event-feed { right: 8px; bottom: calc(8px + env(safe-area-inset-bottom, 0px)); max-width: min(16rem, calc(100vw - 11rem)); }
+  .event-feed li:nth-child(n + 4) { display: none; }
+  html.is-follow .event-feed, html.is-walk .event-feed { display: none; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .event-feed li { animation: feed-in 180ms ease-out; }
+}
+@keyframes feed-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }

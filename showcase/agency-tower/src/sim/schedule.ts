@@ -57,7 +57,7 @@ const hm = (s: string): number => {
 const span = (d: DaySegment): number => (hm(d.to) - hm(d.from) + 1440) % 1440;
 
 /** Seconds into the office day (from 09:00) at which the clock reads `hhmm`. */
-function dayOffsetOf(hhmm: string): number {
+export function dayOffsetOf(hhmm: string): number {
   const at = hm(hhmm);
   let s = 0;
   for (const d of OFFICE_DAY) {
