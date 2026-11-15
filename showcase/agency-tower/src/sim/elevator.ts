@@ -12,10 +12,10 @@
 // its floor is at least half a floor ahead (the cabin re-plans the stop; travel time restarts from there). Doors are fully open while riders board or exit.
 import { FLOOR_COUNT, floorY } from './layout';
 
-/** Doors at every stop (§7.5b): riders exit and board while they are fully open (CEO film review: 0.6 -> 0.5 s). */
-export const DOOR_S = 0.5;
+/** Doors at every stop (§7.5b): riders exit and board while they are fully open */
+export const DOOR_S = 0.6;
 /** Door open and close ramps inside DOOR_S; the doors are fully open between them. */
-export const DOOR_RAMP_S = 0.15;
+export const DOOR_RAMP_S = 0.2;
 /** Riders board at this instant of a door phase (doors fully open). */
 export const DOOR_PASS_S = DOOR_S / 2;
 /** Riders step out the moment the doors are fully open (all of them together, not one by one). */
@@ -33,13 +33,13 @@ export const LEGACY_CAPACITY = 3;
  */
 export type ElevatorPolicy = 'collective' | 'legacy';
 
-/** Seconds per floor of cabin travel (CEO film review "işe geliş bu kadar yavaş olmamalı": 0.6 -> 0.45). */
-export const TRAVEL_PER_FLOOR_S = 0.45;
-/** Shortest and longest cabin trip (0.8 / 3.0 -> 0.6 / 2.25 with the faster cabin). */
-export const TRAVEL_MIN_S = 0.6;
-export const TRAVEL_MAX_S = 2.25;
+/** Seconds per floor of cabin travel (§7.5b). */
+export const TRAVEL_PER_FLOOR_S = 0.6;
+/** Shortest and longest cabin trip (§7.5b). */
+export const TRAVEL_MIN_S = 0.8;
+export const TRAVEL_MAX_S = 3.0;
 
-/** Cabin travel time for a number of floors, empty or loaded: clamp(0.45 s x floors, 0.6 s, 2.25 s). */
+/** Cabin travel time for a number of floors, empty or loaded: clamp(0.6 s x floors, 0.8 s, 3.0 s). */
 export function travelS(floors: number): number {
   const n = Math.abs(floors);
   return n === 0 ? 0 : Math.min(Math.max(TRAVEL_PER_FLOOR_S * n, TRAVEL_MIN_S), TRAVEL_MAX_S);

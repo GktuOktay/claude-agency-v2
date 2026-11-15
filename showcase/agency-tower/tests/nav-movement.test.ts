@@ -5,7 +5,7 @@ import { describe, it, expect } from 'vitest';
 import { FLOOR_COUNT, ROBOT_SEPARATION, floorLayout, separationExempt, type FloorLayout } from '../src/sim/layout';
 import { buildFloorGraph, distanceToGraph, route } from '../src/sim/nav';
 import { WALK_SPEED, MAX_YIELD_S, createNavMovement, layoutsFromUnits, type NavMovement } from '../src/sim/navMovement';
-import { rideLegS } from '../src/sim/elevator';
+import { riderLegS } from '../src/sim/elevator';
 import { sortUnits } from '../src/ui/unitList';
 import { loadData } from '../src/data/loader';
 import roster from '../src/data/roster.generated.json';
@@ -110,12 +110,13 @@ describe('floor change (REQ-14, AC-13)', () => {
     expect(m.nodeOf('qa-engineer')).toMatch(/^mseat:/);
   });
 
-  it('the ride leg follows the §7.5b formula (cabin-arrival wait + doors + travel + doors)', () => {
+  // CEO film review: the rider steps out once the exit doors are fully open (riderLegS), not after they have closed.
+  it('the ride leg follows the §7.5b formula (cabin-arrival wait + doors + travel + exit doors fully open)', () => {
     const m = make();
     m.moveTo('marketing', { floor: 4, spot: 'home:chief-of-staff' });
     stepUntil(m, () => m.isAt('marketing', { floor: 4, spot: 'home:chief-of-staff' }));
     const ride = m.legLog().find((l) => l.unit === 'marketing' && l.kind === 'ride')!;
-    expect(Math.abs(ride.end - ride.start - (ride.waited! + rideLegS(4)))).toBeLessThanOrEqual(2 * STEP + 1e-6);
+    expect(Math.abs(ride.end - ride.start - (ride.waited! + riderLegS(4)))).toBeLessThanOrEqual(2 * STEP + 1e-6);
   });
 
   it('a frozen caller in call-wait does not board; on release its call goes to the end of the queue', () => {

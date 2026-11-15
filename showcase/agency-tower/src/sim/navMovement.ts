@@ -12,8 +12,8 @@ import type { MovePhase, Movement, Target } from './movement';
 import { buildCampusGraph, buildFloorGraph, offsetPath, pathLength, pointAlong, projectOnSegment, shortestPath, type FloorGraph } from './nav';
 
 export const WALK_SPEED = 1.2;
-/** Call-button gesture at the waiting spot before the call registers (part of the cabin-arrival wait; 0.5 -> 0.3 s). */
-export const CALL_GESTURE_S = 0.3;
+/** Call-button gesture at the waiting spot before the call registers (part of the cabin-arrival wait). */
+export const CALL_GESTURE_S = 0.5;
 /** Longest single yield wait (AC-12); after it the walker goes on. */
 export const MAX_YIELD_S = 6;
 /** A give-way ends once the priority walker is this far away (separation + one lane width). */
