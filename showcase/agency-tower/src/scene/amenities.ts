@@ -10,6 +10,13 @@ import { AMENITY_SPOTS, FLOOR_TOP, LAB_STATIONS, wingX, type AmenityKind } from 
 import { CODE_LINES } from './codeLines';
 import { clumpGeometry } from './greenery';
 
+/** Seconds for the live lab displays: wall time, or the film's fixed timeline (Rev 45 `?fixed=1`). */
+let displayClock = (): number => (typeof performance !== 'undefined' ? performance.now() / 1000 : 0);
+/** Rev 45: the fixed-step film drives the lab displays from its own timeline (deterministic frames). */
+export function setDisplayClock(fn: () => number): void {
+  displayClock = fn;
+}
+
 /** Closed projects in the archive (fictional names; one label per box, cycled). */
 export const PROJECT_ARCHIVE: readonly string[] = [
   'Kuzey Yıldızı', 'Mavi Liman', 'Proje Atlas', 'Kervan', 'Poyraz', 'Yakamoz', 'Anka', 'Sirius', 'Lodos', 'Meltem',
@@ -556,7 +563,7 @@ function displayMaterial(k: Kit): { material: MeshBasicMaterial; tick: ((now: nu
   tex.colorSpace = SRGBColorSpace;
   const reduced = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
   const due = createLabWallTicker(LAB_WALL_HZ);
-  const t0 = typeof performance !== 'undefined' ? performance.now() / 1000 : 0;
+  const t0 = displayClock();
   const tick = reduced
     ? null
     : (now: number): void => {
@@ -722,7 +729,7 @@ function rndLab(k: Kit, p: Paints, g: Group, materials: FloorMaterials): void {
   const displays = new Mesh(merged(disp), material);
   displays.name = 'rnd-displays';
   displays.userData.shadow = 'none';
-  if (tick) displays.onBeforeRender = () => tick(performance.now() / 1000);
+  if (tick) displays.onBeforeRender = () => tick(displayClock());
   g.add(displays);
   const polished = new MeshStandardMaterial({ color: 0xffffff, vertexColors: true, roughness: 0.18, metalness: 0.12, emissive: 0xffd9a0, emissiveIntensity: 0.06 });
   polished.userData.glow = { day: 0.06, night: 0.3 };

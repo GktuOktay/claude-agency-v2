@@ -20,11 +20,12 @@ export interface DaySegment {
   readonly period: OfficePeriod;
 }
 
-/** One office day, in order from 09:00. */
+/** One office day, in order from 08:00 (Rev 45: the workday starts at 08:00; slot seconds unchanged). */
 // Rev 40: night (light phase 0.5–1 = 18:00–06:00) lasts 105 s, a quarter of the 420 s cycle; the slots keep
 // their CEO times and the coffee / tea lengths, lunch 80 s, each work block 37.5 s, dawn (06:00–09:00) 5 s.
+// Rev 45: the first work block is 08:00–10:30 and dawn 06:00–08:00, with the same 37.5 s and 5 s.
 export const OFFICE_DAY: readonly DaySegment[] = [
-  { from: '09:00', to: '10:30', seconds: 37.5, period: 'work' },
+  { from: '08:00', to: '10:30', seconds: 37.5, period: 'work' },
   { from: '10:30', to: '10:45', seconds: 40, period: 'coffee' },
   { from: '10:45', to: '12:30', seconds: 37.5, period: 'work' },
   { from: '12:30', to: '13:30', seconds: 80, period: 'lunch' },
@@ -32,14 +33,14 @@ export const OFFICE_DAY: readonly DaySegment[] = [
   { from: '15:30', to: '15:45', seconds: 40, period: 'tea' },
   { from: '15:45', to: '18:00', seconds: 37.5, period: 'work' },
   { from: '18:00', to: '06:00', seconds: 105, period: 'after' },
-  { from: '06:00', to: '09:00', seconds: 5, period: 'after' },
+  { from: '06:00', to: '08:00', seconds: 5, period: 'after' },
 ];
 
 export const OFFICE_DAY_S = OFFICE_DAY.reduce((s, d) => s + d.seconds, 0);
 
 /** The CEO's slots (Rev 35), as the settings "Mola saatleri" list shows them. */
 export const OFFICE_SLOTS: readonly ScheduleSlot[] = [
-  { start: '09:00', end: '09:15', labelTr: 'Mesai başlar', kind: 'start' },
+  { start: '08:00', end: '08:15', labelTr: 'Mesai başlar', kind: 'start' },
   { start: '10:30', end: '10:45', labelTr: 'Kahve molası', kind: 'coffee' },
   { start: '12:30', end: '13:30', labelTr: 'Öğle yemeği', kind: 'lunch' },
   { start: '15:30', end: '15:45', labelTr: 'Çay molası', kind: 'tea' },
@@ -49,6 +50,8 @@ export const OFFICE_SLOTS: readonly ScheduleSlot[] = [
 const WORK_LABEL = 'Mesai';
 const OFF_LABEL = 'Mesai dışı';
 export const DEFAULT_START = '12:00';
+/** Rev 45: the workday starts at 08:00. */
+export const WORK_START = '08:00';
 
 const hm = (s: string): number => {
   const [h, m] = s.split(':').map(Number);
@@ -56,7 +59,7 @@ const hm = (s: string): number => {
 };
 const span = (d: DaySegment): number => (hm(d.to) - hm(d.from) + 1440) % 1440;
 
-/** Seconds into the office day (from 09:00) at which the clock reads `hhmm`. */
+/** Seconds into the office day (from 08:00) at which the clock reads `hhmm`. */
 export function dayOffsetOf(hhmm: string): number {
   const at = hm(hhmm);
   let s = 0;
@@ -138,7 +141,7 @@ export function createOfficeSchedule(clock: { readonly time: number }, o: Office
     now(): OfficeNow {
       const at = Math.floor(minutes() + 1e-9) % 1440;
       const slot = OFFICE_SLOTS.find((s) => hm(s.start) <= at && at < hm(s.end));
-      const label = slot?.labelTr ?? (at >= hm('09:00') && at < hm('18:00') ? WORK_LABEL : OFF_LABEL);
+      const label = slot?.labelTr ?? (at >= hm(WORK_START) && at < hm('18:00') ? WORK_LABEL : OFF_LABEL);
       return { hh: Math.floor(at / 60), mm: at % 60, label };
     },
   };

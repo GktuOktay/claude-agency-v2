@@ -36,7 +36,7 @@ const minutes = (hhmm: string): number => {
 const pad = (n: number): string => String(n).padStart(2, '0');
 
 const PLACEHOLDER_SLOTS: readonly ScheduleSlot[] = [
-  { start: '09:00', end: '09:15', labelTr: 'Mesai başlar', kind: 'start' },
+  { start: '08:00', end: '08:15', labelTr: 'Mesai başlar', kind: 'start' },
   { start: '10:30', end: '10:45', labelTr: 'Kahve molası', kind: 'coffee' },
   { start: '12:30', end: '13:30', labelTr: 'Öğle yemeği', kind: 'lunch' },
   { start: '15:30', end: '15:45', labelTr: 'Çay molası', kind: 'tea' },
@@ -53,7 +53,7 @@ export const PLACEHOLDER_SCHEDULE: OfficeSchedule & { placeholder: true } = {
     const mm = d.getMinutes();
     const at = hh * 60 + mm;
     const slot = PLACEHOLDER_SLOTS.find((s) => minutes(s.start) <= at && at < minutes(s.end));
-    const label = slot?.labelTr ?? (at >= minutes('09:00') && at < minutes('18:00') ? 'Mesai' : 'Mesai dışı');
+    const label = slot?.labelTr ?? (at >= minutes('08:00') && at < minutes('18:00') ? 'Mesai' : 'Mesai dışı');
     return { hh, mm, label };
   },
 };
