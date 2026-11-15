@@ -68,7 +68,10 @@ describe('office day mapping', () => {
     expect(at('15:46')).toBe('work');
     expect(at('18:01')).toBe('after');
     expect(at('03:00')).toBe('after');
-    expect(at('08:59')).toBe('after');
+    // Rev 45: the workday starts at 08:00.
+    expect(at('07:59')).toBe('after');
+    expect(at('08:01')).toBe('work');
+    expect(at('08:59')).toBe('work');
   });
 
   it('lights: the light phase follows the office hour; dark after hours, bright in office hours', () => {
@@ -85,7 +88,7 @@ describe('office day mapping', () => {
 describe('OfficeSchedule on the simulation clock', () => {
   it('lists the five CEO slots in order with Turkish labels', () => {
     expect(OFFICE_SLOTS.map((s) => [s.start, s.labelTr, s.kind])).toEqual([
-      ['09:00', 'Mesai başlar', 'start'],
+      ['08:00', 'Mesai başlar', 'start'],
       ['10:30', 'Kahve molası', 'coffee'],
       ['12:30', 'Öğle yemeği', 'lunch'],
       ['15:30', 'Çay molası', 'tea'],
@@ -130,8 +133,9 @@ describe('OfficeSchedule on the simulation clock', () => {
     const a = createOfficeSchedule({ time: 77.7 });
     const b = createOfficeSchedule({ time: 77.7 });
     expect(a.now()).toEqual(b.now());
-    const c = createOfficeSchedule({ time: 0 }, { startAt: '09:00' });
-    expect(c.now()).toEqual({ hh: 9, mm: 0, label: 'Mesai başlar' });
+    const c = createOfficeSchedule({ time: 0 }, { startAt: '08:00' });
+    expect(c.now()).toEqual({ hh: 8, mm: 0, label: 'Mesai başlar' });
+    expect(createOfficeSchedule({ time: 0 }, { startAt: '09:00' }).now()).toEqual({ hh: 9, mm: 0, label: 'Mesai' });
   });
 
   it('the settings schedule view shows the live clock and marks the current slot', () => {

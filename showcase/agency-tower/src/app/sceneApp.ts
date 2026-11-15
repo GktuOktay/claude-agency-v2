@@ -212,7 +212,7 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
   // Rev 43 C3: the office reads simulation time + the "Öğle arasına atla" offset (the engine never sees it).
   const officeTime = createOfficeTime({
     get time() {
-      // Film: the story director sets the office hour per scene (08:30 opening, lunch at scene 13).
+      // Film: the story director sets the office hour per scene (08:00 opening, Rev 45; lunch at scene 13).
       return filmDir ? filmDir.officeClock() : runtime.clock.time;
     },
   });

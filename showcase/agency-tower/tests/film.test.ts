@@ -209,11 +209,11 @@ describe('film story director', () => {
     expect(d.caption()!.alpha).toBe(1);
   });
 
-  it('drives the office clock: the film opens at 08:30, scene 13 is lunch and no other scene is a break', () => {
+  it('drives the office clock: the film opens at 08:00, scene 13 is lunch and no other scene is a break', () => {
     const wf = createWorkflow({ scenarios: withFilm(scenarioSet(), film()), units: UNITS, scripted: false, autoStart: false });
     const d = createFilmDirector({ workflow: wf, scenario: film() });
     const office = createOfficeSchedule({ get time() { return d.officeClock(); } });
-    expect(office.now()).toMatchObject({ hh: 8, mm: 30 });
+    expect(office.now()).toMatchObject({ hh: 8, mm: 0 });
     expect([...(r.periods.get(13) ?? [])]).toEqual(['lunch']);
     for (const [n, ps] of r.periods) if (n !== 13) for (const p of ps) expect(['work', 'after'], `scene ${n}`).toContain(p);
   });
@@ -222,11 +222,11 @@ describe('film story director', () => {
 describe('film overlay and recorder hook', () => {
   it('shows the lower-third caption (title + text) with its alpha and the bubbles at their positions', () => {
     const o = createFilmOverlay();
-    o.update({ title: 'Açılış', text: 'Sabah 08:30. Şirket uyanıyor.', alpha: 0.5 }, [{ x: 100, y: 50, text: 'Günaydın efendim!', alpha: 1 }]);
+    o.update({ title: 'Açılış', text: 'Sabah 08:00. Şirket uyanıyor.', alpha: 0.5 }, [{ x: 100, y: 50, text: 'Günaydın efendim!', alpha: 1 }]);
     const cap = o.element.querySelector('.film-caption') as HTMLElement;
     expect(cap.hidden).toBe(false);
     expect(o.element.querySelector('.film-caption-title')?.textContent).toBe('Açılış');
-    expect(o.element.querySelector('.film-caption-text')?.textContent).toBe('Sabah 08:30. Şirket uyanıyor.');
+    expect(o.element.querySelector('.film-caption-text')?.textContent).toBe('Sabah 08:00. Şirket uyanıyor.');
     expect(Number(cap.style.opacity)).toBe(0.5);
     const b = o.element.querySelector('.film-bubble') as HTMLElement;
     expect(b.textContent).toBe('Günaydın efendim!');

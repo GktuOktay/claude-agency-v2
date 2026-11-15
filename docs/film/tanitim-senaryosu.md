@@ -12,7 +12,7 @@ Gün hızı yürüme, bekleme ve sabah gelişinde 8×, masa işinde 4×, kilit a
 
 | # | Sahne | Yer | Görünenler | Alt yazı | Süre |
 |---|---|---|---|---|---|
-| 1 | Açılış | Şehir → kule, sabah ışığı | Genel tur, otoparka lüks araç girer | "Sabah 08:30. Şirket uyanıyor." | 10 s |
+| 1 | Açılış | Şehir → kule, sabah ışığı | Genel tur, otoparka lüks araç girer | "Sabah 08:00. Şirket uyanıyor." | 10 s |
 | 2 | CEO geliyor | Lobi → asansör → penthouse | CEO lobiden geçer, güvenlik selam verir, asansör | "CEO yeni bir işle geldi." | 10 s |
 | 3 | İş zarfı | Penthouse imza masası | CEO zarfı Chief of Staff'a verir | "Kooperatif Pazarı: web, mobil ve API." | 8 s |
 | 4 | Araştırma | 4. kat | Ürün Yöneticisi ve Keşifçi masada; ekranlarda pazar grafikleri | "Ürün: pazar ve rakipler. Keşifçi: hazır çözüm var mı?" | 12 s |
