@@ -38,3 +38,38 @@ Gün hızı yürüme ve bekleme anlarında 4×, kilit anlarda 1×. Kamera her sa
 - Alt yazı alttan üçte birlik, okunaklı ve Türkçe. Arka plan yarı saydam. En fazla 2 satır.
 - Kayıt: Chrome, `canvas.captureStream` ile alınır, gökyüzü gradyanıyla birleştirilir, ffmpeg ile mp4'e çevrilir.
 - Video GitHub'a yüklenmez.
+
+## Diyaloglar (CEO: "diyaloglar da geçsin")
+Her sahnede konuşan robotun başının üstünde kısa bir balon çıkar. En fazla 2 balon aynı anda görünür. Bir replik en çok 2.5 s ekranda kalır.
+
+| # | Konuşan → dinleyen | Replik |
+|---|---|---|
+| 2 | Güvenlik → CEO | "Günaydın efendim!" |
+| 2 | CEO → Güvenlik | "Günaydın, bugün büyük gün." |
+| 3 | CEO → Chief of Staff | "Kooperatif Pazarı. Üreticiler doğrudan satsın." |
+| 3 | Chief of Staff → CEO | "Lane 3. Tüm ekibi topluyorum." |
+| 4 | Ürün Yöneticisi → Keşifçi | "Rakipler komisyonu yüksek tutuyor." |
+| 4 | Keşifçi → Ürün Yöneticisi | "Ödeme için hazır kütüphane var, sıfırdan yazmayalım." |
+| 5 | Yazılım Mimarı → Mimari Kurul | "API önde, web ve mobil aynı servisi kullansın." |
+| 5 | Mimari Kurul → Yazılım Mimarı | "Yeni bağımlılık için gerekçe yaz." |
+| 6 | İş Analisti → Chief of Staff | "Spec hazır: 14 kabul kriteri." |
+| 7 | Spec Eleştirmeni → İş Analisti | "İade süreci nerede?" |
+| 7 | AppSec → İş Analisti | "Ödeme verisi saklanmayacak, değil mi?" |
+| 8 | İş Analisti → Spec Eleştirmeni | "İade akışını ekledim." |
+| 8 | Spec Eleştirmeni → İş Analisti | "Şimdi oldu." |
+| 9 | CEO → Chief of Staff | "Onaylıyorum. Başlayın." |
+| 10 | Teslimat Yöneticisi → Mühendisler | "Dört dal, iki hafta. Önce testler." |
+| 11 | React Mühendisi → .NET Mühendisi | "Sepet uç noktası hazır mı?" |
+| 11 | .NET Mühendisi → React Mühendisi | "Beş dakika, test yeşile dönüyor." |
+| 11 | DevOps → Çok Dilli Mühendis | "Docker imajı hazır." |
+| 12 | Ar-Ge lideri → ekip | "Ya teslimat rotasını yapay zekâ çizse?" |
+| 13 | Çaycı → Mühendis | "Çayınız taze!" |
+| 13 | Mühendis → Mühendis | "Bir set daha, sonra koda dönüyoruz." |
+| 14 | QA Mühendisi → .NET Mühendisi | "Boş sepetle ödeme geçti. Kırmızı!" |
+| 14 | .NET Mühendisi → QA Mühendisi | "Düzelttim, tekrar dene." |
+| 14 | QA Mühendisi → .NET Mühendisi | "Yeşil." |
+| 15 | AppSec → İç Denetçi | "Sır yok, girdi doğrulaması tamam." |
+| 15 | İç Denetçi → Kalite Ofisi | "Her kriterin kanıtı var." |
+| 16 | Pazarlama → Teknik İletişim | "Slogan: Tarladan sofraya, aracısız." |
+| 17 | Chief of Staff → CEO | "Testler yeşil, denetim temiz. Teslime hazır." |
+| 17 | CEO → herkes | "Harika iş. Herkese teşekkürler!" |
