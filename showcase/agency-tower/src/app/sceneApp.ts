@@ -42,6 +42,8 @@ import { createFixedStepper, filmFixedParam } from '../film/fixedStep';
 import { setDisplayClock } from '../scene/amenities';
 import { FILM_TITLE } from '../film/script';
 import { filmShotPlan } from '../film/shots';
+import { FILM_LIFE_ANCHORS, filmStage } from '../film/staging';
+import { LIFE_ANCHORS } from '../sim/roomLifeSim';
 import { WALK_FOV, createWalker, isWalkKey, walkInputFromKeys, type Walker } from '../scene/walk';
 import { buildCampusGraph, type CampusGraph } from '../sim/nav';
 import { createCameraModeUi, type FollowList } from '../ui/cameraModeUi';
@@ -241,6 +243,8 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
         periodAhead: (s) => breakPeriodAt(officeTime.time + s),
         paused: () => runtime.clock.paused,
         queued: () => breakNav?.elevator.queue().length ?? BREAK_QUEUE_MAX,
+        // Rev 46 film staging (`?film=1` only): welcome group, CEO in the lobby, builders on their floor.
+        ...(filmScn ? { stage: (id: string) => filmStage(filmDir?.sceneNumber() ?? 1, id) } : {}),
       }),
     },
   );
@@ -328,7 +332,7 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
   let staff: StaffModel | null = null;
   let staffRt: StaffRuntime | null = null;
   // Room life (Rev 39): the wider team in every room; not units, never pickable. Synced with the staff.
-  const roomLife = createRoomLife({ seed: 1, officeTime: office.minutes() });
+  const roomLife = createRoomLife({ seed: 1, officeTime: office.minutes(), ...(filmScn ? { anchors: [...LIFE_ANCHORS, ...FILM_LIFE_ANCHORS] } : {}) });
   model.root.add(roomLife.group);
   function syncStaff(): void {
     staff?.setView(model.view);

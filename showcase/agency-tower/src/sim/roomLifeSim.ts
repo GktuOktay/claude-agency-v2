@@ -19,7 +19,10 @@ export type LifeRoom =
   | 'archive'
   | 'lounge'
   | 'roof-garden'
-  | 'roof-terrace';
+  | 'roof-terrace'
+  /** Film-only rooms (Rev 46, `?film=1`; src/film/staging.ts): never in LIFE_ROOMS or LIFE_ANCHORS. */
+  | 'engineering'
+  | 'penthouse';
 
 export const LIFE_ROOMS: readonly LifeRoom[] = ['lobby', 'yemekhane', 'snack-bar', 'terrace', 'gym', 'game-room', 'rnd-lab', 'sleep-pods', 'archive', 'lounge', 'roof-garden', 'roof-terrace'];
 
@@ -278,6 +281,8 @@ export interface RoomLifeSimOptions {
   reducedMotion?: boolean;
   /** Office time at start ("HH:MM" or minutes since 00:00), default 12:00. */
   officeTime?: string | number;
+  /** The occupants (default LIFE_ANCHORS; the film adds its staging crew, src/film/staging.ts). */
+  anchors?: readonly LifeAnchor[];
 }
 
 export interface RoomLifeSim {
@@ -298,7 +303,8 @@ export function createRoomLifeSim(o: RoomLifeSimOptions = {}): RoomLifeSim {
   let org = false;
   const toMinutes = (v: string | number): number => (typeof v === 'number' ? v : hm(v));
   let minutes = toMinutes(o.officeTime ?? '12:00');
-  const state = LIFE_ANCHORS.map((a) => {
+  const anchors = o.anchors ?? LIFE_ANCHORS;
+  const state = anchors.map((a) => {
     const present = isPresent(a, minutes, seed);
     return { a, present, appear: present ? 1 : 0, t: hash(seed, `${a.id}|phase`) * 20, rate: 0.35 + hash(seed, `${a.id}|rate`) * 0.3 };
   });
@@ -326,7 +332,7 @@ export function createRoomLifeSim(o: RoomLifeSimOptions = {}): RoomLifeSim {
   };
   build();
   return {
-    anchors: LIFE_ANCHORS,
+    anchors,
     setOfficeTime(v) {
       minutes = toMinutes(v);
     },

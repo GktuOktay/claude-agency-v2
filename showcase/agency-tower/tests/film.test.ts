@@ -60,7 +60,7 @@ function playFilm(maxWallS = 400): Run {
     }
     const f = dir.update(dt, events);
     speed = f.speed;
-    speeds.add(speed);
+    if (!f.done) speeds.add(speed); // the 1 after the end does not count as a key-moment speed
     maxBubbles = Math.max(maxBubbles, dir.lines().length);
     for (const v of dir.lines()) lineShown.set(v.line.text, (lineShown.get(v.line.text) ?? 0) + dt);
     const ps = periods.get(f.scene.n) ?? new Set<string>();
@@ -110,32 +110,32 @@ describe('film-flagship scenario', () => {
 describe('film story director', () => {
   const r = playFilm();
 
-  // CEO film review "daha hızlı bir çekim istiyorum": 203 s -> 110–140 s.
-  it('ends (the tour onEnd fires on this) within 110–140 s of wall time', () => {
+  // CEO film review "daha hızlı bir çekim istiyorum": 203 s -> 110–140 s; then "hızı da biraz düşür" (Rev 46): 140–170 s.
+  it('ends (the tour onEnd fires on this) within 140–170 s of wall time', () => {
     expect(r.dir.done).toBe(true);
     console.info(`film length ${r.dir.elapsed.toFixed(1)} s`);
-    expect(r.dir.elapsed).toBeGreaterThanOrEqual(110);
-    expect(r.dir.elapsed).toBeLessThanOrEqual(140);
+    expect(r.dir.elapsed).toBeGreaterThanOrEqual(140);
+    expect(r.dir.elapsed).toBeLessThanOrEqual(170);
   });
 
-  it('holds the director shots (scenes 1, 2, 12, 13, 18) at most 6 s each', () => {
+  it('holds the director shots (scenes 1, 2, 12, 13, 18) at most 8 s each', () => {
     const tl = r.dir.timeline();
     for (let i = 0; i < tl.length; i++) {
       const n = tl[i]!.scene;
       if (!DIRECTOR_SCENES.has(n)) continue;
       const end = tl[i + 1]?.at ?? r.dir.elapsed;
-      expect(end - tl[i]!.at, `scene ${n}`).toBeLessThanOrEqual(6 + 0.6);
-      expect(FILM_SCENES.find((s) => s.n === n)!.minS, `scene ${n}`).toBeLessThanOrEqual(6);
+      expect(end - tl[i]!.at, `scene ${n}`).toBeLessThanOrEqual(8 + 0.6);
+      expect(FILM_SCENES.find((s) => s.n === n)!.minS, `scene ${n}`).toBeLessThanOrEqual(8);
     }
   });
 
-  it('keeps every caption and every dialogue line on screen at least 1.8 s', () => {
+  it('keeps every caption on screen at least 3 s and every dialogue line at least 2.2 s', () => {
     const tl = r.dir.timeline();
     for (let i = 0; i < tl.length; i++) {
       const end = tl[i + 1]?.at ?? r.dir.elapsed;
-      expect(end - tl[i]!.at, `caption ${tl[i]!.scene}`).toBeGreaterThanOrEqual(1.8);
+      expect(end - tl[i]!.at, `caption ${tl[i]!.scene}`).toBeGreaterThanOrEqual(3);
     }
-    for (const l of FILM_LINES) expect(r.lineShown.get(l.text) ?? 0, l.text).toBeGreaterThanOrEqual(1.8);
+    for (const l of FILM_LINES) expect(r.lineShown.get(l.text) ?? 0, l.text).toBeGreaterThanOrEqual(2.2);
   });
 
   it('plays the 18 scenes in order, each at least its minimum', () => {
@@ -165,11 +165,11 @@ describe('film story director', () => {
     expect(t.some((e) => e.type === 'sign')).toBe(true);
   });
 
-  it('runs 8× on walks, 4× on desk work and 1.5× at key moments', () => {
-    expect(FILM_SPEED).toEqual({ walk: 8, work: 4, key: 1.5 });
-    expect(r.speeds.has(8)).toBe(true);
-    expect(r.speeds.has(4)).toBe(true);
-    expect(r.speeds.has(1.5)).toBe(true);
+  it('runs 6× on walks, 3× on desk work and 1× at key moments', () => {
+    expect(FILM_SPEED).toEqual({ walk: 6, work: 3, key: 1 });
+    expect(r.speeds.has(6)).toBe(true);
+    expect(r.speeds.has(3)).toBe(true);
+    expect(r.speeds.has(1)).toBe(true);
   });
 
   it('schedules and shows every dialogue row of the screenplay, never more than 2 bubbles at once', () => {

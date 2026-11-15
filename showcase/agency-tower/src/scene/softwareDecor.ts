@@ -1,6 +1,6 @@
 // Software-company interior (KARARLAR Rev 35): premium desk setups with domain screens, wall displays
 // (CI/CD pipeline board, glass kanban, on-call board, release calendar), the floor-1 server room, the
-// fictional AJANS signage on the crown and in the lobby, the lobby welcome screen and award plaques, and
+// fictional YAZILIM EVİ signage on the crown and in the lobby, the lobby welcome screen and award plaques, and
 // premium details (oak slats, brushed metal, felt acoustic panels). Decoration only: nothing here moves a
 // desk, seat, spot, aisle or zone. Placement and footprints: src/scene/softwareLayout.ts.
 // Every display shows a tile of one static, shared atlas (src/scene/textures.ts), so the displays of a
@@ -123,7 +123,7 @@ function brandWall(k: Kit, g: Group): void {
   const slat = k.m(PALETTE.oak, { roughness: 0.6 });
   for (let i = 0; i < 18; i++) k.box(g, 0.07, h - 0.08, 0.03, 0, slat, -w / 2 + 0.075 + i * 0.15, 0.07, -0.025, 'object');
   k.box(g, w - 0.1, 0.02, 0.02, 0, k.glow(...WARM_LIGHT), 0, h - 0.03, 0.0, 'none');
-  // Sign: brushed-metal plate with the AJANS tile.
+  // Sign: brushed-metal plate with the YAZILIM EVİ tile.
   const sw = 1.3;
   const sh = tileH('sign', sw - 0.06);
   k.box(g, sw, sh + 0.06, 0.02, 0, metal(k), -0.35, 0.5, 0.0, 'none');
@@ -228,7 +228,7 @@ function slatCeiling(k: Kit, parent: Group): void {
   bakeStatic(k, g, `${DECOR_PREFIX}slat-ceiling:`);
 }
 
-/** Tower crown: the AJANS sign on two posts behind the penthouse's north glass, facing the city (+z). */
+/** Tower crown: the YAZILIM EVİ sign on two posts behind the penthouse's north glass, facing the city (+z). */
 function crownSign(k: Kit, parent: Group): void {
   const z = -HALF_DEPTH - 0.13;
   const g = sub(parent, `${DECOR_PREFIX}crown-sign`, 0, 0, z);

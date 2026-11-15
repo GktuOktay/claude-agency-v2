@@ -67,6 +67,8 @@ export interface FilmDirector {
   officeClock(): number;
   /** Scene numbers entered so far, with the wall second each started (tests, recorder). */
   timeline(): readonly { scene: number; at: number }[];
+  /** Current scene number (0 before the start; staging, src/film/staging.ts). */
+  sceneNumber(): number;
   /** Lines shown so far (tests). */
   played(): readonly FilmLine[];
 }
@@ -75,6 +77,8 @@ export interface FilmDirector {
 const SHOT_HOLD_S = 1.2;
 const LINE_IN_S = 0.2;
 const LINE_OUT_S = 0.3;
+/** The film job starts when this scene starts (Rev 46: the CEO arrives with it). */
+const JOB_SCENE = 2;
 
 const officeSeconds = (hhmm: string): number => (((dayOffsetOf(hhmm) - dayOffsetOf(DEFAULT_START)) % OFFICE_DAY_S) + OFFICE_DAY_S) % OFFICE_DAY_S;
 /** Office clock value at `f` (0..1) between two "HH:MM" readings (forward, wrapping the day). */
@@ -125,6 +129,7 @@ export function createFilmDirector(o: { workflow: FilmWorkflow; scenario: Scenar
     entered = true;
     timeline.push({ scene: scene().n, at: elapsed });
     for (const l of FILM_LINES) if (l.cue.kind === 'scene' && l.cue.scene === scene().n) schedule(l, elapsed + l.cue.at);
+    if (scene().n === JOB_SCENE && job < 0) job = wf.startJob(FILM_VARIANT, outcomes);
   }
 
   const triggered = (t: SceneTrigger | null): boolean => {
@@ -199,7 +204,7 @@ export function createFilmDirector(o: { workflow: FilmWorkflow; scenario: Scenar
     start() {
       if (started) return;
       started = true;
-      job = wf.startJob(FILM_VARIANT, outcomes);
+      // Rev 46: the film job starts with scene 2, so the CEO (waiting in the lobby, src/film/staging.ts) rides up.
       enterScene(0);
     },
     update(dt, events) {
@@ -259,5 +264,6 @@ export function createFilmDirector(o: { workflow: FilmWorkflow; scenario: Scenar
     },
     timeline: () => timeline,
     played: () => played,
+    sceneNumber: () => (started ? scene().n : 0),
   };
 }

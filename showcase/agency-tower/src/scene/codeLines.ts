@@ -177,8 +177,8 @@ export const RELEASE_CALENDAR = {
 } as const;
 
 /** Fictional brand: never a real company name or logo. */
-export const BRAND = { name: 'AJANS', tagline: 'Yazılım Atölyesi' } as const;
-export const WELCOME_LINES: readonly string[] = ['Hoş geldiniz', `${BRAND.name} · ${BRAND.tagline}`, 'Ziyaretçi kaydı resepsiyonda', 'Misafir ağı: AJANS-Misafir'];
+export const BRAND = { name: 'YAZILIM EVİ', tagline: 'Yazılım Atölyesi' } as const;
+export const WELCOME_LINES: readonly string[] = ['Hoş geldiniz', `${BRAND.name} · ${BRAND.tagline}`, 'Ziyaretçi kaydı resepsiyonda', 'Misafir ağı: YazilimEvi-Misafir'];
 /** Fictional awards on the lobby plaques. */
 export const AWARDS: readonly (readonly [string, string])[] = [
   ['Yılın Ekibi', '2025'],
