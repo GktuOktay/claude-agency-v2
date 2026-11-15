@@ -48,7 +48,7 @@ export const ROBOT_SEPARATION = 0.45;
  * Two walkers both on the staff landing (cabin plate or the landing apron in front of its door, §7.5c zones) keep only
  * this much: riders who just stepped out walk off as the group they stood in (CEO film review).
  */
-export const LANDING_SEPARATION = 0.3;
+export const LANDING_SEPARATION = 0.25;
 /** §7.5c: meeting-seat exception zone radius. */
 export const MEETING_SEAT_RADIUS = 0.35;
 /** Radius of the other point-like exception zones (pair desk, coffee, landing, hand-over, signing). */
@@ -217,7 +217,7 @@ export const STAFF_LANDING = {
    */
   exitSpots: [{ x: HALF_WIDTH - 0.55, z: CORRIDOR_Z + 0.45 }] as readonly XZ[],
   /** Exit lane of each rider spot: an `exitSpots` index, or -1 straight out along the corridor. */
-  riderExit: [-1, 0, -1, -1, 0, -1] as readonly number[],
+  riderExit: [-1, 0, 0, -1, 0, -1] as readonly number[],
   /** A walker east of this x still stands in the cabin doorway (door sensor; cabin door plane minus a body radius). */
   doorClearX: STAFF_SHAFT.x - STAFF_SHAFT.cabinHalf - 0.2,
 } as const;
