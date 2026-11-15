@@ -141,7 +141,9 @@ for (const f of fs.existsSync(siteDir) ? fs.readdirSync(siteDir).filter((x) => x
     else if (!/aria-label="[^"]+"/.test(a) && !/<title>/.test(t.slice(m.index, m.index + 400))) problems.push("svg role=img without a label");
   }
   for (const m of t.matchAll(/<img\b([^>]*)>/g)) if (!/\balt=/.test(m[1])) problems.push("img without alt");
-  for (const m of t.matchAll(/(?:src|href)="(https?:\/\/[^"]+)"/g)) {
+  // Loaded resources only (src=, and href= on <link>); plain navigation links (<a href>) load nothing (CEO 2026-11-15).
+  const loaded = [...t.matchAll(/\bsrc="(https?:\/\/[^"]+)"/g), ...t.matchAll(/<link\b[^>]*\bhref="(https?:\/\/[^"]+)"/g)];
+  for (const m of loaded) {
     let h = ""; try { h = new URL(m[1]).hostname; } catch {}
     if (h && !ALLOWED_HOSTS.includes(h)) problems.push("external host not allowed: " + h);
   }

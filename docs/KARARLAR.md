@@ -395,3 +395,10 @@ Eski kurulum: ~/.claude-backup-2026-11-01 (silme işlemi henüz yapılmadı).
   - CEO penthouse'a gelince bir karşılama ekibi hazır bekler.
 - **Ruling:** binadaki "AJANS" tabelası ve sayfa başlığı "Yazılım Evi" olur. Kod içi adlar (`agency-tower`, dosya adları) değişmez. Yanlışsa maliyet: tek metin sabiti.
 - **Açık (CEO: "Şimdilik yeter", 2026-11-15):** kanat yolundaki yoğun trafikte kat 2 koridorunda robotlar birbirine kilitleniyor (`navMovement`). Bu yüzden filmde robotlar kanada gitmiyor (`src/film/staging.ts`). Uygulamadaki kilitlenme düzeltilmedi. Filmler depo dışında: `~/Movies/YazilimEvi-Film/`.
+
+## Revizyon 47: Tanıtım sayfası sunum arayüzü oldu (2026-11-15)
+
+- CEO: tanıtım sayfası baştan sona ajansın sunum arayüzü olur; kule yalnız üst çubukta bağlantıdır. Test sayıları, pilot sonuçları ve "kaç agent denendi" ölçüleri sayfada yer almaz.
+- Sayfa (`site/index.html`, yayını claude.ai artifact'ı) yeniden yazıldı: giriş, rakamlar, neden, yaşam döngüsü, organizasyon, şeritler, imza simülasyonu, dört katman, zarf, kurulum çağrısı. Metni pazarlama birimi gözden geçirdi. Girişte süreci gösteren 3D sahne (Three.js, cdnjs), açık/koyu tema düğmesi.
+- Rakamlar (agent, skill, gate) `harness/bin/site-data.js` ile depodan üretilir; `check` eskiyse kırmızı verir. Böylece eski sayfadaki "32 gate" yerine gerçek sayı (31) görünür.
+- **Lint kuralı daraltıldı (CEO onayı, 2026-11-15):** `lint.js` dış kaynak kuralı yalnız yüklenen kaynaklara (`src=`, `<link href=>`) bakar; düz bağlantılar (`<a href>`) hiçbir şey yüklemediği için serbest. Deneme: izinsiz alan adlı script ve stylesheet hâlâ FAIL veriyor, GitHub bağlantısı geçiyor.
