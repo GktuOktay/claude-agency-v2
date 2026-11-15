@@ -360,3 +360,15 @@ Eski kurulum: ~/.claude-backup-2026-11-01 (silme işlemi henüz yapılmadı).
   - Gün hızı yalnız simülasyon saatini çarpar; duraklatma anlamı değişmez.
   - Yanlışsa maliyet: tek modül.
 - **Ruling:** tanıtım filmi uygulamanın kendi turundan kaydedilir: Playwright, 1920×1080, ffmpeg ile mp4. Filme gerçek şirket adı ya da logosu girmez. Yanlışsa maliyet: yeniden kayıt.
+
+## Revizyon 44: Daha büyük asansör ve mola düğmesi (2026-11-15)
+- CEO: "asansörü de büyütelim. çok trafik oluyor. bir de molayı bitir molaya çık butonu istiyorum"
+- Personel asansörü:
+  - Kabin kapasitesi 3'ten 6'ya çıkar; kabin ve kapı geometrisi buna göre genişler.
+  - Toplamalı kumanda: aynı yöndeki çağrılar ara katlarda alınır. Şimdiye kadar yalnız aynı kalkış-varış çiftindekiler birlikte biniyordu.
+  - Gerekirse ikinci kabin eklenir.
+- Mola düğmesi:
+  - "Molaya çık" herkesi hemen sosyal alanlara gönderir.
+  - "Molayı bitir" herkesi masasına döndürür.
+  - Ofis sekmesinde ve ekranda küçük bir düğme olarak yer alır.
+- **Ruling:** iş akışı izleri değişebilir; asansör kuralları (sıra, kapı, yeniden kuyruk) testlerle korunur. Yanlışsa maliyet: `elevator.ts` sabitleri.
