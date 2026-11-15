@@ -59,7 +59,7 @@ export const FILM_SCENES: readonly FilmScene[] = [
   { n: 15, title: 'Güvenlik ve denetim', text: 'Kodu yazan onaylamaz. Güvenlik ve denetim ayrı ekipte.', nominalS: 7, minS: 6, enter: ev('step-start', 'c-as'), office: ['13:35', '13:40'] },
   { n: 16, title: 'İletişim', text: 'Kılavuz ve tanıtım metni ürünle birlikte hazır.', nominalS: 6, minS: 5, enter: ev('call', 'comms'), office: ['13:40', '13:45'] },
   { n: 17, title: 'Teslim', text: 'Söz değil, kanıt: testler yeşil, denetim temiz.', nominalS: 7, minS: 6.5, enter: ev('step-start', 'c-ceo'), office: ['13:45', '13:50'] },
-  { n: 18, title: 'Kapanış', text: 'Yazılım Evi. Fikri siz getirin, gerisi kanıtıyla gelir.', nominalS: 7.5, minS: 7.5, enter: ev('step-start', 'c-ev'), shots: [[0, place('finale')]], office: ['17:20', '17:50'] },
+  { n: 18, title: 'Kapanış', text: 'Yazılım Evi. Kodunuzu sizden önce biz bozarız.', nominalS: 7.5, minS: 7.5, enter: ev('step-start', 'c-ev'), shots: [[0, place('finale')]], office: ['17:20', '17:50'] },
 ];
 
 /** Scenes the director shoots itself (no workflow focus). */

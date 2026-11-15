@@ -40,7 +40,7 @@ Gün hızı yürüme, bekleme ve sabah gelişinde 6×, masa işinde 3×, kilit a
 | 15 | Güvenlik ve denetim | 2. kat | AppSec inceler, İç Denetçi kanıtı okur, Kalite Ofisi listeyi işaretler | "Kodu yazan onaylamaz. Güvenlik ve denetim ayrı ekipte." | 12 s |
 | 16 | İletişim | 4. kat | Pazarlama ve Teknik İletişim metinleri yazar; Yetenek ve Kapasite raporu | "Kılavuz ve tanıtım metni ürünle birlikte hazır." | 8 s |
 | 17 | Teslim | Penthouse | Chief of Staff kanıtla gelir; CEO onaylar; iş şeridinde "bitti" | "Söz değil, kanıt: testler yeşil, denetim temiz." | 8 s |
-| 18 | Kapanış | Çatı bahçesi → genel, altın saat | Kamera geri çekilir, şehir akşam ışığında | "Yazılım Evi. Fikri siz getirin, gerisi kanıtıyla gelir." | 10 s |
+| 18 | Kapanış | Çatı bahçesi → genel, altın saat | Kamera geri çekilir, şehir akşam ışığında | "Yazılım Evi. Kodunuzu sizden önce biz bozarız." | 10 s |
 
 ## Teknik notlar
 - Film işi, rastgele iş havuzuna girmeyen özel bir senaryodur (`film-flagship`, lane 3). Yalnız `?film=1` ile başlar.

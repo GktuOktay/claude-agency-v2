@@ -51,7 +51,7 @@ Gün hızı yürüme, bekleme ve sabah gelişinde 8×, masa işinde 4×, kilit a
 | 15 | Güvenlik ve denetim | 2. kat | AppSec inceler, İç Denetçi kanıtı okur, Kalite Ofisi listeyi işaretler | "Kodu yazan onaylamaz. Güvenlik ve denetim ayrı ekipte." | 12 s |
 | 16 | İletişim | 4. kat | Pazarlama ve Teknik İletişim metinleri yazar; Yetenek ve Kapasite raporu | "Kılavuz ve tanıtım metni ürünle birlikte hazır." | 8 s |
 | 17 | Teslim | Penthouse | Chief of Staff kanıtla gelir; CEO onaylar; iş şeridinde "bitti" | "Söz değil, kanıt: testler yeşil, denetim temiz." | 8 s |
-| 18 | Kapanış | Çatı bahçesi → genel, altın saat | Kamera geri çekilir, şehir akşam ışığında | "Yazılım Evi. Fikri siz getirin, gerisi kanıtıyla gelir." | 10 s |
+| 18 | Kapanış | Çatı bahçesi → genel, altın saat | Kamera geri çekilir, şehir akşam ışığında | "Yazılım Evi. Kodunuzu sizden önce biz bozarız." | 10 s |
 
 ## Teknik notlar
 - Film işi, rastgele iş havuzuna girmeyen özel bir senaryodur (`film-flagship`, lane 3). Yalnız `?film=1` ile başlar.
@@ -122,7 +122,7 @@ Film kurgu bir müşteri işini gösterir. GökRota'ya ait özellikler (canlı h
 | QA kodu bilerek bozar | `qa-engineer` birimi; film sahnesi 14 | Evet (birim var; "hata size ulaşmadan" ifadesi süreç hedefidir, garanti değil) |
 | Testler yeşil, denetim temiz = kanıt | `CLAUDE.md` kural 2 (bitti = taze test/build çıktısı) | Evet |
 | Kılavuz ve tanıtım metni ürünle birlikte | `marketing`, `tech-comms` birimleri; lane 3 zinciri | Evet |
-| "Gerisi kanıtıyla gelir" (kapanış) | `CLAUDE.md` kural 2 | Evet |
+| "Kodunuzu sizden önce biz bozarız" (kapanış) | `qa-engineer` birimi; film sahnesi 14 | Evet (süreç tarifi, garanti değil) |
 
 Kullanılmayan iddialar: "en hızlı", "en güvenli", "hatasız", süre ya da yüzde içeren her sayı. "14 madde" kurgu işin sayısıdır, şirket istatistiği değildir.
 
