@@ -248,7 +248,8 @@ describe('campus breaks: determinism, interrupts, pause, reduced motion', () => 
     r.sim.reserve(a);
     r.step(1);
     expect(r.sim.get(b).kind).toBe('walk');
-    r.step(2000);
+    // 60 s (was 200 s): with walk-in elevator boarding b is home after ~21 s and starts its next break at ~99 s.
+    r.step(600);
     expect(r.sim.onBreak(b)).toBeNull();
     expect(r.nav.isAt(b, { floor: unitFloors().get(b)!, spot: `home:${b}` })).toBe(true);
   });

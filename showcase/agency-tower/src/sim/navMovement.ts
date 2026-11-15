@@ -293,7 +293,8 @@ export function createNavMovement(opts: NavMovementOptions): NavMovement {
       // Door-jam fix: with all three waiting spots of the landing taken, a caller waits where it is until one frees
       // (callers crowding the corridor round the waiting spots blocked each other and the boarders).
       const taken = claimed(p.floor, u);
-      const free = range('wait:', 3).find((w) => !taken.has(w));
+      // The call-panel spot takes a fourth caller (clear of the waiting spots and the boarders' lane).
+      const free = [...range('wait:', 3), 'call'].find((w) => !taken.has(w));
       if (free === undefined) return;
       p.to = free;
       ride.wait = free;
