@@ -14,7 +14,8 @@ describe('follow camera (KARARLAR Rev 42)', () => {
       expect(back.dot(fwd)).toBeLessThan(-1); // behind
       expect(pos.y).toBeGreaterThan(feet.y + 1); // above the head (robot ~0.97 u)
       expect(target.clone().sub(new Vector3(feet.x, feet.y, feet.z)).dot(fwd)).toBeGreaterThan(0.5); // ahead
-      expect(pos.distanceTo(new Vector3(feet.x, feet.y, feet.z))).toBeLessThan(3.5);
+      // Rev 43 moved the camera further back and higher (bounds in follow-switch.test.ts); still a near view.
+      expect(pos.distanceTo(new Vector3(feet.x, feet.y, feet.z))).toBeLessThan(8);
     }
   });
 
