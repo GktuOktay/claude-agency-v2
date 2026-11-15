@@ -2,7 +2,7 @@
 // ride-leg formula, doors open at every boarding and exit, rider y = cabin y, hold/re-queue on
 // selection, pause (no dt, no change), deterministic.
 import { describe, it, expect } from 'vitest';
-import { CABIN_CAPACITY, DOOR_S, createElevator, rideLegS, travelS, type Elevator } from '../src/sim/elevator';
+import { CABIN_CAPACITY, DOOR_S, LEGACY_CAPACITY, createElevator, rideLegS, travelS, type Elevator } from '../src/sim/elevator';
 import { floorY } from '../src/sim/layout';
 
 const STEP = 0.1;
@@ -25,7 +25,9 @@ describe('elevator timing (§7.5b)', () => {
     expect(travelS(0)).toBe(0);
     expect(DOOR_S).toBeCloseTo(0.6);
     expect(rideLegS(3)).toBeCloseTo(0.6 + 1.8 + 0.6);
-    expect(CABIN_CAPACITY).toBe(3);
+    // KARARLAR Rev 44: the cabin was enlarged from 3 to 6 riders.
+    expect(CABIN_CAPACITY).toBe(6);
+    expect(LEGACY_CAPACITY).toBe(3);
   });
 
   it('a rider at the cabin floor boards at once; boarding to exit equals the formula (± one step)', () => {
@@ -52,8 +54,24 @@ describe('elevator timing (§7.5b)', () => {
 });
 
 describe('request order, capacity and doors (AC-13)', () => {
-  it('serves calls in request order; same floor and destination ride together, at most 3', () => {
+  it('serves calls in request order; callers going the same way at the head floor ride together, at most CABIN_CAPACITY', () => {
     const e = createElevator({ startFloor: 0, record: true });
+    e.call('a', 2, 4);
+    e.call('b', 1, 0);
+    const later = ['c', 'd', 'e', 'f', 'g', 'h'];
+    for (const u of later) e.call(u, 2, 4);
+    until(e, () => ['a', 'b', ...later].every((u) => e.status(u) === 'arrived'), 200);
+    const boards = e.log().filter((x) => x.type === 'board');
+    // First trip: a + 5 later callers (cap 6); b (down, opposite way) is not picked up on the way; h waits for b.
+    expect(boards.slice(0, 6).map((b) => b.unit)).toEqual(['a', 'c', 'd', 'e', 'f', 'g']);
+    expect(boards[6]!.unit).toBe('b');
+    expect(boards[7]!.unit).toBe('h');
+    for (const x of e.log()) if (x.type === 'riders') expect(x.count).toBeLessThanOrEqual(CABIN_CAPACITY);
+    for (const x of e.log()) if (x.type === 'board' || x.type === 'exit') expect(x.doors).toBe(1);
+  });
+
+  it('legacy policy (before Rev 44): request order; only the same floor and destination ride together, at most 3', () => {
+    const e = createElevator({ startFloor: 0, record: true, policy: 'legacy' });
     e.call('a', 2, 4);
     e.call('b', 1, 0);
     for (const u of ['c', 'd', 'e']) e.call(u, 2, 4);
@@ -63,7 +81,7 @@ describe('request order, capacity and doors (AC-13)', () => {
     expect(boards.slice(0, 3).map((b) => b.unit)).toEqual(['a', 'c', 'd']);
     expect(boards[3]!.unit).toBe('b');
     expect(boards[4]!.unit).toBe('e');
-    for (const x of e.log()) if (x.type === 'riders') expect(x.count).toBeLessThanOrEqual(CABIN_CAPACITY);
+    for (const x of e.log()) if (x.type === 'riders') expect(x.count).toBeLessThanOrEqual(LEGACY_CAPACITY);
     for (const x of e.log()) if (x.type === 'board' || x.type === 'exit') expect(x.doors).toBe(1);
   });
 
@@ -128,5 +146,80 @@ describe('selection and pause (REQ-17, §7.8)', () => {
     e.cancel('a');
     expect(e.queue()).toEqual([]);
     expect(e.status('a')).toBe('none');
+  });
+});
+
+describe('collective control (KARARLAR Rev 44)', () => {
+  const exits = (e: Elevator): [string, number][] => e.log().filter((x) => x.type === 'exit').map((x) => [x.unit!, x.floor!]);
+  const stops = (e: Elevator): number[] => e.log().filter((x) => x.type === 'stop').map((x) => x.floor!);
+
+  it('stops on the way to pick up a caller going the same way and drops each rider at their own floor', () => {
+    const e = createElevator({ startFloor: 0, record: true });
+    e.call('a', 0, 5);
+    e.call('b', 2, 4);
+    until(e, () => e.status('a') === 'arrived' && e.status('b') === 'arrived');
+    expect(stops(e)).toEqual([0, 2, 4, 5]);
+    expect(exits(e)).toEqual([['b', 4], ['a', 5]]);
+    for (const x of e.log()) if (x.type === 'board' || x.type === 'exit') expect(x.doors).toBe(1);
+  });
+
+  it('does not pick up a caller going the other way; serves them after the sweep', () => {
+    const e = createElevator({ startFloor: 0, record: true });
+    e.call('a', 0, 5);
+    e.call('c', 3, 1);
+    until(e, () => e.status('c') === 'arrived');
+    expect(stops(e)).toEqual([0, 5, 3, 1]);
+    expect(e.log().filter((x) => x.type === 'board').map((x) => x.unit)).toEqual(['a', 'c']);
+  });
+
+  it('on the way to the oldest call it only takes riders who are off before that floor (request-order fairness)', () => {
+    const e = createElevator({ startFloor: 0, record: true });
+    e.call('a', 4, 0); // oldest: down from 4
+    e.call('b', 1, 3); // up, off before 4: rides along
+    e.call('d', 2, 5); // up, past 4: would delay a, waits
+    let aStart = NaN;
+    until(e, () => {
+      if (Number.isNaN(aStart) && e.status('a') === 'boarding') aStart = e.time;
+      return ['a', 'b', 'd'].every((u) => e.status(u) === 'arrived');
+    }, 200);
+    const boards = e.log().filter((x) => x.type === 'board').map((x) => x.unit);
+    expect(boards.slice(0, 2)).toEqual(['b', 'a']);
+    expect(boards[2]).toBe('d');
+    expect(exits(e)[0]).toEqual(['b', 3]);
+    // a is reached no later than the empty-cabin trip plus two stops (doors at 1 and at 3).
+    expect(aStart).toBeLessThanOrEqual(travelS(4) + 2 * (DOOR_S + travelS(1)) + STEP);
+  });
+
+  it('a call made while the cabin travels is still picked up when its floor is ahead', () => {
+    const e = createElevator({ startFloor: 0, record: true });
+    e.call('a', 0, 5);
+    until(e, () => e.state().mode === 'travel');
+    tick(e, 0.2);
+    expect(e.state().pos).toBeLessThan(2.5);
+    e.call('b', 3, 4);
+    until(e, () => e.status('a') === 'arrived', 60);
+    expect(stops(e)).toEqual([0, 3, 4, 5]);
+  });
+
+  it('holds at most CABIN_CAPACITY; rider spots stay unique and stable for the whole ride', () => {
+    const e = createElevator({ startFloor: 0, record: true });
+    const us = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+    us.forEach((u, i) => e.call(u, i % 2, 5 - (i % 3)));
+    const slot = new Map<string, number>();
+    until(e, () => {
+      const aboard = e.state().riders;
+      expect(aboard.length).toBeLessThanOrEqual(CABIN_CAPACITY);
+      const idx = aboard.map((u) => e.riderIndex(u));
+      expect(new Set(idx).size).toBe(idx.length);
+      for (const u of aboard) {
+        const i = e.riderIndex(u);
+        expect(i).toBeGreaterThanOrEqual(0);
+        expect(i).toBeLessThan(CABIN_CAPACITY);
+        if (slot.has(u)) expect(slot.get(u)).toBe(i);
+        slot.set(u, i);
+      }
+      return us.every((u) => e.status(u) === 'arrived');
+    }, 300);
+    for (const x of e.log()) if (x.type === 'riders') expect(x.count).toBeLessThanOrEqual(CABIN_CAPACITY);
   });
 });
