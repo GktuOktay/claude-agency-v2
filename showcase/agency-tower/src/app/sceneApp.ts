@@ -21,7 +21,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { tr } from '../i18n/tr';
 import { appCampusOptions, createActivitySim, BREAK_QUEUE_MAX, createBubbleScheduler, type ActivityView, type BreakMovement, type Bubble } from '../scene/activity';
 import { CAMERA_FOV, CameraRig, FLOOR_TARGET_Y, classifyPointer, configureOrbit, setFrameAspect, setFrameInsets, setOrgInsets, setSheetInset, setZoomSheetInset } from '../scene/camera';
-import { createDayNight, isNightPhase, lightingFor, skyBrightness } from '../scene/daynight';
+import { createDayNight, lightingFor } from '../scene/daynight';
 import { buildOrgLines, orgLines } from '../scene/org';
 import { createDayNightControl } from '../ui/dayNightControl';
 import { createOrgLegend } from '../ui/orgLegend';
@@ -54,6 +54,7 @@ import { RENDERER_OPTIONS, applyQuality, createQualityContext, initialTier, room
 import { MASTER_SEED } from '../sim/workflow';
 import { framePose, shouldStepSim } from './frameUpdate';
 import { createSelectionFlow } from './selection';
+import { sceneLight } from './sceneLight';
 import { createSimRuntime } from './simRuntime';
 import { breakKeyOf } from '../ui/nowLine';
 import { syncStaffCabinFrom } from './elevatorView';
@@ -201,6 +202,8 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     data.units.map((u) => ({ id: u.id, phrases: u.phrasesTr })),
     createRng(SEED + 1),
   );
+  /** The bubbles shown now; stepped in the runtime's ambient hook (frozen while paused). */
+  let activeBubbles: readonly Bubble[] = [];
   const robotById = new Map<string, RobotEntry>(model.robots.map((r) => [r.unit.id, r]));
 
   // ---- 0002: simulation clock, workflow engine (nav + staff elevator movement), director, job strip ----
@@ -217,6 +220,12 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     titles,
     maxJobs: maxJobsFor(quality.quality),
     unitName: ctx.nameOf,
+    // AC-15: the ambient cycle and the bubbles advance on the simulation dt; the runtime skips this hook while a
+    // global reason (org / user / hidden) pauses the clock, so they freeze with no draws.
+    onAmbient: (dt) => {
+      if (shouldStepSim(orgOn)) sim.step(dt * 1000); // org mode: robots freeze in place
+      activeBubbles = bubbles.step(dt);
+    },
     onStep: (dt, events) => {
       director?.ingest(events);
       board.ingest(events);
@@ -639,8 +648,9 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     last = now;
     clock += dt;
 
-    if (shouldStepSim(orgOn)) sim.step(dt * 1000); // org mode: robots freeze in place
-    runtime.frame(dt * 1000); // simulation clock (≤ 100 ms steps, frozen by org / user / hidden), engine, director, strip
+    // Simulation clock (≤ 100 ms steps, frozen by org / user / hidden), then on its dt: the ambient cycle and the
+    // bubbles (onAmbient), the engine, the director and the strip.
+    runtime.frame(dt * 1000);
     syncStaffCabinFrom(runtime.workflow.movement, model.staffCabin);
     boardTex?.render(board.state(runtime.workflow, motion.active()));
     staffRt?.frame(dt); // staff NPCs: paused with the clock's global reasons (org / user / hidden)
@@ -770,7 +780,7 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     }
 
     // speech bubbles (above the name pill when one is shown)
-    const active: readonly Bubble[] = bubbles.step(dt);
+    const active: readonly Bubble[] = activeBubbles;
     active.forEach((b, i) => {
       let e = bubbleEls[i];
       if (!e) {
@@ -812,10 +822,7 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     // day / night: sky, sun, fill, window and floor-light glow (lights fade on over ~0.7 s, cut if reduced)
     dayNight.step(dt);
     // Rev 35 P3: in Otomatik the light follows the office clock (dark after hours); Gündüz / Gece hold.
-    const autoLight = dayNight.mode() === 'auto';
-    const lightPhase = office.lightPhase();
-    const isNight = autoLight ? isNightPhase(lightPhase) : dayNight.night();
-    const brightness = autoLight ? skyBrightness(lightPhase) : dayNight.brightness();
+    const { isNight, brightness } = sceneLight(dayNight, office);
     const lightsGoal = isNight ? 1 : 0;
     lightsOn = still ? lightsGoal : lightsOn + (lightsGoal - lightsOn) * Math.min(1, dt * 1.5);
     const L = lightingFor(brightness, lightsOn);

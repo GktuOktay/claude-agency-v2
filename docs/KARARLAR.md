@@ -323,3 +323,13 @@ Eski kurulum: ~/.claude-backup-2026-11-01 (silme işlemi henüz yapılmadı).
 - **Ruling:** asansör darboğaz değil; ortalama bekleyen ~0.5. İkinci kabin yapılmadı. Kapasite 4'e çıkarmak AC-13'ü bozuyor.
 - **Ruling (gün):** gece 18:00–06:00 = 105 s (%25), şafak 5 s, iş blokları 37.5 s, öğle 80 s, kahve/çay 40 s.
 - Açık: kule içi oturma köşeleri, odak kabinleri, toplantı nişleri ve çatı teraslarında yürünebilir nokta yok; Ar-Ge'de 2+ kişi hedefi %70'in altında. Ekip figürleri (B paketi) bu boşluğu dolduracak.
+
+## Revizyon 42: Renkli çevre, kat etiketinden yakınlaşma, ajan gözü ve gezinti (2026-11-14)
+- CEO: "çevre biraz soluk kaldı onun renklenmesini istiyorum. kat isimlerine tıklayınca da kata yaklaşalım. bir de ajan görünümü gibi bir şey ekleyebilir miyiz? veya google street view gibi katların içinde gezebilir miyiz?"
+- Paketler:
+  - Şehir renklendirme: vertex küçültme mühendisi, şehir dosyasındaki işiyle birlikte yapar.
+  - D, kamera modları:
+    - Genel görünümde kat etiketine tıklayınca o kata yaklaşılır.
+    - "Ajan gözü": seçili robotu omuz arkasından takip eden kamera.
+    - "Gezinti": kat içinde göz hizasında yürüme. Klavye, sürükleyerek bakma ve "tıkla, oraya git" Street View tarzı ileri gitme var; duvar ve eşyalara çarpmaz.
+- **Ruling:** gerçek bir haritacılık ürününün arayüzü, ikonları ya da adı kopyalanmaz; özgün bir gezinti modu yapılır. Yanlışsa maliyet: yok.

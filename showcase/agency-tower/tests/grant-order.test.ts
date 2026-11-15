@@ -45,6 +45,36 @@ describe('R-3 deadlock fixture (AC-4)', () => {
     expect(at('room-hold', b)).toBe(at('step-start', b, 'meet'));
   });
 
+  it('R-3(1): a place-blocked older step reserves nothing, so a younger open step gets the unit both need', () => {
+    // X (l1) signs at the signing desk; B's intake (CEO + CoS, signing desk) waits place-blocked from before
+    // C's (l0) `done` step (CoS) becomes a candidate. CoS is free: C's done is granted in that round. A blocked
+    // step that claimed its units (the QA r2A mutation) would keep CoS from C. The room-holder fixture above
+    // misses that mutation: there the holder's priority grants the younger step first anyway.
+    const wf = makeWorkflow({ scripted: false, autoStart: false, maxJobs: 3, durations: 'max', outcome: () => 'pass' });
+    const has = (type: string, job: number, step?: string) => wf.trace().some((e) => e.type === type && e.job === job && (step === undefined || e.step === step));
+    const x = wf.startJob('l1-quick');
+    const c = wf.startJob('l0-direct');
+    stepUntil(wf, () => has('step-start', x, 'sign'));
+    const b = wf.startJob('l2-base');
+    stepUntil(wf, () => has('step-start', b, 'intake'));
+
+    const rounds = wf.rounds().filter(
+      (r) => r.candidates.some((k) => k.job === b && k.step === 'intake' && k.placeBlocked) && r.candidates.some((k) => k.job === c && !k.placeBlocked && k.needs.includes('chief-of-staff')),
+    );
+    expect(rounds.length).toBeGreaterThan(0);
+    for (const r of rounds) {
+      const bIntake = r.candidates.find((k) => k.job === b && k.step === 'intake')!;
+      const cStep = r.candidates.find((k) => k.job === c && !k.placeBlocked && k.needs.includes('chief-of-staff'))!;
+      // Preconditions: B waited longer, both need CoS, CoS is free and no other open step needs it.
+      expect(bIntake.since).toBeLessThan(cStep.since);
+      expect(bIntake.needs).toContain('chief-of-staff');
+      expect(r.busy).not.toContain('chief-of-staff');
+      expect(r.candidates.filter((k) => !k.placeBlocked && k.needs.includes('chief-of-staff'))).toHaveLength(1);
+      expect(cStep.granted).toBe(true);
+      expect(bIntake.granted).toBe(false);
+    }
+  });
+
   it('a held room blocks another job\'s room step (room-wait shown on the job)', () => {
     const wf = makeWorkflow({ scripted: false, autoStart: false, durations: 'max', outcome: () => 'pass' });
     const a = wf.startJob('l3-full');

@@ -9,6 +9,9 @@ import {
   FLOOR_TOP,
   FURNITURE_CLEARANCE,
   HALF_DEPTH,
+  LOBBY_FLOOR,
+  LOBBY_SPOTS,
+  lobbyPropFootprints,
   HALF_WIDTH,
   LANE_OFFSET,
   PENTHOUSE,
@@ -137,6 +140,16 @@ describe('flexible green floor dressing: navigation clearance', () => {
       }
       rects.forEach((a, i) => rects.slice(i + 1).forEach((b) => expect(overlaps(a, b) && !contains(a, b) && !contains(b, a), `floor ${f} ${a.name} / ${b.name}`).toBe(false)));
     }
+  });
+
+  it('lobby (floor 0): no dressing footprint overlaps the security desk or a turnstile cabinet, and the staff lobby path keeps furniture clearance', () => {
+    const rects = dressingFootprints(LOBBY_FLOOR);
+    for (const d of rects) for (const p of lobbyPropFootprints()) expect(overlaps(d, p), `${d.name} / ${p.name}`).toBe(false);
+    // The staff walk the lobby path spot to spot (corridor -> door -> south strip -> turnstile / guard post).
+    const byId = new Map(LOBBY_SPOTS.map((s) => [s.id, s]));
+    const segs = LOBBY_SPOTS.flatMap((s) => (byId.has(s.via) ? [[byId.get(s.via)!, s] as const] : []));
+    expect(segs.length).toBeGreaterThanOrEqual(5);
+    for (const [a, b] of segs) for (const r of rects) expect(segRectDistance(a, b, r), `${a.id}->${b.id} vs ${r.name}`).toBeGreaterThanOrEqual(FURNITURE_CLEARANCE - 1e-9);
   });
 });
 
