@@ -112,9 +112,14 @@ interface Internal {
   visits: number;
   /** Rev 39: the director picked this robot for a zone; it finishes its desk or coffee stay and goes. */
   summon: AmenityZoneId | null;
+  /** Rev 46 film staging: walking to / holding at / back from a staged spot. */
+  stg: { target: Target; facing: number; phase: 'go' | 'hold' | 'back'; last: Point } | null;
 }
 
 export type BreakPhase = 'go' | 'stay' | 'back';
+
+/** Rev 46 film staging order for a free robot: keep to its floor (`stay`), or stand at a nav spot facing `facing`. */
+export type StageOrder = { kind: 'stay' } | { kind: 'spot'; target: Target; facing: number };
 
 interface Break {
   spot: AmenitySpot;
@@ -172,6 +177,11 @@ export interface CampusBreakOptions {
    * robot join, `work` calls every robot back from its break to the desk and pauses the occupancy director.
    */
   override?: () => 'break' | 'work' | null;
+  /**
+   * Rev 46 film staging (`?film=1` only, src/film/staging.ts): an order per free robot. Absent: no staging, the
+   * simulation is exactly as before.
+   */
+  stage?: (id: string) => StageOrder | null;
 }
 
 export interface ActivityOptions {
@@ -218,6 +228,8 @@ export interface AppCampusInput {
   occupancy?: boolean;
   /** Rev 44 break button override. */
   override?: () => 'break' | 'work' | null;
+  /** Rev 46 film staging (`?film=1` only). */
+  stage?: (id: string) => StageOrder | null;
 }
 
 /** The app's campus options (Rev 35/38/39), shared by the page and the liveness/occupancy tests. */
@@ -229,6 +241,7 @@ export function appCampusOptions(i: AppCampusInput): CampusBreakOptions {
     ...(i.paused ? { paused: i.paused } : {}),
     ...(i.periodAhead ? { periodAhead: i.periodAhead } : {}),
     ...(i.override ? { override: i.override } : {}),
+    ...(i.stage ? { stage: i.stage } : {}),
     canRide: () => i.queued() < BREAK_QUEUE_MAX,
     exclude: new Set<string>(),
     maxAway: SOCIAL_MAX_AWAY,
@@ -299,6 +312,7 @@ export function createActivitySim(specs: readonly ActivitySpec[], seed: number, 
       backAt: -Infinity,
       visits: 0,
       summon: null,
+      stg: null,
     });
   }
 
@@ -330,7 +344,85 @@ export function createActivitySim(specs: readonly ActivitySpec[], seed: number, 
   /** Free, at home and idle: can start a campus break now. */
   const excluded = campus?.exclude ?? NO_CAMPUS_BREAK;
   const breakable = (r: Internal, mv: BreakMovement): boolean =>
-    !r.reserved && !r.waving && !r.brk && r.kind === 'idle' && !excluded.has(r.spec.id) && campus?.floors.has(r.spec.id) === true && mv.isAt(r.spec.id, homeTarget(r.spec.id));
+    !r.reserved && !r.waving && !r.brk && !r.stg && !stageOf(r) && r.kind === 'idle' && !excluded.has(r.spec.id) && campus?.floors.has(r.spec.id) === true && mv.isAt(r.spec.id, homeTarget(r.spec.id));
+
+  // ---------------------------------------------------------------- film staging (KARARLAR Rev 46, `?film=1` only)
+  /** The film's order for a free robot now (null without the `stage` option: the app outside the film). */
+  function stageOf(r: Internal): StageOrder | null {
+    return campus?.stage && !r.reserved ? campus.stage(r.spec.id) : null;
+  }
+
+  /**
+   * One step of a staged robot; true when staging drove it (the normal cycle is skipped). `stay`: no break or summon,
+   * the 0001 desk / coffee cycle on its own floor goes on (a robot on a break heads back now). `spot`: from idle at
+   * home it walks through the nav movement to the spot and holds there facing `facing`; when the order ends it walks
+   * home and idles again.
+   */
+  function stepStage(r: Internal, order: StageOrder | null, dt: number): boolean {
+    if (!campus) return false;
+    const mv = campus.movement;
+    const id = r.spec.id;
+    const spot = order?.kind === 'spot' ? order : null;
+    if (order) {
+      r.join = false;
+      r.summon = null;
+    }
+    const st = r.stg;
+    if (st) {
+      if (spot && (st.target.floor !== spot.target.floor || st.target.spot !== spot.target.spot)) {
+        st.target = spot.target;
+        st.phase = 'go';
+        mv.moveTo(id, spot.target);
+        if (r.kind !== 'walk') change(r, 'walk', sim.time);
+      } else if (!spot && st.phase !== 'back') {
+        st.phase = 'back';
+        mv.moveTo(id, homeTarget(id));
+        change(r, 'walk', sim.time);
+      }
+      if (spot) st.facing = spot.facing;
+      const p = mv.renderPosition(id, false);
+      const dx = p.x - st.last.x;
+      const dz = p.z - st.last.z;
+      if (Math.hypot(dx, dz) > 1e-5) {
+        r.facing = Math.atan2(dx, dz);
+        r.walkPhase += dt * 6;
+      }
+      st.last = { ...p };
+      r.pos = { ...p };
+      r.elapsed += dt;
+      if (st.phase === 'go' && mv.isAt(id, st.target)) {
+        st.phase = 'hold';
+        change(r, 'idle', sim.time);
+      }
+      if (st.phase === 'hold') r.facing = st.facing;
+      if (st.phase === 'back' && mv.isAt(id, homeTarget(id))) {
+        r.stg = null;
+        r.backAt = sim.time;
+        r.pos = { ...r.spec.home };
+        change(r, 'idle', sim.time);
+        r.limit = draw('idle');
+        r.facing = 0;
+      }
+      return true;
+    }
+    if (!spot) {
+      if (r.brk && r.brk.phase !== 'back') leaveBreak(r, mv, sim.time);
+      return false;
+    }
+    if (r.brk) {
+      if (r.brk.phase !== 'back') leaveBreak(r, mv, sim.time);
+      return false;
+    }
+    if (r.kind !== 'idle' || !mv.isAt(id, homeTarget(id))) {
+      // Finish the desk / coffee stay and come home first (the nav movement only knows the home point).
+      if (r.kind !== 'walk') r.limit = Math.min(r.limit, r.elapsed);
+      return false;
+    }
+    r.stg = { target: spot.target, facing: spot.facing, phase: 'go', last: { ...mv.renderPosition(id, false) } };
+    mv.moveTo(id, spot.target);
+    change(r, 'walk', sim.time);
+    return true;
+  }
   /** A trip off the home floor needs room under MAX_AWAY_BREAKS (`extra` already planned) and the cabin. */
   const awayOk = (r: Internal, s: AmenitySpot, extra = 0): boolean => {
     if (s.floor === campus?.floors.get(r.spec.id)) return true;
@@ -523,7 +615,7 @@ export function createActivitySim(specs: readonly ActivitySpec[], seed: number, 
       if (!first) continue;
       // Free ambient robots: idle at home, at the desk or the coffee station (never a job step, §7.5).
       const cands = order
-        .filter((r) => !r.reserved && !r.waving && !r.brk && !r.summon && (!r.join || slotTargets) && r.kind !== 'walk' && !excluded.has(r.spec.id) && campus.floors.has(r.spec.id) && time - r.backAt >= ROTATE_REST_S)
+        .filter((r) => !r.reserved && !r.waving && !r.brk && !r.stg && !stageOf(r) && !r.summon &&(!r.join || slotTargets) && r.kind !== 'walk' && !excluded.has(r.spec.id) && campus.floors.has(r.spec.id) && time - r.backAt >= ROTATE_REST_S)
         .map((r) => ({ r, rank: zoneRank(r.spec.id, zone, campus.floors.get(r.spec.id) ?? 0, first.floor) }))
         .sort((a, b) => a.rank - b.rank || Number(b.r.kind === 'idle') - Number(a.r.kind === 'idle') || a.r.visits - b.r.visits);
       const pick = cands[0];
@@ -616,6 +708,8 @@ export function createActivitySim(specs: readonly ActivitySpec[], seed: number, 
       }
       for (const r of robots.values()) {
         if (r.waving || r.reserved) continue;
+        if (r.stg && paused) continue;
+        if (!paused && (r.stg || stageOf(r)) && stepStage(r, stageOf(r), dt)) continue;
         if (r.brk) {
           if (!paused) stepBreak(r, dt);
           continue;
@@ -691,6 +785,14 @@ export function createActivitySim(specs: readonly ActivitySpec[], seed: number, 
         const pose = reduced && raw === 'walk' ? 'idle' : raw;
         return { kind, ...(pose ? { pose } : {}), x: p.x, y: p.y, z: p.z, facing: r.facing, walkPhase, elapsed: r.elapsed };
       }
+      if (r.stg && campus && !r.reserved) {
+        // Film staging (Rev 46): live from the nav movement, like a campus break.
+        const p = campus.movement.renderPosition(id, reduced);
+        const ph = campus.movement.phase(id);
+        const raw: PoseKind | undefined = r.waving || r.stg.phase === 'hold' ? undefined : ph === 'walk' ? 'walk' : ph === 'call' ? 'press' : 'idle';
+        const pose = reduced && raw === 'walk' ? 'idle' : raw;
+        return { kind, ...(pose ? { pose } : {}), x: p.x, y: p.y, z: p.z, facing: r.facing, walkPhase, elapsed: r.elapsed };
+      }
       // Leg cut (REQ-19): an ambient walker is rendered at its leg start until it arrives.
       const p = reduced && r.kind === 'walk' && !r.reserved ? r.walkFrom : r.pos;
       return { kind, x: p.x, y: p.y, z: p.z, facing: r.facing, walkPhase, elapsed: r.elapsed };
@@ -716,6 +818,7 @@ export function createActivitySim(specs: readonly ActivitySpec[], seed: number, 
       // §7.5 interrupt: the break ends here; the engine re-paths the robot from where it is (no moveTo here).
       r.reserved = true;
       r.brk = null;
+      r.stg = null;
       r.summon = null;
     },
     resume(id) {
@@ -723,6 +826,7 @@ export function createActivitySim(specs: readonly ActivitySpec[], seed: number, 
       if (!r || !r.reserved) return;
       r.reserved = false;
       r.brk = null;
+      r.stg = null;
       r.pos = { ...r.spec.home };
       r.kind = 'idle';
       r.elapsed = 0;

@@ -41,6 +41,8 @@ export interface RoomLifeOptions {
   reducedMotion?: boolean;
   /** Office time at start ("HH:MM" or minutes since 00:00). */
   officeTime?: string | number;
+  /** Occupants (default LIFE_ANCHORS; `?film=1` adds the film staging crew, src/film/staging.ts). */
+  anchors?: readonly LifeAnchor[];
 }
 
 export interface RoomLife {
@@ -360,12 +362,13 @@ const FURNITURE_FLOORS = [0, 1, 2] as const;
 
 export function createRoomLife(options: RoomLifeOptions = {}): RoomLife {
   const seed = options.seed ?? 1;
-  const sim = createRoomLifeSim({ seed, reducedMotion: options.reducedMotion, officeTime: options.officeTime });
+  const anchors = options.anchors ?? LIFE_ANCHORS;
+  const sim = createRoomLifeSim({ seed, reducedMotion: options.reducedMotion, officeTime: options.officeTime, anchors });
   const group = new Group();
   group.name = 'room-life';
   group.userData.pickable = false;
   const material = new MeshStandardMaterial({ color: 0xffffff, roughness: 0.7, vertexColors: true });
-  const anchors = LIFE_ANCHORS;
+  // (anchors: above, shared with the sim)
   const n = anchors.length;
 
   const inst = (name: string, geo: BufferGeometry, count: number): InstancedMesh => {
