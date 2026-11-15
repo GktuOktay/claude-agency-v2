@@ -219,7 +219,7 @@ describe('Ofis: motion, org chart and "Mola saatleri"', () => {
     expect(s.title).toBe('Ofis');
     expect(s.element.contains(pause) && s.element.contains(org)).toBe(true);
     const rows = [...s.element.querySelectorAll('.schedule li')].map((li) => li.querySelector('.schedule-text')?.textContent);
-    expect(rows).toEqual(['09:00 Mesai başlar', '10:30 Kahve molası', '12:30 Öğle yemeği', '15:30 Çay molası', '18:00 Mesai biter']);
+    expect(rows).toEqual(['08:00 Mesai başlar', '10:30 Kahve molası', '12:30 Öğle yemeği', '15:30 Çay molası', '18:00 Mesai biter']);
     expect(s.element.querySelector('h3')?.textContent).toBe('Mola saatleri');
   });
 

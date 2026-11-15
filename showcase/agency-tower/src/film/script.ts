@@ -42,7 +42,7 @@ const ev = (type: EventType, step: string): SceneTrigger => ({ kind: 'event', ty
 
 /** The 18 scenes; captions and titles are the screenplay table's text. */
 export const FILM_SCENES: readonly FilmScene[] = [
-  { n: 1, title: 'Açılış', text: 'Sabah 08:30. Şirket uyanıyor.', nominalS: 6, minS: 6, enter: null, shots: [[0, place('overview')]], office: ['08:30', '08:40'] },
+  { n: 1, title: 'Açılış', text: 'Sabah 08:00. Şirket uyanıyor.', nominalS: 6, minS: 6, enter: null, shots: [[0, place('overview')]], office: ['08:00', '08:40'] },
   { n: 2, title: 'CEO geliyor', text: 'CEO yeni bir işle geldi.', nominalS: 6, minS: 5.5, enter: { kind: 'after', seconds: 6 }, shots: [[0, place('lobby')], [3, follow('ceo')]], office: ['08:40', '08:50'] },
   { n: 3, title: 'İş zarfı', text: 'Kooperatif Pazarı: web, mobil ve API.', nominalS: 6, minS: 5.5, enter: { kind: 'active', step: 'intake' }, office: ['08:50', '08:55'] },
   { n: 4, title: 'Araştırma', text: 'Ürün: pazar ve rakipler. Keşifçi: hazır çözüm var mı?', nominalS: 6, minS: 5, enter: ev('step-start', 'c-pm'), office: ['08:55', '09:00'] },
