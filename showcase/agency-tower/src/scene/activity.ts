@@ -23,8 +23,26 @@ export const WAITING_STATES: ReadonlySet<DirectedKind> = new Set<DirectedKind>([
 export const isWaiting = (s: string): boolean => (WAITING_STATES as ReadonlySet<string>).has(s);
 /** Campus break poses (KARARLAR rev 31): treadmill, weights, ping-pong, nap pod, meal, games, lab/archive. */
 export type BreakPose = 'run' | 'lift' | 'paddle' | 'sleep' | 'eat' | 'play' | 'read';
+/**
+ * Object poses (KARARLAR Rev 43 B, src/scene/actions.ts): pouring at the machine, sipping, walking with a cup,
+ * a tray or a phone, a mat stretch, whiteboard writing, a chat, a desk stretch, sipping tea while typing.
+ */
+export type ActionPose =
+  | 'pour'
+  | 'sip'
+  | 'cup-walk'
+  | 'cup-stand'
+  | 'tray-walk'
+  | 'tray-stand'
+  | 'phone-walk'
+  | 'phone-stand'
+  | 'stretch'
+  | 'write'
+  | 'chat'
+  | 'arms-up'
+  | 'work-sip';
 /** Pose vocabulary: the ambient kinds, the static step gestures (hand over, stamp press, sit still), break poses. */
-export type PoseKind = ActivityKind | 'reach' | 'press' | 'sit' | BreakPose;
+export type PoseKind = ActivityKind | 'reach' | 'press' | 'sit' | BreakPose | ActionPose;
 type Stay = 'idle' | 'work' | 'coffee';
 type WalkTarget = 'desk' | 'coffee' | 'home';
 

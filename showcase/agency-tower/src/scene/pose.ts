@@ -1,6 +1,41 @@
 import type { PoseKind } from './activity';
 import type { RobotParts } from './robot';
 
+/**
+ * Sip curve (Rev 43 B): 0 = cup held at the chest, 1 = cup at the mouth. A short sip about every 4.5 s; 0 at
+ * time 0 (reduced motion renders the static hold). The hand props read it to tilt the cup.
+ */
+export function sipAmount(timeSec: number): number {
+  const s = Math.max(0, Math.sin(timeSec * 1.4));
+  return s * s * s * s;
+}
+
+/** Walking legs (shared by the plain walk and the walks with a cup, a tray or a phone). */
+function walkLegs(p: RobotParts, walkPhase: number, armSwing: number): number {
+  const s = Math.sin(walkPhase * 2.2);
+  p.legL.rotation.x = s * 0.7;
+  p.legR.rotation.x = -s * 0.7;
+  p.armL.rotation.x = -s * armSwing;
+  p.armR.rotation.x = s * armSwing;
+  p.body.position.y = Math.abs(s) * 0.025;
+  return s;
+}
+
+/** Cup in the right hand: at the chest, raised to the mouth by the sip curve, wrist turned in. */
+function cupArm(p: RobotParts, timeSec: number): void {
+  const s = sipAmount(timeSec);
+  p.armR.rotation.x = -0.9 - s * 1.5;
+  p.armR.rotation.z = 0.3 * s;
+  p.head.rotation.x = -0.15 * s;
+}
+
+/** Right hand at the ear (phone), head tilted toward it. */
+function phoneArm(p: RobotParts): void {
+  p.armR.rotation.x = -2.6;
+  p.armR.rotation.z = 0.25;
+  p.head.rotation.z = -0.12;
+}
+
 // Procedural limb animation per activity state.
 export function applyPose(p: RobotParts, kind: PoseKind, walkPhase: number, timeSec: number): void {
   p.armL.rotation.set(0, 0, 0);
@@ -110,6 +145,81 @@ export function applyPose(p: RobotParts, kind: PoseKind, walkPhase: number, time
       p.armL.rotation.x = -1.0;
       p.armR.rotation.x = -1.0 + Math.max(0, Math.sin(timeSec * 0.8)) * -0.3;
       p.head.rotation.x = 0.35;
+      break;
+    // ---- object poses (KARARLAR Rev 43 B); motion from timeSec / walkPhase (both 0 under reduced motion)
+    case 'pour':
+      // At the coffee machine: right hand forward on the machine, left at the side, looking down at the cup.
+      p.armR.rotation.x = -1.3 + Math.sin(timeSec * 3) * 0.05;
+      p.armL.rotation.x = -0.5;
+      p.head.rotation.x = 0.2;
+      break;
+    case 'sip':
+    case 'cup-stand':
+      cupArm(p, timeSec);
+      p.armL.rotation.z = 0.06;
+      break;
+    case 'cup-walk':
+      walkLegs(p, walkPhase, 0.45);
+      cupArm(p, timeSec);
+      break;
+    case 'tray-walk': {
+      const s = walkLegs(p, walkPhase, 0);
+      p.armL.rotation.x = -1.25 + s * 0.03;
+      p.armR.rotation.x = -1.25 + s * 0.03;
+      break;
+    }
+    case 'tray-stand':
+      p.armL.rotation.x = -1.25;
+      p.armR.rotation.x = -1.25;
+      break;
+    case 'phone-walk':
+      walkLegs(p, walkPhase * 0.6, 0.3);
+      phoneArm(p);
+      break;
+    case 'phone-stand':
+      phoneArm(p);
+      p.head.rotation.x = Math.max(0, Math.sin(timeSec * 1.3)) * 0.08;
+      p.armL.rotation.z = 0.08;
+      break;
+    case 'stretch': {
+      // Mat stretch: both arms overhead, slow side bend.
+      const b = Math.sin(timeSec * 0.8);
+      p.armL.rotation.z = 2.8;
+      p.armR.rotation.z = -2.8;
+      p.body.rotation.z = b * 0.22;
+      p.head.rotation.z = b * 0.1;
+      break;
+    }
+    case 'write':
+      // Whiteboard: marker hand up on the board, short strokes across it; left hand at the side.
+      p.armR.rotation.x = -1.85 + Math.sin(timeSec * 7) * 0.08;
+      p.armR.rotation.z = 0.15 + Math.sin(timeSec * 2.3) * 0.25;
+      p.armL.rotation.x = -0.3;
+      p.head.rotation.x = -0.1;
+      p.head.rotation.y = Math.sin(timeSec * 2.3) * 0.1;
+      break;
+    case 'chat':
+      // Face to face: nods and open-hand gestures.
+      p.head.rotation.x = Math.max(0, Math.sin(timeSec * 2.6)) * 0.18;
+      p.armR.rotation.x = -0.7 + Math.sin(timeSec * 1.7) * 0.35;
+      p.armR.rotation.y = Math.sin(timeSec * 1.1) * 0.3;
+      p.armL.rotation.x = -0.3 + Math.sin(timeSec * 1.3 + 1) * 0.15;
+      p.body.rotation.y = Math.sin(timeSec * 0.7) * 0.05;
+      break;
+    case 'arms-up':
+      // Desk stretch: seated, both arms straight up, leaning back a little.
+      p.body.position.y = 0.07;
+      p.body.rotation.x = -0.08;
+      p.armL.rotation.x = -2.9;
+      p.armR.rotation.x = -2.9;
+      p.head.rotation.x = -0.2;
+      break;
+    case 'work-sip':
+      // Seated: left hand types, right hand holds the tea glass and sips.
+      p.body.position.y = 0.07;
+      p.armL.rotation.x = -1.15 + Math.sin(timeSec * 13) * 0.14;
+      cupArm(p, timeSec);
+      p.head.rotation.x = p.head.rotation.x + 0.1;
       break;
     case 'idle':
       p.body.position.y = Math.sin(timeSec * 2) * 0.008;

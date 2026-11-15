@@ -38,6 +38,15 @@ export interface DayOptions {
   occupancy?: boolean;
   /** Diagnostics: every 5 s "<t><period initial><robots in the lab>". */
   trace?: string[];
+  /** Observer after every 0.1 s step (Rev 43 B action layer); must not touch the sims. */
+  each?: (t: number, ambient: ActivitySim, specs: readonly AmbientSpec[]) => void;
+}
+
+export interface AmbientSpec {
+  id: string;
+  home: { x: number; y: number; z: number };
+  work: { x: number; y: number; z: number };
+  coffee: { x: number; y: number; z: number };
 }
 
 export function runOfficeDay(o: DayOptions): DayStats & { ambient: ActivitySim } {
@@ -46,7 +55,7 @@ export function runOfficeDay(o: DayOptions): DayStats & { ambient: ActivitySim }
   const units = unitFloors();
   const wf = makeWorkflow({ maxJobs: maxJobsFor('high'), seed: MASTER_SEED, record: false });
   const nav = wf.movement as NavMovement;
-  const specs = [...units.keys()].map((id) => {
+  const specs: AmbientSpec[] = [...units.keys()].map((id) => {
     const d = anchors.deskOf(id)!;
     const y = floorY(d.floor);
     return { id, home: { x: d.place.home.x, y, z: d.place.home.z }, work: { x: d.place.seat.x, y, z: d.place.seat.z }, coffee: { x: d.place.coffee.x, y, z: d.place.coffee.z } };
@@ -66,6 +75,7 @@ export function runOfficeDay(o: DayOptions): DayStats & { ambient: ActivitySim }
     stats.jobsDone += ev.filter((e) => e.type === 'job-done').length;
     dir.ingest(ev);
     dir.update(0.1, wf);
+    o.each?.(t, ambient, specs);
     const p = periodAt(t);
     const count = new Map<AmenityZoneId, number>();
     for (const id of units.keys()) {

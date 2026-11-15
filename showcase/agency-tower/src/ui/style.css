@@ -371,6 +371,18 @@ html.is-org .robot-label { box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.25), 0 4p
 /* Walking: only the scene and the mode bar (with its exit button) stay on screen. */
 html.is-walk .hud-rail, html.is-walk .settings, html.is-walk .settings-panel, html.is-walk .overlay, html.is-walk .card-host { display: none; }
 html.is-follow .walk-enter { display: none; }
+/* Rev 43: "Ajan gözü" switching row (◀ picker ▶) under the title, and the "Tanıtım turu" view. */
+.camera-mode { flex-wrap: wrap; }
+.camera-mode-switch { flex: 1 0 100%; display: flex; align-items: center; gap: var(--space-2); }
+.camera-mode-switch[hidden], .camera-mode-step[hidden], .camera-mode-pick[hidden] { display: none; }
+.camera-mode-step { min-width: var(--touch); min-height: var(--touch); flex: none; padding: 0; display: grid; place-items: center; border-radius: var(--radius-pill); font-size: 0.9rem; }
+.camera-mode-pick { min-width: var(--touch); min-height: var(--touch); flex: 1 1 auto; max-width: 100%; padding: 4px var(--space-3); border-radius: var(--radius-sm); border: 1px solid var(--panel-border); background: var(--panel); color: inherit; font: inherit; font-size: 0.85rem; }
+.tour-exit { position: absolute; z-index: 20; right: var(--space-4); bottom: calc(var(--space-4) + env(safe-area-inset-bottom, 0px)); min-height: var(--touch); min-width: var(--touch); padding: 6px var(--space-4); border-radius: var(--radius-pill); background: var(--pill-dark); color: #fff; font-weight: 600; opacity: 0.85; }
+.tour-exit:hover, .tour-exit:focus-visible { background: var(--pill-dark); color: #fff; opacity: 1; }
+.tour-exit[hidden] { display: none; }
+html.is-tour #app > :not(.tower-canvas):not(.tour-exit), html.is-tour body > :not(#app) { display: none !important; }
+html.is-film #app > :not(.tower-canvas), html.is-film body > :not(#app) { display: none !important; }
+html.is-film .tower-canvas { cursor: none; }
 @media (max-width: 767px) {
   .camera-mode { top: auto; bottom: calc(var(--space-2) + env(safe-area-inset-bottom, 0px)); width: calc(100vw - 2 * var(--space-2)); max-width: none; }
   .walk-enter { margin-top: auto; }
