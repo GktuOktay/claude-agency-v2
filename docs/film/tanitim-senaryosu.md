@@ -1,6 +1,6 @@
 # Tanıtım filmi senaryosu: "Bir işin yolculuğu"
 
-- **Süre:** yaklaşık 2 dakika (110–140 s; CEO film incelemesi: "daha hızlı bir çekim istiyorum"). Tablodaki sahne süreleri ilk taslaktır; güncel tutma süreleri `src/film/script.ts` içindedir.
+- **Süre:** yaklaşık 2,5 dakika (140–170 s; CEO: önce "daha hızlı bir çekim istiyorum", sonra "hızı da biraz düşür"). Tablodaki sahne süreleri ilk taslaktır; güncel tutma süreleri `src/film/script.ts` içindedir.
 - **Biçim:** 3840×2160 (16:9) ve 2160×3840 (9:16), 30 fps. Filmde arayüz görünmez; yalnız alt yazı, sahne başlığı ve isim etiketleri görünür.
 - **Kaynak:** `?film=1` modu. Kayıt uygulamanın kendi senaryolu işinden alınır. Videoyu CEO'ya doğrudan veririz, GitHub'a yüklenmez.
 - **Kural:** filmde gerçek şirket adı, logo ya da ürün geçmez. Şirketin adı filmde "Yazılım Evi"dir; "Ajans" denmez.
@@ -19,7 +19,7 @@ CEO sabah 08:00'de Yazılım Evi'ne gelir ve büyük bir iş getirir: **GökRota
 
 Film, zarfın CEO'dan çıkıp teslime kadar izlediği yolu anlatır.
 
-Gün hızı yürüme, bekleme ve sabah gelişinde 8×, masa işinde 4×, kilit anlarda 1,5×. CEO geliyor sahnesi kısa bir lobi çekimi ve CEO'ya kesmeyle geçer. Kamera her sahnede işi taşıyan robota keser.
+Gün hızı yürüme, bekleme ve sabah gelişinde 6×, masa işinde 3×, kilit anlarda 1×. CEO geliyor sahnesi kısa bir lobi çekimi ve CEO'ya kesmeyle geçer. Kamera her sahnede işi taşıyan robota keser.
 
 | # | Sahne | Yer | Görünenler | Alt yazı | Süre |
 |---|---|---|---|---|---|
