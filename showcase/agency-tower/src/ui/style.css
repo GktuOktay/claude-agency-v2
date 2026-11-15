@@ -381,7 +381,23 @@ html.is-follow .walk-enter { display: none; }
 .tour-exit:hover, .tour-exit:focus-visible { background: var(--pill-dark); color: #fff; opacity: 1; }
 .tour-exit[hidden] { display: none; }
 html.is-tour #app > :not(.tower-canvas):not(.tour-exit), html.is-tour body > :not(#app) { display: none !important; }
-html.is-film #app > :not(.tower-canvas), html.is-film body > :not(#app) { display: none !important; }
+html.is-film #app > :not(.tower-canvas):not(.film-overlay), html.is-film body > :not(#app) { display: none !important; }
+/* Promo film (Rev 43): lower-third caption with a small scene title, dialogue bubbles; film mode only. */
+.film-overlay { display: none; position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 2; }
+html.is-film .film-overlay { display: block; }
+.film-overlay > .film-bubble { position: absolute; left: 0; top: 0; font-size: 15px; max-width: 32ch; animation: none; will-change: transform, opacity; }
+.film-overlay > [hidden] { display: none; }
+.film-caption {
+  position: absolute; left: 50%; bottom: 9%; transform: translateX(-50%);
+  max-width: min(72ch, 88vw); padding: 10px 22px 12px; border-radius: 12px;
+  background: rgba(14, 16, 20, 0.62); color: #fff; text-align: center;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.25);
+}
+.film-caption-title { margin: 0 0 2px; font-size: clamp(12px, 1.1vw, 16px); letter-spacing: 0.12em; text-transform: uppercase; opacity: 0.8; }
+.film-caption-text {
+  margin: 0; font-size: clamp(18px, 2.2vw, 34px); line-height: 1.25; font-weight: 600;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
 html.is-film .tower-canvas { cursor: none; }
 @media (max-width: 767px) {
   .camera-mode { top: auto; bottom: calc(var(--space-2) + env(safe-area-inset-bottom, 0px)); width: calc(100vw - 2 * var(--space-2)); max-width: none; }

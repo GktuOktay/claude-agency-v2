@@ -8,7 +8,9 @@ import scenariosRaw from '../src/data/scenarios.json';
 import { loadStandaloneScenario, type Scenario } from '../src/data/scenarios';
 import { FILM_SCENARIO_RAW, loadFilmScenario, withFilm } from '../src/film/filmData';
 import { createFilmDirector, type FilmDirector } from '../src/film/director';
-import { FILM_LINES, FILM_SCENES, FILM_VARIANT, LINE_S, MAX_BUBBLES } from '../src/film/script';
+import { FILM_LINES, FILM_PLACES, FILM_SCENES, FILM_VARIANT, LINE_S, MAX_BUBBLES } from '../src/film/script';
+import { createFilmOverlay, installFilmHook, toCanvasPixels } from '../src/film/overlay';
+import { filmShotPlan } from '../src/film/shots';
 import { createWorkflow, type WfEvent, type Workflow } from '../src/sim/workflow';
 import { createOfficeSchedule, periodAt } from '../src/sim/schedule';
 import { appRoot } from './helpers';
@@ -183,5 +185,45 @@ describe('film story director', () => {
     expect(office.now()).toMatchObject({ hh: 8, mm: 30 });
     expect([...(r.periods.get(13) ?? [])]).toEqual(['lunch']);
     for (const [n, ps] of r.periods) if (n !== 13) for (const p of ps) expect(['work', 'after'], `scene ${n}`).toContain(p);
+  });
+});
+
+describe('film overlay and recorder hook', () => {
+  it('shows the lower-third caption (title + text) with its alpha and the bubbles at their positions', () => {
+    const o = createFilmOverlay();
+    o.update({ title: 'Açılış', text: 'Sabah 08:30. Şirket uyanıyor.', alpha: 0.5 }, [{ x: 100, y: 50, text: 'Günaydın efendim!', alpha: 1 }]);
+    const cap = o.element.querySelector('.film-caption') as HTMLElement;
+    expect(cap.hidden).toBe(false);
+    expect(o.element.querySelector('.film-caption-title')?.textContent).toBe('Açılış');
+    expect(o.element.querySelector('.film-caption-text')?.textContent).toBe('Sabah 08:30. Şirket uyanıyor.');
+    expect(Number(cap.style.opacity)).toBe(0.5);
+    const b = o.element.querySelector('.film-bubble') as HTMLElement;
+    expect(b.textContent).toBe('Günaydın efendim!');
+    expect(b.style.transform).toMatch(/^translate\(100(\.0)?px, 50(\.0)?px\)/);
+    o.update(null, []);
+    expect(cap.hidden).toBe(true);
+    expect(b.hidden).toBe(true);
+  });
+
+  it('installs window.__film only in film mode; bubbles map to canvas pixels', () => {
+    const api = { caption: () => null, bubbles: () => [] };
+    const off: { __film?: unknown } = {};
+    installFilmHook(off, api, { film: false });
+    expect(off.__film).toBeUndefined();
+    const on: { __film?: unknown } = {};
+    installFilmHook(on, api, { film: true });
+    expect(on.__film).toBe(api);
+    expect(toCanvasPixels({ x: 10, y: 20, text: 'a', alpha: 1 }, 960, 540, 1920, 1080)).toEqual({ x: 20, y: 40, text: 'a', alpha: 1 });
+  });
+
+  it('film mode keeps the overlay visible while every other control is hidden', () => {
+    const css = readFileSync(join(appRoot, 'src/ui/style.css'), 'utf8');
+    expect(css).toMatch(/html\.is-film #app > :not\(\.tower-canvas\):not\(\.film-overlay\)/);
+    expect(css).toMatch(/html\.is-film \.film-overlay \{ display: block; \}/);
+  });
+
+  it('every film place has a tour shot; the finale ends on the golden overview', () => {
+    for (const p of FILM_PLACES) expect(filmShotPlan(p).length, p).toBeGreaterThan(0);
+    expect(filmShotPlan('finale').map((s) => s.name)).toEqual(['roof', 'finale']);
   });
 });

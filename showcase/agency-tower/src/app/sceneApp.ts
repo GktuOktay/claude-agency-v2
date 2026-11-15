@@ -32,7 +32,12 @@ import { bubbleLift, createDeclutter, declutterDue } from '../scene/declutter';
 import { FLOOR_HEIGHT, FLOOR_TOP, accentCss, buildTower, floorAccent, type RobotEntry, type ViewState } from '../scene/model';
 import { ROBOT_BASE_SCALE, ROBOT_HEIGHT, tierStyle } from '../scene/robot';
 import { FOLLOW_FOV, createFollower, cycleFollow, followBounds, followOrder, type Follower } from '../scene/follow';
-import { createTourPlayer, installTourHook, tourParams, tourPlan, type TourPlayer } from '../scene/tour';
+import { createTourPlayer, installTourHook, tourParams, tourPlan, type TourPlayer, type TourPose, type TourSegment } from '../scene/tour';
+import { createFilmDirector, type FilmDirector } from '../film/director';
+import { loadFilmScenario, withFilm } from '../film/filmData';
+import { createFilmOverlay, installFilmHook, toCanvasPixels, type FilmBubble } from '../film/overlay';
+import { FILM_TITLE } from '../film/script';
+import { filmShotPlan } from '../film/shots';
 import { WALK_FOV, createWalker, isWalkKey, walkInputFromKeys, type Walker } from '../scene/walk';
 import { buildCampusGraph, type CampusGraph } from '../sim/nav';
 import { createCameraModeUi, type FollowList } from '../ui/cameraModeUi';
@@ -110,6 +115,13 @@ function brighten(floor: number): number {
 
 export function startSceneApp(ctx: SceneContext, params: Params): void {
   const { root, data, card, scenarios, titles } = ctx;
+  // Promo film (Rev 43, `?film=1` only): the film-flagship job is the only job; the pool and the normal app are
+  // untouched otherwise (filmScn is null and every option below falls back to the normal value).
+  const filmParams = tourParams(window.location.search);
+  const filmScn = filmParams.film ? loadFilmScenario(new Map(data.units.map((u) => [u.id, u.floor]))) : null;
+  const simScenarios = filmScn ? withFilm(scenarios, filmScn) : scenarios;
+  let filmDir: FilmDirector | null = null;
+  const filmEvents: WfEvent[] = [];
   const coarse = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
   // Rev 35: a stored "Görüntü kalitesi" choice applies when the URL has no ?quality (mapped onto the
   // existing tiers until src/app/quality.ts exists).
@@ -200,7 +212,8 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
   // Rev 43 C3: the office reads simulation time + the "Öğle arasına atla" offset (the engine never sees it).
   const officeTime = createOfficeTime({
     get time() {
-      return runtime.clock.time;
+      // Film: the story director sets the office hour per scene (08:30 opening, lunch at scene 13).
+      return filmDir ? filmDir.officeClock() : runtime.clock.time;
     },
   });
   const office: OfficeClock = createOfficeSchedule(officeTime);
@@ -236,11 +249,13 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
   const narrowMq = typeof matchMedia === 'function' ? matchMedia('(max-width: 767px)') : null;
   const reducedMq = typeof matchMedia === 'function' ? matchMedia('(prefers-reduced-motion: reduce)') : null;
   // T-8: meeting-room whiteboard, filled from the engine's meeting progress (§7.7 texture size per tier).
-  const board = createWhiteboard(scenarios);
+  const board = createWhiteboard(simScenarios);
   const boardTex = createWhiteboardTexture(whiteboardTextureSize(quality.quality));
   if (boardTex) model.meetingRoom.setWhiteboardTexture(boardTex.texture);
   const runtime = createSimRuntime({
-    scenarios,
+    scenarios: simScenarios,
+    // Film: no scripted opening and no random jobs; the director starts the film job.
+    ...(filmScn ? { workflow: { scripted: false, autoStart: false, titles: () => FILM_TITLE } } : {}),
     units: new Map(data.units.map((u) => [u.id, u.floor])),
     titles,
     maxJobs: maxJobsFor(quality.quality),
@@ -256,6 +271,7 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
       board.ingest(events);
       director?.update(dt, runtime.workflow);
       onLiveEvents(events); // Rev 43 C1 / C2
+      if (filmDir && events.length) filmEvents.push(...events);
     },
     isNarrow: () => narrowMq?.matches ?? false,
     reducedMotion: () => reducedMq?.matches ?? false,
@@ -270,7 +286,7 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     const mv = runtime.workflow.movement;
     if (isNavMovement(mv)) breakNav = mv;
     director = createDirector({
-      scenarios,
+      scenarios: simScenarios,
       layouts: model.layouts,
       homeFloors: new Map(data.units.map((u) => [u.id, u.floor])),
       ambient: sim,
@@ -278,6 +294,7 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
       still: () => reducedMq?.matches ?? false,
     });
   }
+  if (filmScn) filmDir = createFilmDirector({ workflow: runtime.workflow, scenario: filmScn });
   // T-6 visible layer: markers, carried copies, stamp, QA lamps, screen overlays (src/scene/props.ts).
   {
     const faceOf = new Map<unknown, MeshBasicMaterial>();
@@ -841,7 +858,7 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
   }
 
   // ---- "Tanıtım turu" (KARARLAR Rev 43): a cinematic camera tour; only Esc / "Turu bitir" while it runs ----
-  let tour: { player: TourPlayer; follow: { id: string; follower: Follower; scale: number } | null; golden: number } | null = null;
+  let tour: { player: TourPlayer; follow: { id: string; follower: Follower; scale: number } | null; golden: number; film: boolean } | null = null;
   const tourEnded: (() => void)[] = [];
   /** A robot at work on the engineering floor for the follow shot (not on a break), else the first robot. */
   const workingRobot = (): RobotEntry | null => {
@@ -860,7 +877,10 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     if (settings.isOpen()) settings.close(false);
     holdRig();
     hoverId = null;
-    tour = { player: createTourPlayer(tourPlan(), motion.active()), follow: null, golden: 0 };
+    // `?film=1`: the story film runs once in place of the tour (the same `__tour` start / onEnd hook).
+    const film = filmDir !== null && !filmDir.started;
+    if (film) filmDir?.start();
+    tour = { player: createTourPlayer(film ? filmShotPlan('overview') : tourPlan(), motion.active()), follow: null, golden: 0, film };
     tourUi.show();
   }
   /** Ends the tour (finished, Esc or "Turu bitir"): the overview, from wherever the camera is now. */
@@ -880,6 +900,10 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     panel.setCurrent('all');
     refreshWalkOffer();
     canvas.focus();
+    if (filmDir) {
+      runtime.setSpeed(1);
+      filmOverlay.update(null, []);
+    }
     for (const cb of tourEnded) cb();
   }
   const tourView = (focusFloor: number, campus: CampusKey | null): void => {
@@ -929,6 +953,106 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     }
     if (t.player.done) endTour();
   }
+  /** Applies a tour segment's floor / campus view when the film's place shot enters it. */
+  const segmentView = (seg: TourSegment): void => {
+    if (seg.view === null) {
+      campusAt = null;
+      model.setView({ mode: 'overview', focusFloor: 0 });
+      syncStaff();
+      panel.setCurrent('all');
+    } else if ('campus' in seg.view) tourView(campusItem(seg.view.campus).focusFloor, seg.view.campus);
+    else tourView(seg.view.floor, null);
+  };
+  // ---- promo film (`?film=1`): story director → day speed, camera, captions, dialogue bubbles ----
+  const filmOverlay = createFilmOverlay();
+  let filmBubbles: FilmBubble[] = [];
+  /** The robot nearest the shot's look-at point that is on screen (`here` speakers, staff fallback). */
+  const nearestHead = (): Vector3 | null => {
+    let best: Vector3 | null = null;
+    let bestD = Infinity;
+    for (const r of model.robots) {
+      const hp = headPos(r);
+      if (!project(hp).visible) continue;
+      const d = hp.distanceToSquared(controls.target);
+      if (d < bestD) {
+        bestD = d;
+        best = hp;
+      }
+    }
+    return best;
+  };
+  const speakerHead = (speaker: string): Vector3 | null => {
+    if (speaker === 'here') return nearestHead();
+    if (speaker.startsWith('staff:')) {
+      const hp = staff?.headPosition(speaker) ?? null;
+      return hp && project(hp).visible ? hp : nearestHead();
+    }
+    const r = robotById.get(speaker);
+    return r ? headPos(r) : null;
+  };
+  function frameFilm(dt: number, still: boolean): void {
+    const t = tour;
+    if (!t || !filmDir) return;
+    const f = filmDir.update(dt, filmEvents.splice(0));
+    runtime.setSpeed(f.speed);
+    if (f.shotChanged) {
+      t.follow = null;
+      t.golden = 0;
+      if (f.shot.kind === 'place') t.player = createTourPlayer(filmShotPlan(f.shot.place), still);
+      else {
+        const r = robotById.get(f.shot.unit);
+        if (r) t.follow = { id: r.unit.id, follower: createFollower(camera.position, controls.target), scale: tierStyle(r.unit.tier).scale };
+      }
+    }
+    let pose: TourPose | null = null;
+    let fov = camera.fov;
+    const fr = t.follow ? robotById.get(t.follow.id) : undefined;
+    if (t.follow && fr) {
+      const fl = floorOf(fr);
+      if (model.view.mode !== 'floor' || model.view.focusFloor !== fl || campusAt) tourView(fl, null);
+      const p = t.follow.follower.update(fr.group.position, fr.group.rotation.y, dt, still, t.follow.scale, followBounds(fr.group.position));
+      pose = { pos: p.pos, target: p.target, fov: FOLLOW_FOV };
+      fov = FOLLOW_FOV;
+    } else {
+      const pf = t.player.update(dt, { pos: camera.position, target: controls.target, fov: camera.fov });
+      t.golden = pf.golden;
+      if (pf.entered) segmentView(pf.segment);
+      pose = pf.pose;
+      fov = pose?.fov ?? camera.fov;
+    }
+    controls.enabled = false;
+    if (pose) {
+      camera.position.copy(pose.pos);
+      controls.target.copy(pose.target);
+      camera.lookAt(pose.target);
+    }
+    if (Math.abs(camera.fov - fov) > 1e-3) {
+      camera.fov = fov;
+      camera.updateProjectionMatrix();
+    }
+    // Dialogue bubbles over the speakers' heads (CSS px relative to the canvas), at most two (director).
+    const out: FilmBubble[] = [];
+    for (const { line, alpha } of filmDir.lines()) {
+      const hp = speakerHead(line.speaker);
+      if (!hp) continue;
+      const p = project(hp);
+      if (p.visible) out.push({ x: p.x, y: p.y - 6, text: line.text, alpha });
+    }
+    filmBubbles = out;
+    filmOverlay.update(filmDir.caption(), out);
+    if (f.done) endTour();
+  }
+  installFilmHook(
+    window,
+    {
+      caption: () => (tour?.film ? filmDir?.caption() ?? null : null),
+      bubbles: () => {
+        const r = canvas.getBoundingClientRect();
+        return tour?.film ? filmBubbles.map((b) => toCanvasPixels(b, r.width, r.height, canvas.width, canvas.height)) : [];
+      },
+    },
+    { film: filmDir !== null },
+  );
   // Recording hook: `?tour=1` / `?film=1` only; `?film=1` hides all UI and starts after 3 s.
   installTourHook(window, { start: () => startTour(), onEnd: (cb) => tourEnded.push(cb) }, tourOpts);
   if (tourOpts.film) window.setTimeout(() => startTour(), 3000);
@@ -936,6 +1060,7 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
   const rail = mountHud(root, { menu: toolbar, panel: panel.element, legend });
   rail.append(modeUi.walkButton, breakButtons.screen);
   root.append(unitList.element, labels, fpsEl, modeUi.bar, feed.element, tourUi.exitButton);
+  if (filmDir) root.append(filmOverlay.element);
 
   let hoverId: string | null = null;
   let focusId: string | null = null;
@@ -1116,7 +1241,8 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     if (director) props.frame(director, model.view, orgOn);
 
     rig.update(dt);
-    if (tour) frameTour(dt, still);
+    if (tour?.film) frameFilm(dt, still);
+    else if (tour) frameTour(dt, still);
     else if (camMode) frameCameraMode(dt, still);
     else {
       if (Math.abs(camera.fov - rig.fov) > 1e-3) {
