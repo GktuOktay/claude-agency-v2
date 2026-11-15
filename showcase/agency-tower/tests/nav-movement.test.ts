@@ -5,7 +5,7 @@ import { describe, it, expect } from 'vitest';
 import { FLOOR_COUNT, ROBOT_SEPARATION, floorLayout, separationExempt, type FloorLayout } from '../src/sim/layout';
 import { buildFloorGraph, distanceToGraph, route } from '../src/sim/nav';
 import { WALK_SPEED, MAX_YIELD_S, createNavMovement, layoutsFromUnits, type NavMovement } from '../src/sim/navMovement';
-import { riderLegS } from '../src/sim/elevator';
+import { DOOR_RAMP_S, DOOR_S, riderLegS } from '../src/sim/elevator';
 import { sortUnits } from '../src/ui/unitList';
 import { loadData } from '../src/data/loader';
 import roster from '../src/data/roster.generated.json';
@@ -116,7 +116,12 @@ describe('floor change (REQ-14, AC-13)', () => {
     m.moveTo('marketing', { floor: 4, spot: 'home:chief-of-staff' });
     stepUntil(m, () => m.isAt('marketing', { floor: 4, spot: 'home:chief-of-staff' }));
     const ride = m.legLog().find((l) => l.unit === 'marketing' && l.kind === 'ride')!;
-    expect(Math.abs(ride.end - ride.start - (ride.waited! + riderLegS(4)))).toBeLessThanOrEqual(2 * STEP + 1e-6);
+    // Walk-in boarding (CEO film review): the fully open doors wait until the caller has walked aboard.
+    const log = m.elevator.log();
+    const start = log.find((e) => e.type === 'ride-start' && e.unit === 'marketing')!;
+    const board = log.find((e) => e.type === 'board' && e.unit === 'marketing')!;
+    const walkIn = Math.max(0, board.t - start.t - (DOOR_S - DOOR_RAMP_S));
+    expect(Math.abs(ride.end - ride.start - (ride.waited! + riderLegS(4) + walkIn))).toBeLessThanOrEqual(2 * STEP + 1e-6);
   });
 
   it('a frozen caller in call-wait does not board; on release its call goes to the end of the queue', () => {

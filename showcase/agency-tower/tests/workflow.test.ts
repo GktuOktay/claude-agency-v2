@@ -134,7 +134,7 @@ describe('engine trace (AC-4)', () => {
     let wf: Workflow | undefined;
     const { rng, log } = instrumented(9, () => wf?.time ?? 0);
     wf = makeWorkflow({ rng });
-    run(wf, 1500); // 1500 s: real escort travel (Rev 34); assertions unchanged
+    run(wf, 1600); // 1600 s: real escort travel (Rev 34) and walk-in elevator boarding (CEO film review); assertions unchanged
     const trace = wf.trace();
     const d = wf.draws();
     expect(log.length).toBe(d.outcome + d.lane + d.variant + d['start-delay'] + d.duration);
@@ -198,7 +198,7 @@ describe('engine trace (AC-4)', () => {
 describe('rejection loops (AC-8)', () => {
   it('job #1 has exactly one spec-critic rejection and job #2 exactly one QA red; loop rows run in order', () => {
     const wf = makeWorkflow({ seed: 1 });
-    run(wf, 800);
+    run(wf, 850); // 850 s: walk-in elevator boarding (CEO film review) finishes job #1 at ~800 s; assertions unchanged
     const t = wf.trace();
     const rejects = (n: number) => t.filter((e) => e.type === 'reject' && e.job === n).map((e) => e.step);
     expect(rejects(1)).toEqual(['rev-sc']);

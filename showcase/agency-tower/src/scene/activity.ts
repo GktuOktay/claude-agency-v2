@@ -136,6 +136,8 @@ export interface BreakMovement {
   phase(unit: string): MovePhase;
   /** Floor-local x/z, y = floor or cabin height; `reduced`: the current leg's start (leg cuts, REQ-19). */
   renderPosition(unit: string, reduced: boolean): Point;
+  /** Callers on `floor` waiting for a free landing waiting spot (elevator backlog not yet in the call queue). */
+  awaitingSpot?(floor: number): number;
 }
 
 export interface CampusBreakOptions {
@@ -333,10 +335,13 @@ export function createActivitySim(specs: readonly ActivitySpec[], seed: number, 
     !r.reserved && !r.waving && !r.brk && r.kind === 'idle' && !excluded.has(r.spec.id) && campus?.floors.has(r.spec.id) === true && mv.isAt(r.spec.id, homeTarget(r.spec.id));
   /** A trip off the home floor needs room under MAX_AWAY_BREAKS (`extra` already planned) and the cabin. */
   const awayOk = (r: Internal, s: AmenitySpot, extra = 0): boolean => {
-    if (s.floor === campus?.floors.get(r.spec.id)) return true;
+    const home = campus?.floors.get(r.spec.id);
+    if (s.floor === home) return true;
     let away = extra;
     for (const v of robots.values()) if (awayOf(v)) away++;
-    return away < (campus?.maxAway ?? MAX_AWAY_BREAKS) && (campus?.canRide?.() ?? true);
+    // Callers held at their desks for a free waiting spot are elevator backlog too: no new trip from that landing.
+    const backlog = home !== undefined ? (campus?.movement.awaitingSpot?.(home) ?? 0) : 0;
+    return away < (campus?.maxAway ?? MAX_AWAY_BREAKS) && (campus?.canRide?.() ?? true) && backlog === 0;
   };
 
   function beginBreak(r: Internal, s: AmenitySpot, partner: string | null, mv: BreakMovement, time: number, slot: SlotKind | null = null): void {

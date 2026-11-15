@@ -22,6 +22,12 @@ export const DOOR_PASS_S = DOOR_S / 2;
 export const DOOR_EXIT_S = DOOR_RAMP_S;
 /** Door sensor: fully open doors wait at most this long for the doorway to clear before they close anyway. */
 export const MAX_DOOR_HOLD_S = 2.5;
+/**
+ * Walk-in boarding (CEO film review: callers appeared inside the cabin): fully open doors wait at most this long for
+ * the stop's boarders to walk from their landing waiting spots to their rider spots (the longest walk-in is ~5.1 m,
+ * 4.3 s at walking speed). A boarder still outside when it runs out is re-queued, not carried off.
+ */
+export const MAX_BOARD_HOLD_S = 6;
 /** Riders per cabin (KARARLAR Rev 44: 3 -> 6, the cabin and its doors widened to fit). */
 export const CABIN_CAPACITY = 6;
 /** Pre-Rev 44 cabin size (the `legacy` policy, kept for the before/after traffic measurement). */
@@ -101,6 +107,11 @@ export interface ElevatorOptions {
   record?: boolean;
   /** Dispatch policy (default `collective`). */
   policy?: ElevatorPolicy;
+  /**
+   * Walk-in boarding: a boarder is aboard only once its walker reports `boarded()` (it walked through the door to its
+   * rider spot); the fully open doors wait for that (at most MAX_BOARD_HOLD_S). Off: boarders are aboard at DOOR_PASS_S.
+   */
+  walkIn?: boolean;
 }
 
 export interface Elevator {
@@ -113,6 +124,15 @@ export interface Elevator {
   cancel(unit: string): void;
   /** Clears an `alighting` or `arrived` status once the rider has walked off. */
   clear(unit: string): void;
+  /** Walk-in boarding: the boarder reached its rider spot inside the cabin (no-op otherwise). */
+  boarded(unit: string): void;
+  /** Walk-in boarding: the cabin waits at this floor for the boarder (boarding, not yet aboard). */
+  awaiting(unit: string): boolean;
+  /**
+   * Seconds until the travelling cabin stops at `floor` if the queued caller `unit` there will board it (as the
+   * cabin would decide now), else null. Callers use it to step toward the door as the cabin arrives.
+   */
+  arrivingFor(unit: string, floor: number): number | null;
   status(unit: string): CallStatus;
   /**
    * Advances the cabin. `doorBlocked` is the door sensor: while it reports someone in the doorway the fully open doors
@@ -154,6 +174,7 @@ const round6 = (x: number): number => Math.round(x * 1e6) / 1e6;
 
 export function createElevator(opts: ElevatorOptions = {}): Elevator {
   const record = opts.record ?? false;
+  const walkIn = opts.walkIn ?? false;
   const policy: ElevatorPolicy = opts.policy ?? 'collective';
   const capacity = policy === 'legacy' ? LEGACY_CAPACITY : CABIN_CAPACITY;
   const start = Math.min(FLOOR_COUNT - 1, Math.max(0, opts.startFloor ?? 0));
@@ -174,6 +195,9 @@ export function createElevator(opts: ElevatorOptions = {}): Elevator {
   let stopFloor = start;
   /** Door-sensor hold used at the current stop. */
   let holdS = 0;
+  /** Walk-in boarding hold used at the current stop, and the boarders of this stop already at their rider spots. */
+  let boardHoldS = 0;
+  const walkedIn = new Set<string>();
   const queue: QueuedCall[] = [];
   const held = new Map<string, QueuedCall>();
   const status = new Map<string, CallStatus>();
@@ -297,6 +321,8 @@ export function createElevator(opts: ElevatorOptions = {}): Elevator {
     t = 0;
     dur = DOOR_S;
     holdS = 0;
+    boardHoldS = 0;
+    walkedIn.clear();
     log({ type: 'stop', floor });
     return true;
   }
@@ -339,8 +365,17 @@ export function createElevator(opts: ElevatorOptions = {}): Elevator {
       }
       const gone = new Set(exiting.map((r) => r.unit));
       riders = riders.filter((r) => !gone.has(r.unit));
-      for (const r of boarding) status.set(r.unit, 'riding');
-      riders.push(...boarding);
+      // Walk-in boarding: a boarder who did not reach the cabin before the doors closed waits for the next cabin.
+      const left = walkIn ? boarding.filter((r) => !walkedIn.has(r.unit)) : [];
+      for (const r of left) {
+        queue.push({ unit: r.unit, from: stopFloor, to: r.to, t: time });
+        status.set(r.unit, 'queued');
+        log({ type: 'requeue', unit: r.unit, floor: stopFloor });
+      }
+      const on = boarding.filter((r) => !left.includes(r));
+      for (const r of on) status.set(r.unit, 'riding');
+      riders.push(...on);
+      walkedIn.clear();
       exiting = [];
       boarding = [];
       if (!riders.length && !validCommit()) dir = 0;
@@ -391,6 +426,40 @@ export function createElevator(opts: ElevatorOptions = {}): Elevator {
       const st = status.get(unit);
       if (st === 'arrived' || st === 'alighting') status.delete(unit);
     },
+    boarded(unit) {
+      if (!walkIn || mode !== 'doors' || walkedIn.has(unit)) return;
+      if (!boarding.some((r) => r.unit === unit)) return;
+      walkedIn.add(unit);
+      log({ type: 'board', unit, floor: stopFloor, doors: doorsAt(t) });
+      if (boarding.every((r) => walkedIn.has(r.unit))) log({ type: 'riders', count: riders.length - exiting.length + boarding.length, floor: stopFloor });
+    },
+    arrivingFor(unit, floor) {
+      if (mode !== 'travel' || !near(toPos, floor) || status.get(unit) !== 'queued') return null;
+      const c = queue.find((x) => x.unit === unit);
+      if (!c || c.from !== floor) return null;
+      // Dry run of arriveAt's choice of boarders (the commit is restored afterwards).
+      const saved = commit;
+      const staying = riders.filter((r) => r.to !== floor).length;
+      let nd = 0;
+      if (staying > 0) nd = dir;
+      else {
+        const k = commitToHead();
+        if (k) nd = k.floor === floor ? k.dir : Math.sign(k.floor - floor);
+      }
+      let ok = false;
+      if (nd !== 0) {
+        const k = commit;
+        const want = queue.filter((q) => {
+          if (q.from !== floor) return false;
+          if (k && k.floor === floor && matchesCommit(q, k) && (staying === 0 || k.dir === nd)) return true;
+          return pickupAllowed(q, nd);
+        });
+        ok = want.slice(0, capacity - staying).some((q) => q.unit === unit);
+      }
+      commit = saved;
+      return ok ? Math.max(0, dur - t) : null;
+    },
+    awaiting: (unit) => walkIn && mode === 'doors' && boarding.some((r) => r.unit === unit) && !walkedIn.has(unit),
     status: (unit) => status.get(unit) ?? 'none',
     step(dt, doorBlocked) {
       if (!(dt > 0)) return;
@@ -406,6 +475,14 @@ export function createElevator(opts: ElevatorOptions = {}): Elevator {
           continue;
         }
         if (mode === 'travel') retarget();
+        // Walk-in boarding: fully open doors wait for this stop's boarders to reach their rider spots.
+        if (mode === 'doors' && near(t, closeAt) && walkIn && boardHoldS < MAX_BOARD_HOLD_S - EPS && boarding.some((r) => !walkedIn.has(r.unit))) {
+          const h = Math.min(left, MAX_BOARD_HOLD_S - boardHoldS);
+          boardHoldS += h;
+          time += h;
+          left -= h;
+          continue;
+        }
         // Door sensor: fully open doors wait while someone stands in the doorway.
         if (mode === 'doors' && near(t, closeAt) && holdS < MAX_DOOR_HOLD_S - EPS && doorBlocked?.()) {
           const h = Math.min(left, MAX_DOOR_HOLD_S - holdS);
@@ -425,7 +502,7 @@ export function createElevator(opts: ElevatorOptions = {}): Elevator {
             log({ type: 'exit', unit: r.unit, floor: stopFloor, doors }, at);
           }
         }
-        if (mode === 'doors' && t < DOOR_PASS_S - EPS && t + used >= DOOR_PASS_S - EPS) {
+        if (mode === 'doors' && !walkIn && t < DOOR_PASS_S - EPS && t + used >= DOOR_PASS_S - EPS) {
           const at = time + (DOOR_PASS_S - t);
           const doors = doorsAt(DOOR_PASS_S);
           for (const r of boarding) log({ type: 'board', unit: r.unit, floor: stopFloor, doors }, at);
@@ -465,6 +542,8 @@ export function createElevator(opts: ElevatorOptions = {}): Elevator {
       commit: commit ? { ...commit } : null,
       stopFloor,
       holdS,
+      boardHoldS,
+      walkedIn: [...walkedIn],
       riders: riders.map((r) => ({ ...r })),
       exiting: exiting.map((r) => r.unit),
       boarding: boarding.map((r) => ({ ...r })),

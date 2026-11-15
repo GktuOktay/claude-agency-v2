@@ -208,7 +208,8 @@ describe('sign, build, lamp and evidence (AC-7)', () => {
     const h = harness();
     const on: { start: number; state: string; end?: number }[] = [];
     let prev = 'off';
-    h.run(500, (x) => {
+    // 560 s (was 500 s): walk-in elevator boarding (CEO film review) moves the first QA pass past 500 s; assertions unchanged.
+    h.run(560, (x) => {
       const s = x.dir.lamp('qa-engineer');
       if (s !== prev) {
         if (s !== 'off') on.push({ start: x.wf.time, state: s });
