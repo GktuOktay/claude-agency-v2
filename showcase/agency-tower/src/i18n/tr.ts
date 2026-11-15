@@ -3,7 +3,7 @@ export const tr = {
   loading: 'Şirket yükleniyor…',
   noWebgl: 'Bu tarayıcı 3B görünümü desteklemiyor.',
   dataError: 'Kadro verisi okunamadı.',
-  title: 'Ajans Kulesi',
+  title: 'Yazılım Evi Kulesi',
   allTower: 'Tüm şirket',
   allTowerShort: 'Şirket',
   orgChart: 'Organizasyon şeması',

@@ -1,5 +1,5 @@
 // Software-company interior (KARARLAR Rev 35): desk setups with domain screens, wall displays (CI/CD with
-// icons, kanban, on-call board, release calendar), the floor-1 server room, the fictional AJANS signage, the
+// icons, kanban, on-call board, release calendar), the floor-1 server room, the fictional YAZILIM EVİ signage, the
 // lobby brand wall, welcome screen and award plaques, and premium details. Decoration only: robots, layouts
 // and props stay where they were; footprints join `dressingFootprints`, so the flex-office clearance and the
 // layout-scene coverage tests hold every floor-standing piece to the same rules.
@@ -195,7 +195,7 @@ describe('wall displays and signage content', () => {
     );
   });
 
-  it('the atlas draws the pipeline labels, kanban columns, on-call board, release calendar, welcome screen, plaques and the fictional AJANS sign', () => {
+  it('the atlas draws the pipeline labels, kanban columns, on-call board, release calendar, welcome screen, plaques and the fictional YAZILIM EVİ sign', () => {
     const g = fakeCtx();
     drawDecorAtlas(g);
     const texts = g.texts.join('\n');
@@ -213,8 +213,8 @@ describe('wall displays and signage content', () => {
       expect(texts).toContain(a);
       expect(texts).toContain(b);
     }
-    expect(BRAND).toEqual({ name: 'AJANS', tagline: 'Yazılım Atölyesi' });
-    expect(g.texts).toContain('AJANS');
+    expect(BRAND).toEqual({ name: 'YAZILIM EVİ', tagline: 'Yazılım Atölyesi' });
+    expect(g.texts).toContain('YAZILIM EVİ');
     expect(g.texts).toContain('Yazılım Atölyesi');
     for (const b of REAL_BRANDS) expect(texts.toLowerCase()).not.toMatch(new RegExp(`\\b${b}\\b`));
   });
@@ -244,7 +244,7 @@ describe('software-company interior in the tower', () => {
     for (const part of ['rack-glow', 'cable-tray', 'cold-aisle']) expect(named(room, part), part).toHaveLength(1);
   });
 
-  it('the lobby has the brand wall (sign, plaques), a welcome screen and a slat ceiling; the crown carries the AJANS sign above the roof line', () => {
+  it('the lobby has the brand wall (sign, plaques), a welcome screen and a slat ceiling; the crown carries the YAZILIM EVİ sign above the roof line', () => {
     const lobby = floor(0);
     expect(named(lobby, 'flex:brand-wall')).toHaveLength(1);
     expect(named(lobby, 'flex:welcome-screen')).toHaveLength(1);

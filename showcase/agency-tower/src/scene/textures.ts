@@ -433,7 +433,7 @@ function signTile(g: Draw2D, t: Tile): void {
   panel(g, t, '#f7f5f1');
   g.fillStyle = '#b98d5e';
   g.fillRect(t.x + 40, t.y + 86, t.w - 80, 2);
-  text(g, BRAND.name, t.x + t.w / 2, t.y + 48, 'bold 64px sans-serif', '#3a3f47', 'center');
+  text(g, BRAND.name, t.x + t.w / 2, t.y + 48, 'bold 54px sans-serif', '#3a3f47', 'center');
   text(g, BRAND.tagline, t.x + t.w / 2, t.y + 106, '20px sans-serif', '#7a6a58', 'center');
 }
 

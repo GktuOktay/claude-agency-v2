@@ -1,6 +1,6 @@
-# Ajans Kulesi (Agency Tower 3D)
+# Yazılım Evi Kulesi (Agency Tower 3D)
 
-Ajansın robotlarla dolu altı katlı bir ofis kulesi olarak 3B sunumu. Yalnızca sunum içindir; ajansın kendisinden tamamen yalıtılmıştır. Spec: `specs/active/0001-agency-tower-3d.md`. Bu sürüm Milestone 1 ve 2'yi kapsar: kule, katlar, asansör, robotlar ve kart (M1); organizasyon şeması, gündüz/gece döngüsü, mobil düzen ve azaltılmış hareket (M2). Görünüm: izometrik "ofis dioraması" (meşe zemin, cam odalar, yuvarlatılmış mobilya); tüm geometri ve dokular kodla üretilir, görsel dosyası yoktur.
+Yazılım Evi'nin robotlarla dolu altı katlı bir ofis kulesi olarak 3B sunumu. Yalnızca sunum içindir; şirketin kendisinden tamamen yalıtılmıştır. Spec: `specs/active/0001-agency-tower-3d.md`. Bu sürüm Milestone 1 ve 2'yi kapsar: kule, katlar, asansör, robotlar ve kart (M1); organizasyon şeması, gündüz/gece döngüsü, mobil düzen ve azaltılmış hareket (M2). Görünüm: izometrik "ofis dioraması" (meşe zemin, cam odalar, yuvarlatılmış mobilya); tüm geometri ve dokular kodla üretilir, görsel dosyası yoktur.
 
 ## Çalıştırma
 
