@@ -4,6 +4,8 @@ Tek kişilik yazılım şirketinin işletim sistemi: uzun ve itirazlı bir plan 
 
 Anayasa: [CLAUDE.md](CLAUDE.md) · Gereksinimler: [docs/GEREKSINIM-ANALIZI.md](docs/GEREKSINIM-ANALIZI.md) · Kararlar: [docs/KARARLAR.md](docs/KARARLAR.md)
 
+**Canlı demo:** [Yazılım Evi Kulesi](https://claude.ai/artifact/DsxQrs1c8ihHACL7RH8XMc): şirketin ajanlarının çalıştığı 3D kule, tarayıcıda çalışır ([kaynak](showcase/agency-tower)).
+
 ## Akış
 
 ```
