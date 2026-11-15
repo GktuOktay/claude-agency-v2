@@ -12,6 +12,30 @@ export function screenshotName(d: Date): string {
   return `ajans-kulesi-${day}-${time}.png`;
 }
 
+/**
+ * The WebGL canvas is transparent (the sky is the page's CSS gradient), so a raw read leaves see-through corners.
+ * This paints the same radial gradient (page colours from the body's CSS variables) under the frame.
+ */
+export function flattenOnPage(src: HTMLCanvasElement, doc: Document = document): HTMLCanvasElement {
+  const out = doc.createElement('canvas');
+  out.width = src.width;
+  out.height = src.height;
+  const g = out.getContext('2d');
+  if (!g) return src;
+  const css = doc.defaultView?.getComputedStyle(doc.body);
+  const v = (name: string, fb: string): string => css?.getPropertyValue(name).trim() || fb;
+  const w = out.width;
+  const h = out.height;
+  const grad = g.createRadialGradient(w / 2, h * 0.3, 0, w / 2, h * 0.3, Math.hypot(w, h) * 0.6);
+  grad.addColorStop(0, v('--bg-1', '#fbfaf7'));
+  grad.addColorStop(0.62, v('--bg-2', '#f1efe9'));
+  grad.addColorStop(1, v('--bg-3', '#e6e3dc'));
+  g.fillStyle = grad;
+  g.fillRect(0, 0, w, h);
+  g.drawImage(src, 0, 0);
+  return out;
+}
+
 export interface ScreenshotOptions {
   /** Renders and returns the canvas as a PNG data URL. */
   capture(): string;

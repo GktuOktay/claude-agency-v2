@@ -80,7 +80,7 @@ import type { SceneContext } from './bootstrap';
 import { LUNCH_AT, createOfficeTime } from '../sim/dayControl';
 import { createFeedModel, createPulse, placeOf, type FeedItem, type Place } from '../sim/pulse';
 import { createEventFeed, readStoredFeed } from '../ui/eventFeed';
-import { createScreenshotButton } from '../ui/screenshot';
+import { createScreenshotButton, flattenOnPage } from '../ui/screenshot';
 import { createDaySpeedControl, createLunchButton } from '../ui/settings/daySpeed';
 import { createPulseSection } from '../ui/settings/pulse';
 import { HALF_WIDTH } from '../sim/layout';
@@ -531,7 +531,7 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
   const screenshot = createScreenshotButton({
     capture: () => {
       renderer.render(scene, camera); // same task as the read: no preserveDrawingBuffer needed
-      return canvas.toDataURL('image/png');
+      return flattenOnPage(canvas).toDataURL('image/png'); // opaque: the sky gradient is CSS, not in the canvas
     },
   });
   const viewExtras = el('div', { class: 'view-extras' });
