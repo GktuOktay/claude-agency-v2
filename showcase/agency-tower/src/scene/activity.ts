@@ -167,6 +167,11 @@ export interface CampusBreakOptions {
   occupancy?: boolean;
   /** The `period` this many seconds later (director: the lab crew arrives before the morning starts). */
   periodAhead?: (seconds: number) => OfficePeriod;
+  /**
+   * Rev 44 break button (src/sim/breakOverride.ts; `period` already reads the override): `break` makes every free
+   * robot join, `work` calls every robot back from its break to the desk and pauses the occupancy director.
+   */
+  override?: () => 'break' | 'work' | null;
 }
 
 export interface ActivityOptions {
@@ -209,6 +214,8 @@ export interface AppCampusInput {
   paused?: () => boolean;
   /** Rev 39 occupancy director (default on). */
   occupancy?: boolean;
+  /** Rev 44 break button override. */
+  override?: () => 'break' | 'work' | null;
 }
 
 /** The app's campus options (Rev 35/38/39), shared by the page and the liveness/occupancy tests. */
@@ -219,6 +226,7 @@ export function appCampusOptions(i: AppCampusInput): CampusBreakOptions {
     period: i.period,
     ...(i.paused ? { paused: i.paused } : {}),
     ...(i.periodAhead ? { periodAhead: i.periodAhead } : {}),
+    ...(i.override ? { override: i.override } : {}),
     canRide: () => i.queued() < BREAK_QUEUE_MAX,
     exclude: new Set<string>(),
     maxAway: SOCIAL_MAX_AWAY,
@@ -263,6 +271,8 @@ export function createActivitySim(specs: readonly ActivitySpec[], seed: number, 
   let reduced = false;
   /** Office period seen in the previous step (slot start / end detection). */
   let lastPeriod: OfficePeriod | undefined;
+  /** Rev 44: the current "Molayı bitir" recall has been carried out (once, when not paused). */
+  let recalled = false;
 
   // Upper bound is reduced by one maximal step so an elapsed period never exceeds its range.
   const draw = (kind: Stay): number => range(rng, DURATIONS[kind][0], DURATIONS[kind][1] - MAX_STEP_S);
@@ -531,6 +541,20 @@ export function createActivitySim(specs: readonly ActivitySpec[], seed: number, 
       sim.time += dt;
       const period = campus?.period?.();
       const slot: SlotKind | null = period === 'coffee' || period === 'tea' || period === 'lunch' ? period : null;
+      const ov = campus?.override?.() ?? null;
+      if (ov !== 'work') recalled = false;
+      else if (!recalled && !paused && campus) {
+        // Rev 44 "Molayı bitir": everyone on a break heads back now (home, then the desk); coffee drinkers too.
+        recalled = true;
+        for (const r of robots.values()) {
+          if (r.reserved) continue;
+          r.summon = null;
+          r.join = false;
+          if (r.brk) {
+            if (r.brk.phase !== 'back') leaveBreak(r, campus.movement, sim.time);
+          } else if (r.kind === 'coffee') r.limit = Math.min(r.limit, r.elapsed);
+        }
+      }
       if (period !== lastPeriod) {
         // Slot start (Rev 35): one join draw per free robot, in roster order; a slot end clears the joins.
         lastPeriod = period;
@@ -540,17 +564,17 @@ export function createActivitySim(specs: readonly ActivitySpec[], seed: number, 
           r.summon = null;
           r.join = false;
         }
-        if (campus?.occupancy && period !== undefined && !paused) {
+        if (campus?.occupancy && period !== undefined && !paused && ov !== 'work') {
           tickIn = DIRECTOR_TICK_S;
           direct(period, sim.time);
         }
         for (const r of robots.values()) {
-          r.join = slot !== null && !r.reserved && !r.brk && !r.summon && !excluded.has(r.spec.id) && campus?.floors.has(r.spec.id) === true && brng() < JOIN_CHANCE[slot];
+          r.join = slot !== null && !r.reserved && !r.brk && !r.summon && !excluded.has(r.spec.id) && campus?.floors.has(r.spec.id) === true && brng() < (ov === 'break' ? 1 : JOIN_CHANCE[slot]);
           // Mesai biter: robots at their desk or the coffee station head home (no draw).
           if (period === 'after' && !r.reserved && !r.brk && (r.kind === 'work' || r.kind === 'coffee')) r.limit = Math.min(r.limit, r.elapsed);
         }
       }
-      if (campus?.occupancy && period !== undefined && !paused) {
+      if (campus?.occupancy && period !== undefined && !paused && ov !== 'work') {
         tickIn -= dt;
         if (tickIn <= 0) {
           tickIn += DIRECTOR_TICK_S;
@@ -580,6 +604,8 @@ export function createActivitySim(specs: readonly ActivitySpec[], seed: number, 
           }
           if (r.kind === 'work' || r.kind === 'coffee') r.limit = Math.min(r.limit, r.elapsed);
         }
+        // Rev 44 "Molayı bitir": a robot idle at home goes straight to its desk.
+        if (ov === 'work' && r.kind === 'idle' && !paused) r.limit = Math.min(r.limit, r.elapsed);
         r.elapsed += dt;
         if (r.kind === 'walk') {
           const remaining = dist(r.pos, r.targetPoint);
@@ -612,7 +638,8 @@ export function createActivitySim(specs: readonly ActivitySpec[], seed: number, 
             r.elapsed = 0;
             r.limit = draw('idle');
           } else if (r.kind === 'idle') {
-            const to: WalkTarget = rng() < 0.5 ? 'desk' : 'coffee';
+            const drawn: WalkTarget = rng() < 0.5 ? 'desk' : 'coffee';
+            const to: WalkTarget = ov === 'work' ? 'desk' : drawn;
             if (!(to === 'coffee' && !paused && tryBreak(r, sim.time))) startWalk(r, to, sim.time);
           } else startWalk(r, 'home', sim.time);
         }

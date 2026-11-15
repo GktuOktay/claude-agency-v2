@@ -172,14 +172,14 @@ export const STAFF_SHAFT = {
   x: HALF_WIDTH + 1.3,
   z: CORRIDOR_Z,
   /** Half size of the cabin floor plate (Rev 44: 0.625 -> 0.85 for six riders). */
-  cabinHalf: 0.625,
+  cabinHalf: 0.85,
   /** Door gap in the east exterior wall, centred on the corridor (Rev 44: widened with the cabin doors). */
-  doorGap: { z0: CORRIDOR_Z - 0.6, z1: CORRIDOR_Z + 0.6 },
+  doorGap: { z0: CORRIDOR_Z - 0.75, z1: CORRIDOR_Z + 0.75 },
 } as const;
 
 export const STAFF_LANDING = {
   /** Boarding point at the cabin door (the end of the corridor aisle). */
-  entry: { x: STAFF_SHAFT.x - 0.62, z: CORRIDOR_Z } as XZ,
+  entry: { x: STAFF_SHAFT.x - 0.85, z: CORRIDOR_Z } as XZ,
   /** Spot in front of the call panel (call gesture). */
   callSpot: { x: 7.55, z: 0.05 } as XZ,
   /** Call panel on the inside of the east wall. */
@@ -192,15 +192,15 @@ export const STAFF_LANDING = {
   ] as readonly XZ[],
   /**
    * Rider spots inside the cabin (floor-local x/z while the cabin stands at this landing), one per rider of
-   * CABIN_CAPACITY (Rev 44: six, two rows of three, the door row filled last-but-one).
+   * CABIN_CAPACITY (Rev 44: six; the first three keep their pre-Rev 44 places by the door, the rest stand further back).
    */
   riderSpots: [
     { x: STAFF_SHAFT.x - 0.1, z: CORRIDOR_Z - 0.3 },
     { x: STAFF_SHAFT.x - 0.1, z: CORRIDOR_Z + 0.3 },
     { x: STAFF_SHAFT.x + 0.3, z: CORRIDOR_Z },
-    { x: STAFF_SHAFT.x + 0.35, z: CORRIDOR_Z - 0.5 },
-    { x: STAFF_SHAFT.x + 0.35, z: CORRIDOR_Z + 0.5 },
-    { x: STAFF_SHAFT.x - 0.3, z: CORRIDOR_Z },
+    { x: STAFF_SHAFT.x + 0.6, z: CORRIDOR_Z - 0.4 },
+    { x: STAFF_SHAFT.x + 0.6, z: CORRIDOR_Z + 0.4 },
+    { x: STAFF_SHAFT.x + 0.45, z: CORRIDOR_Z - 0.6 },
   ] as readonly XZ[],
 } as const;
 
