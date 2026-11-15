@@ -2,7 +2,7 @@
   "id": "film-flagship",
   "lane": 3,
   "weight": 1,
-  "variantTr": "Kooperatif Pazarı",
+  "variantTr": "GökRota",
   "start": "intake",
   "steps": [
     { "id": "intake", "kind": "intake", "labelTr": "İş zarfı teslim alınıyor", "actors": ["ceo", "chief-of-staff"], "place": "signing-desk", "prop": "envelope", "durationS": [6, 6], "next": "c-pm" },
