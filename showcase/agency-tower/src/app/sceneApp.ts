@@ -82,7 +82,7 @@ import { createRoomLife, frameRoomLife } from '../scene/roomLife';
 import { createRobotActions } from './robotActions';
 import { rideToFloor } from './stripActivation';
 import type { SceneContext } from './bootstrap';
-import { LUNCH_AT, createOfficeTime } from '../sim/dayControl';
+import { LUNCH_AT, asDaySpeed, createOfficeTime } from '../sim/dayControl';
 import { createFeedModel, createPulse, placeOf, type FeedItem, type Place } from '../sim/pulse';
 import { createEventFeed, readStoredFeed } from '../ui/eventFeed';
 import { createScreenshotButton, flattenOnPage } from '../ui/screenshot';
@@ -542,7 +542,7 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
       simSeconds: runtime.clock.time,
     });
   };
-  const daySpeed = createDaySpeedControl({ current: runtime.speed(), onSpeed: (n) => runtime.setSpeed(n) });
+  const daySpeed = createDaySpeedControl({ current: asDaySpeed(runtime.speed()), onSpeed: (n) => runtime.setSpeed(n) });
   const lunch = createLunchButton({
     onJump: () => {
       const d = officeTime.jumpTo(LUNCH_AT, { skipIf: 'lunch' });

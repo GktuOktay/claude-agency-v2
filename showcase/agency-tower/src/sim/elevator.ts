@@ -12,12 +12,16 @@
 // its floor is at least half a floor ahead (the cabin re-plans the stop; travel time restarts from there). Doors are fully open while riders board or exit.
 import { FLOOR_COUNT, floorY } from './layout';
 
-/** Doors at every stop (§7.5b): riders exit and board while they are fully open. */
+/** Doors at every stop (§7.5b): riders exit and board while they are fully open */
 export const DOOR_S = 0.6;
 /** Door open and close ramps inside DOOR_S; the doors are fully open between them. */
 export const DOOR_RAMP_S = 0.2;
-/** Riders board and exit at this instant of a door phase (doors fully open). */
+/** Riders board at this instant of a door phase (doors fully open). */
 export const DOOR_PASS_S = DOOR_S / 2;
+/** Riders step out the moment the doors are fully open (all of them together, not one by one). */
+export const DOOR_EXIT_S = DOOR_RAMP_S;
+/** Door sensor: fully open doors wait at most this long for the doorway to clear before they close anyway. */
+export const MAX_DOOR_HOLD_S = 2.5;
 /** Riders per cabin (KARARLAR Rev 44: 3 -> 6, the cabin and its doors widened to fit). */
 export const CABIN_CAPACITY = 6;
 /** Pre-Rev 44 cabin size (the `legacy` policy, kept for the before/after traffic measurement). */
@@ -29,18 +33,33 @@ export const LEGACY_CAPACITY = 3;
  */
 export type ElevatorPolicy = 'collective' | 'legacy';
 
+/** Seconds per floor of cabin travel (§7.5b). */
+export const TRAVEL_PER_FLOOR_S = 0.6;
+/** Shortest and longest cabin trip (§7.5b). */
+export const TRAVEL_MIN_S = 0.8;
+export const TRAVEL_MAX_S = 3.0;
+
 /** Cabin travel time for a number of floors, empty or loaded: clamp(0.6 s x floors, 0.8 s, 3.0 s). */
 export function travelS(floors: number): number {
   const n = Math.abs(floors);
-  return n === 0 ? 0 : Math.min(Math.max(0.6 * n, 0.8), 3.0);
+  return n === 0 ? 0 : Math.min(Math.max(TRAVEL_PER_FLOOR_S * n, TRAVEL_MIN_S), TRAVEL_MAX_S);
 }
 
-/** Non-stop ride leg after the cabin-arrival wait: doors at boarding + travel + doors at exit. */
+/** Non-stop ride leg after the cabin-arrival wait, cabin side: doors at boarding + travel + doors at exit. */
 export function rideLegS(floors: number): number {
   return DOOR_S + travelS(floors) + DOOR_S;
 }
 
-export type CallStatus = 'none' | 'queued' | 'held' | 'boarding' | 'riding' | 'arrived';
+/** Rider side of the same ride: it ends when the rider steps out (doors fully open at the exit floor). */
+export function riderLegS(floors: number): number {
+  return DOOR_S + travelS(floors) + DOOR_EXIT_S;
+}
+
+/**
+ * `alighting`: the doors are fully open at the rider's floor and the rider steps out (the cabin keeps the doors open
+ * while its door sensor sees someone in the doorway); `arrived` once the doors have closed behind them.
+ */
+export type CallStatus = 'none' | 'queued' | 'held' | 'boarding' | 'riding' | 'alighting' | 'arrived';
 export type CabinMode = 'idle' | 'travel' | 'doors';
 
 export interface QueuedCall {
@@ -92,10 +111,14 @@ export interface Elevator {
   /** Selection hold: a held call is skipped; on release it goes to the end of the queue (REQ-17). */
   hold(unit: string, on: boolean): void;
   cancel(unit: string): void;
-  /** Clears an `arrived` status after the rider has walked off. */
+  /** Clears an `alighting` or `arrived` status once the rider has walked off. */
   clear(unit: string): void;
   status(unit: string): CallStatus;
-  step(dt: number): void;
+  /**
+   * Advances the cabin. `doorBlocked` is the door sensor: while it reports someone in the doorway the fully open doors
+   * do not start to close (at most MAX_DOOR_HOLD_S per stop).
+   */
+  step(dt: number, doorBlocked?: () => boolean): void;
   cabinY(): number;
   doorOpen(): number;
   /** Rider y (equals the cabin y) while boarding or riding, else null. */
@@ -149,6 +172,8 @@ export function createElevator(opts: ElevatorOptions = {}): Elevator {
   let exiting: Rider[] = [];
   let boarding: Rider[] = [];
   let stopFloor = start;
+  /** Door-sensor hold used at the current stop. */
+  let holdS = 0;
   const queue: QueuedCall[] = [];
   const held = new Map<string, QueuedCall>();
   const status = new Map<string, CallStatus>();
@@ -271,6 +296,7 @@ export function createElevator(opts: ElevatorOptions = {}): Elevator {
     mode = 'doors';
     t = 0;
     dur = DOOR_S;
+    holdS = 0;
     log({ type: 'stop', floor });
     return true;
   }
@@ -307,7 +333,8 @@ export function createElevator(opts: ElevatorOptions = {}): Elevator {
     }
     if (mode === 'doors') {
       for (const r of exiting) {
-        status.set(r.unit, 'arrived');
+        // A rider who already walked off (cleared) or called again keeps that status.
+        if (status.get(r.unit) === 'alighting') status.set(r.unit, 'arrived');
         log({ type: 'ride-end', unit: r.unit, floor: stopFloor });
       }
       const gone = new Set(exiting.map((r) => r.unit));
@@ -361,13 +388,15 @@ export function createElevator(opts: ElevatorOptions = {}): Elevator {
       if (st === 'queued' || st === 'held') log({ type: 'cancel', unit });
     },
     clear(unit) {
-      if (status.get(unit) === 'arrived') status.delete(unit);
+      const st = status.get(unit);
+      if (st === 'arrived' || st === 'alighting') status.delete(unit);
     },
     status: (unit) => status.get(unit) ?? 'none',
-    step(dt) {
+    step(dt, doorBlocked) {
       if (!(dt > 0)) return;
       let left = dt;
       let guard = 0;
+      const closeAt = DOOR_S - DOOR_RAMP_S;
       while (left > EPS && guard++ < 64) {
         if (mode === 'idle') {
           if (!dispatch()) {
@@ -377,12 +406,28 @@ export function createElevator(opts: ElevatorOptions = {}): Elevator {
           continue;
         }
         if (mode === 'travel') retarget();
-        const need = dur - t;
-        const used = Math.min(left, Math.max(need, 0));
+        // Door sensor: fully open doors wait while someone stands in the doorway.
+        if (mode === 'doors' && near(t, closeAt) && holdS < MAX_DOOR_HOLD_S - EPS && doorBlocked?.()) {
+          const h = Math.min(left, MAX_DOOR_HOLD_S - holdS);
+          holdS += h;
+          time += h;
+          left -= h;
+          continue;
+        }
+        // A door phase stops at its marks (exit, boarding, closing) so each happens at its instant.
+        const mark = mode === 'doors' ? ([DOOR_EXIT_S, DOOR_PASS_S, closeAt, DOOR_S].find((m) => m > t + EPS) ?? dur) : dur;
+        const used = Math.min(left, Math.max(mark - t, 0));
+        if (mode === 'doors' && t < DOOR_EXIT_S - EPS && t + used >= DOOR_EXIT_S - EPS) {
+          const at = time + (DOOR_EXIT_S - t);
+          const doors = doorsAt(DOOR_EXIT_S);
+          for (const r of exiting) {
+            status.set(r.unit, 'alighting');
+            log({ type: 'exit', unit: r.unit, floor: stopFloor, doors }, at);
+          }
+        }
         if (mode === 'doors' && t < DOOR_PASS_S - EPS && t + used >= DOOR_PASS_S - EPS) {
           const at = time + (DOOR_PASS_S - t);
           const doors = doorsAt(DOOR_PASS_S);
-          for (const r of exiting) log({ type: 'exit', unit: r.unit, floor: stopFloor, doors }, at);
           for (const r of boarding) log({ type: 'board', unit: r.unit, floor: stopFloor, doors }, at);
           if (boarding.length) log({ type: 'riders', count: riders.length - exiting.length + boarding.length, floor: stopFloor }, at);
         }
@@ -419,6 +464,7 @@ export function createElevator(opts: ElevatorOptions = {}): Elevator {
       dir,
       commit: commit ? { ...commit } : null,
       stopFloor,
+      holdS,
       riders: riders.map((r) => ({ ...r })),
       exiting: exiting.map((r) => r.unit),
       boarding: boarding.map((r) => ({ ...r })),

@@ -9,7 +9,7 @@ import { tenths } from '../scene/director';
 import { createRng } from '../scene/rng';
 import { createSimClock, pauseText, type SimClock } from '../sim/clock';
 import { createWorkflow, MASTER_SEED, streamSeed, type WfEvent, type Workflow, type WorkflowOptions } from '../sim/workflow';
-import type { DaySpeed } from '../sim/dayControl';
+import { createStepPacer } from '../sim/dayControl';
 import { el } from '../ui/dom';
 import { createJobStrip, type JobStrip } from '../ui/jobStrip';
 import { cardLines, type BreakKey, type CardLines } from '../ui/nowLine';
@@ -49,9 +49,12 @@ export interface SimRuntime {
    * skipped while paused) and the strip. Returns the simulation dt in seconds.
    */
   frame(frameMs: number): number;
-  /** Rev 43 "Gün hızı": simulation steps per frame (1, 2 or 4); pause semantics unchanged. */
-  setSpeed(n: DaySpeed): void;
-  speed(): DaySpeed;
+  /**
+   * Rev 43 "Gün hızı": simulation steps per frame (1, 2 or 4; the film also 1.5 and 8, a fractional speed carries its
+   * remainder to the next frame); pause semantics unchanged.
+   */
+  setSpeed(n: number): void;
+  speed(): number;
   setOrg(on: boolean): void;
   setHidden(on: boolean): void;
   select(unit: string): void;
@@ -63,7 +66,8 @@ export interface SimRuntime {
 export function createSimRuntime(o: SimRuntimeOptions): SimRuntime {
   const seed = o.seed ?? MASTER_SEED;
   const clock = createSimClock();
-  let speed: DaySpeed = 1;
+  let speed = 1;
+  const pace = createStepPacer();
   const titles = createTitleSequence(o.titles, createRng(streamSeed(seed, 'titles')));
   const workflow = createWorkflow({
     scenarios: o.scenarios,
@@ -118,7 +122,9 @@ export function createSimRuntime(o: SimRuntimeOptions): SimRuntime {
       // Rev 43: at 2× / 4× the same frame runs 2 / 4 identical sub-steps (each ≤ 0.1 s), so the engine sees the
       // same step sizes as at 1× (deterministic: N frames at 2× = 2N frames at 1×). Paused: dt = 0, no sub-steps.
       let total = 0;
-      for (let k = 0; k < speed; k++) {
+      // Paused: one pass with dt 0. Running: whole speeds give n sub-steps; 1.5x alternates 1 and 2.
+      const steps = dt > 0 ? Math.max(1, pace(speed)) : 1;
+      for (let k = 0; k < steps; k++) {
         const d = k === 0 ? dt : dt > 0 ? clock.advance(dt) : 0;
         if (d > 0) {
           o.onAmbient?.(d);

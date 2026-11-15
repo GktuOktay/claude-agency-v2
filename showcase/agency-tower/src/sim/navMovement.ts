@@ -7,7 +7,7 @@
 import hierarchy from '../data/hierarchy.json';
 import { TIERS } from '../data/types';
 import { createElevator, type Elevator, type ElevatorPolicy } from './elevator';
-import { FLOOR_COUNT, ROBOT_SEPARATION, STAFF_LANDING, floorLayout, floorY, separationExempt, type FloorLayout, type XZ } from './layout';
+import { FLOOR_COUNT, LANDING_APRON, LANDING_SEPARATION, ROBOT_SEPARATION, STAFF_LANDING, STAFF_SHAFT, floorLayout, floorY, separationExempt, type FloorLayout, type XZ } from './layout';
 import type { MovePhase, Movement, Target } from './movement';
 import { buildCampusGraph, buildFloorGraph, offsetPath, pathLength, pointAlong, projectOnSegment, shortestPath, type FloorGraph } from './nav';
 
@@ -150,6 +150,12 @@ interface Unit {
 const EPS = 1e-9;
 const d2 = (a: XZ, b: XZ): number => Math.hypot(a.x - b.x, a.z - b.z);
 const sameTarget = (a: Target, b: Target): boolean => a.floor === b.floor && a.spot === b.spot;
+
+/** Inside the staff cabin's floor plate (floor-local x/z while the cabin stands at the landing). */
+const inCabin = (p: XZ): boolean => Math.abs(p.x - STAFF_SHAFT.x) <= STAFF_SHAFT.cabinHalf + EPS && Math.abs(p.z - STAFF_SHAFT.z) <= STAFF_SHAFT.cabinHalf + EPS;
+
+const inApron = (p: XZ): boolean => Math.abs(p.x - LANDING_APRON.x) <= LANDING_APRON.r + EPS && Math.abs(p.z - LANDING_APRON.z) <= LANDING_APRON.r + EPS;
+const onLanding = (p: XZ): boolean => inCabin(p) || inApron(p);
 
 const NAV_INSTANCES = new WeakSet<Movement>();
 /** True for a Movement made by createNavMovement (render hooks: elevator, positions). */
@@ -309,10 +315,19 @@ export function createNavMovement(opts: NavMovementOptions): NavMovement {
     const d = d2(p, q);
     if (d >= ROBOT_SEPARATION - EPS) return false;
     if (!walking(v) && separationExempt(layout, p, q)) return false;
+    // Riders stepping out of the cabin together (§7.5c cabin zone): they stand this close while riding already. On
+    // the landing (cabin or apron) two walkers keep LANDING_SEPARATION, so a full cabin empties at once.
+    if (inCabin(p) && inCabin(q)) return false;
+    if (onLanding(p) && onLanding(q) && d >= LANDING_SEPARATION - EPS) return false;
     // Moving away from a robot already too close is allowed (it only ever widens the gap).
     return d <= d2({ x: u.x, z: u.z }, q) + EPS;
   }
   const blocker = (u: Unit, p: XZ): Unit | null => order.find((v) => conflict(u, p, v)) ?? null;
+  /** Door sensor of the staff cabin: a walker on the cabin's floor still stands in the cabin or its doorway. */
+  const doorBlocked = (): boolean => {
+    const f = elevator.state().floor;
+    return order.some((v) => walking(v) && v.floor === f && v.x > STAFF_LANDING.doorClearX);
+  };
   const nextOf = (v: Unit, dt: number): XZ | null => {
     const leg = v.leg;
     return leg && leg.kind === 'walk' ? pointAlong(leg.points, Math.min(leg.length, leg.s + WALK_SPEED * dt)) : null;
@@ -465,7 +480,7 @@ export function createNavMovement(opts: NavMovementOptions): NavMovement {
           else if (!fz && st === 'held') elevator.hold(u.id, false);
         }
       }
-      elevator.step(dt);
+      elevator.step(dt, doorBlocked);
       // Calls register after the cabin moved, so every caller spends at least one step in call-wait.
       for (const u of order) {
         const leg = u.leg;
@@ -485,7 +500,7 @@ export function createNavMovement(opts: NavMovementOptions): NavMovement {
           leg.kind = 'ride';
           leg.rider = elevator.riderIndex(u.id);
           u.legNo++;
-        } else if (leg.kind === 'ride' && st === 'arrived') arrive(u, leg);
+        } else if (leg.kind === 'ride' && (st === 'alighting' || st === 'arrived')) arrive(u, leg);
       }
       for (const u of order) {
         if (frozen(u.id)) continue;
