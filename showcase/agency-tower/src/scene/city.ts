@@ -39,6 +39,7 @@ import {
   Vector3,
   type Material,
 } from 'three';
+import { mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { CAMPUS_BOUNDS } from '../sim/layout';
 import {
   BODY_SPECS,
@@ -79,14 +80,14 @@ export interface CityOptions {
   bounds?: CityRect;
 }
 
-/** Refined car paints (rev 37); every one stays at or above the mood floor. */
+/** Refined car paints (rev 37, richer in rev 42); every one stays at or above the mood floor. */
 export const CAR_PAINTS = {
   pearl: 0xf2efe8,
-  silver: 0xc9ccd0,
-  graphite: 0x8d9096,
-  navy: 0x7286ab,
-  champagne: 0xd8c9a8,
-  racingGreen: 0x78a389,
+  silver: 0xc4cdd8,
+  graphite: 0x8a93a0,
+  navy: 0x6a87c4,
+  champagne: 0xdcc596,
+  racingGreen: 0x70b58c,
 } as const;
 const P = CAR_PAINTS;
 const PAINTS: Record<BodyStyle, readonly number[]> = {
@@ -107,42 +108,43 @@ const FLEET: readonly (readonly [BodyStyle, string])[] = [
 ];
 
 // ---- palette: warm, light stone and glass, same family as the tower (src/scene/furniture.ts PALETTE) ----
+// Rev 42: richer and more saturated (buildings, awnings, greenery, flowers, cars), blue glass, warm stone; still light.
 const C = {
-  base: 0xeadfc8,
-  lawn: 0xcfdcae,
-  plaza: 0xf4ecdd,
-  road: 0xcfc7ba,
-  walk: [0xefe6d5, 0xe7dcc8] as const,
-  kerb: 0xd6d0c5,
-  pavers: 0xe0d0b6,
-  drive: 0xd9d1c4,
+  base: 0xecdcbe,
+  lawn: 0xbfdc95,
+  plaza: 0xf6e5c8,
+  road: 0xd3c6b8,
+  walk: [0xf1e4ca, 0xe9d9bd] as const,
+  kerb: 0xddcaaa,
+  pavers: 0xe6c8a5,
+  drive: 0xddcdb2,
   marking: 0xfbf8f1,
-  bike: 0xe3b9a0,
-  median: 0xbcd197,
-  grass: 0xc2d89d,
-  path: 0xf0e4ca,
-  water: 0xa7d6e2,
-  stone: 0xf6f0e4,
-  granite: 0xd8d1c6,
-  roof: 0xe9dcc6,
-  frame: 0xe2ddd3,
-  bronze: 0xcdb592,
+  bike: 0xe8b094,
+  median: 0xa9cf84,
+  grass: 0xafd88a,
+  path: 0xf0e3ba,
+  water: 0x8ec2ec,
+  stone: 0xf4e4c8,
+  granite: 0xdccbb0,
+  roof: 0xe8d4b4,
+  frame: 0xe4dccb,
+  bronze: 0xd2b486,
   zinc: 0xc4c7c9,
-  hotel: 0xf4ebdc,
+  hotel: 0xf5e0ca,
   trunk: 0xa88a69,
-  crown: [0x9fc487, 0xb5d394, 0x8cbb80, 0xc4d99a],
-  hedge: 0xa9c98d,
-  flowers: [0xf3b9c4, 0xf7da8c, 0xcdb9e6, 0xf5c8a6],
+  crown: [0x8cc46e, 0xa6d47e, 0x78b86a, 0xb8d982],
+  hedge: 0x98c47e,
+  flowers: [0xf7a3b5, 0xf9d26e, 0xc3a6ec, 0xf8b98c],
   pole: 0x8f8170,
   lampHead: 0xfbf3e2,
-  windowGlass: 0xa9cfdf,
+  windowGlass: 0x8fc3e8,
   windowGlow: 0xffc982,
   shopGlass: 0xeedcbf,
   shopGlow: 0xffc27a,
   lampGlow: 0xffd9a0,
-  buildings: [0xf3e7d1, 0xead8bd, 0xf6efe3, 0xe8ccb3, 0xdcd8c8, 0xf0dcc6],
-  accents: [0x8fae94, 0x8a9cb8, 0xc28f8f, 0xd9c29a],
-  umbrellas: [0xf7f1e6, 0xd9c29a, 0xb7d1a5, 0xe6d3c0],
+  buildings: [0xf2dcb5, 0xe9ca9c, 0xf7e3d2, 0xe9bf9c, 0xd5dcc4, 0xf0d2b4],
+  accents: [0x77b693, 0x6d8bb4, 0xc7798c, 0xdeba6c],
+  umbrellas: [0xf7f1e6, 0xe6c98a, 0xa9d394, 0xeec2a6],
   clothes: [0xc8a27a, 0x7d8fb0, 0xd9d0c1, 0xf1ebe0, 0xb88486, 0x9db39d, 0x9a9ca0],
   trousers: [0x5f6470, 0x8c8170, 0x6d7385, 0xb7ab97],
   livery: 0xb07f84,
@@ -334,7 +336,7 @@ class Builder {
 
   /** Wheel on the z axis: tyre tread, the tyre wall and an alloy face with spokes on the outer side `s`. */
   wheel(x: number, z: number, r: number, w: number, s: 1 | -1, tyre: Col, alloy: Col, spoke: Col): void {
-    const n = 8;
+    const n = 6; // hexagonal tread: reads round at street distance (Rev 40 expanded budget)
     const zi = z - (s * w) / 2;
     const zo = z + (s * w) / 2;
     for (let i = 0; i < n; i++) {
@@ -964,9 +966,9 @@ function legsGeometry(): BufferGeometry {
 /** Elegant lamp post: stone plinth, slender bronze shaft with a collar and a swan-neck arm (lantern instanced). */
 function lampGeometry(): BufferGeometry {
   const b = new Builder();
-  b.prism(0, 0, 0.17, 0, 0.5, 8, 0xffffff);
-  b.prism(0, 0, 0.065, 0.5, 4.45, 8, 0xffffff);
-  b.prism(0, 0, 0.1, 2.3, 2.42, 8, 0xffffff);
+  b.prism(0, 0, 0.17, 0, 0.5, 6, 0xffffff);
+  b.prism(0, 0, 0.065, 0.5, 4.45, 6, 0xffffff);
+  b.prism(0, 0, 0.1, 2.3, 2.42, 6, 0xffffff);
   b.box(0, 0.62, 4.36, 4.44, -0.035, 0.035, 0xffffff);
   b.box(0.58, 0.9, 4.3, 4.38, -0.035, 0.035, 0xffffff);
   return b.build();
@@ -974,8 +976,8 @@ function lampGeometry(): BufferGeometry {
 
 function bollardGeometry(): BufferGeometry {
   const b = new Builder();
-  b.prism(0, 0, 0.09, 0, 0.82, 8, C.pole);
-  b.prism(0, 0, 0.1, 0.82, 0.9, 8, C.bronze);
+  b.prism(0, 0, 0.09, 0, 0.82, 6, C.pole);
+  b.prism(0, 0, 0.1, 0.82, 0.9, 6, C.bronze);
   return b.build();
 }
 
@@ -985,6 +987,20 @@ function signalPoleGeometry(): BufferGeometry {
   b.box(-0.06, 0.06, 0, 2.2, -0.06, 0.06, 0xffffff);
   b.box(-0.1, 0.1, 2.15, 3.05, -0.16, 0.16, 0xffffff);
   return b.build();
+}
+
+/**
+ * Faceted low-poly ball (icosahedron, 12 shared vertices instead of 60): the facets come from the material's
+ * flat shading, so the look is unchanged (Rev 40: every instance counts toward the expanded vertex budget).
+ */
+function facetedBall(r: number): BufferGeometry {
+  const ico = new IcosahedronGeometry(r, 0);
+  ico.deleteAttribute('normal');
+  ico.deleteAttribute('uv');
+  const g = mergeVertices(ico);
+  g.computeVertexNormals();
+  ico.dispose();
+  return g;
 }
 
 // ---- city ----
@@ -1044,7 +1060,7 @@ export function createCity(options: CityOptions = {}): City {
 
   // Mature trees: a trunk and a two-lobed crown each.
   const trunks = add(new InstancedMesh(new CylinderGeometry(0.08, 0.12, 1, 5).translate(0, 0.5, 0), std({ color: C.trunk }), plan.trees.length), 'city-tree-trunks');
-  const crowns = add(new InstancedMesh(new IcosahedronGeometry(1, 0), std({ color: 0xffffff, flatShading: true }), plan.trees.length * 2), 'city-tree-crowns');
+  const crowns = add(new InstancedMesh(facetedBall(1), std({ color: 0xffffff, flatShading: true }), plan.trees.length * 2), 'city-tree-crowns');
   plan.trees.forEach((t, i) => {
     const g = Math.max(1, t.h / 5);
     trunks.setMatrixAt(i, compose(t.x, 0, t.z, 0, g, t.h * 0.55, g));
@@ -1081,7 +1097,7 @@ export function createCity(options: CityOptions = {}): City {
 
   // Traffic lights: a pole and housing per head, three lamps on its face.
   const sigPoles = add(new InstancedMesh(signalPoleGeometry(), std({ color: C.pole }), plan.signals.length), 'city-signal-poles');
-  const sigLamps = add(new InstancedMesh(new IcosahedronGeometry(0.1, 0), basic({ color: 0xffffff }), plan.signals.length * 3), 'city-signal-lamps');
+  const sigLamps = add(new InstancedMesh(facetedBall(0.1), basic({ color: 0xffffff }), plan.signals.length * 3), 'city-signal-lamps');
   plan.signals.forEach((h, i) => {
     const yaw = Math.atan2(-h.fz, h.fx);
     sigPoles.setMatrixAt(i, compose(h.x, 0, h.z, yaw));
@@ -1141,7 +1157,7 @@ export function createCity(options: CityOptions = {}): City {
   const people = walkers.length + sim.cyclists.length + plan.sitters.length + 1;
   const peds = add(new InstancedMesh(new CylinderGeometry(0.14, 0.2, 0.95, 7).translate(0, 1.025, 0), std({ color: 0xffffff }), people), 'city-pedestrians');
   const legs = add(new InstancedMesh(legsGeometry(), std({ color: 0xffffff }), people), 'city-ped-legs');
-  const heads = add(new InstancedMesh(new IcosahedronGeometry(0.115, 0).translate(0, 1.6, 0), std({ color: C.skin }), people), 'city-ped-heads');
+  const heads = add(new InstancedMesh(facetedBall(0.115).translate(0, 1.6, 0), std({ color: C.skin, flatShading: true }), people), 'city-ped-heads');
   for (const m of [peds, legs, heads]) m.frustumCulled = false;
   const dress = (i: number, tone: number): void => {
     peds.setColorAt(i, col.setHex(pick(C.clothes, tone)));

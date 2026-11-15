@@ -278,7 +278,7 @@ describe('campus scene: wing, zones, bridges, ghosting', () => {
 });
 
 describe('campus budgets', () => {
-  it('the campus share of the real scene: <= 150k vertices and <= 60 meshes', () => {
+  it('the campus share of the real scene: <= 120k vertices and <= 60 meshes', () => {
     // Share = every vertex west of the tower wall (wing, bridges, grounds) and every mesh that lies wholly
     // there; wing parts merged into a tower floor mesh add vertices but no draw call.
     const m = buildTower(data());
@@ -303,7 +303,7 @@ describe('campus budgets', () => {
       if (west === pos.count || (west > 0 && o.name !== 'merged' && o.name !== '')) meshes++; // own draw call (bridge-spanning named meshes included)
     });
     console.info(`[budget] campus share vertices=${verts} meshes=${meshes}`);
-    expect(verts).toBeLessThanOrEqual(150_000);
+    expect(verts).toBeLessThanOrEqual(120_000); // Rev 40: was 150 000
     expect(meshes).toBeLessThanOrEqual(60);
   });
 
@@ -328,15 +328,19 @@ describe('campus budgets', () => {
   it('the whole scene stays under 700k vertices and 1000 meshes with the campus', () => {
     const m = buildTower(data());
     let verts = 0;
+    let expanded = 0;
     let meshes = 0;
     m.root.traverse((o) => {
       if (o instanceof Mesh) {
         meshes++;
-        verts += o.geometry.attributes.position?.count ?? 0;
+        const n = o.geometry.attributes.position?.count ?? 0;
+        verts += n;
+        expanded += n * (o instanceof InstancedMesh ? o.count : 1);
       }
     });
-    console.info(`[budget] total vertices=${verts} meshes=${meshes}`);
+    console.info(`[budget] total vertices=${verts} expanded=${expanded} meshes=${meshes}`);
     expect(verts).toBeLessThan(700_000);
+    expect(expanded, 'Rev 40: every instance counts').toBeLessThan(700_000);
     expect(meshes).toBeLessThan(1000);
   });
 });

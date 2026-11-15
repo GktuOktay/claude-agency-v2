@@ -18,7 +18,7 @@
 // tower passes under or over the crowns (checked against the preset views in the tests) — if wrong,
 // trees elsewhere would cover the lobby from the overview.
 import { BufferGeometry, CylinderGeometry, Color, Float32BufferAttribute, Group, IcosahedronGeometry, Mesh, MeshStandardMaterial, TorusGeometry, BoxGeometry, type Material } from 'three';
-import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import { mergeGeometries, mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { CAMPUS_BOUNDS, FLOOR_HEIGHT, HALF_DEPTH, HALF_WIDTH, TERRACE, type Rect, type XZ } from '../sim/layout';
 import { PLOT_MARGIN } from '../sim/citySim';
 import { createRng } from './rng';
@@ -278,7 +278,9 @@ export function createGrounds(): Grounds {
     g.deleteAttribute('uv');
     const n = g.attributes.position?.count ?? 0;
     g.setAttribute('color', new Float32BufferAttribute(Array.from({ length: n * 3 }, (_, i) => (i % 3 === 0 ? col.r : i % 3 === 1 ? col.g : col.b)), 3));
-    crownParts.push(g);
+    // Shared vertices (Rev 40): the smooth normals already agree, so 240 -> 42 vertices with the same look.
+    crownParts.push(mergeVertices(g));
+    g.dispose();
   };
   plan.trees.forEach((t, i) => {
     const trunk = new CylinderGeometry(0.06, 0.09, CROWN.y0 + 0.6 - PLANTER.h, 7);

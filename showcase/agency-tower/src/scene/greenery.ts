@@ -19,8 +19,8 @@ export const GREENS = {
 } as const;
 
 let clumpGeo: BufferGeometry | null = null;
-/** Unit leaf clump: an indexed, smooth-shaded icosahedron (12 vertices, a soft lumpy ball). */
-function clumpGeometry(): BufferGeometry {
+/** Unit leaf clump: an indexed, smooth-shaded icosahedron (12 vertices, a soft lumpy ball); shared, never dispose. */
+export function clumpGeometry(): BufferGeometry {
   if (!clumpGeo) {
     const ico = new IcosahedronGeometry(1, 0);
     ico.deleteAttribute('normal');
