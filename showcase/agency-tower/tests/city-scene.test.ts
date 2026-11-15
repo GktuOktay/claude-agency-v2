@@ -125,10 +125,10 @@ describe('city meshes', () => {
     expect(std(city.group, 'city-windows-lit').emissiveIntensity).toBeGreaterThan(0);
   });
 
-  it('reads warm, light and calm (rev 33): materials stay above a lightness and saturation floor; the day fade is light and warm', () => {
+  it('reads warm, light, calm and colourful (rev 33, rev 42): materials stay above a lightness and saturation floor; the day fade is light and warm', () => {
     // Floors in sRGB HSL: the old gray city sat at a mean saturation of about 0.1 and a road lightness of 0.56.
     const L_MEAN = 0.68;
-    const S_MEAN = 0.2;
+    const S_MEAN = 0.5; // Rev 42 (richer colour): was 0.2; measured 0.525 / 0.549 / 0.509
     const L_MIN = 0.55;
     const hsl = { h: 0, s: 0, l: 0 };
     const c = new Color();
@@ -165,7 +165,7 @@ describe('city meshes', () => {
         expect(hsl.l, `${name} ${i}`).toBeGreaterThanOrEqual(L_MIN);
       }
     }
-    expect(std(city.group, 'city-windows-lit').color.getHSL(hsl, SRGBColorSpace).s, 'sky-blue glass').toBeGreaterThanOrEqual(0.3);
+    expect(std(city.group, 'city-windows-lit').color.getHSL(hsl, SRGBColorSpace).s, 'sky-blue glass').toBeGreaterThanOrEqual(0.6); // Rev 42 clear blue glass: was 0.3
     const haze = (): Vector3 => {
       const u: unknown = materialsOf(city.group)[0]?.userData.cityHaze;
       if (!u || typeof u !== 'object' || !('uHaze' in u)) throw new Error('haze');
