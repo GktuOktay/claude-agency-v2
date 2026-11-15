@@ -44,6 +44,11 @@ export const SPOT_CLEARANCE = 0.45;
 export const FURNITURE_CLEARANCE = 0.25;
 /** Minimum centre distance of two robots on one floor while either walks (outside exception zones). */
 export const ROBOT_SEPARATION = 0.45;
+/**
+ * Two walkers both on the staff landing (cabin plate or the landing apron in front of its door, §7.5c zones) keep only
+ * this much: riders who just stepped out walk off as the group they stood in (CEO film review).
+ */
+export const LANDING_SEPARATION = 0.3;
 /** §7.5c: meeting-seat exception zone radius. */
 export const MEETING_SEAT_RADIUS = 0.35;
 /** Radius of the other point-like exception zones (pair desk, coffee, landing, hand-over, signing). */
@@ -177,6 +182,9 @@ export const STAFF_SHAFT = {
   doorGap: { z0: CORRIDOR_Z - 0.75, z1: CORRIDOR_Z + 0.75 },
 } as const;
 
+/** Landing apron (§7.5c zone, square): the floor strip inside the east wall in front of the cabin door. */
+export const LANDING_APRON = { x: STAFF_SHAFT.x - STAFF_SHAFT.cabinHalf - 0.725, z: CORRIDOR_Z, r: 0.725 } as const;
+
 export const STAFF_LANDING = {
   /** Boarding point at the cabin door (the end of the corridor aisle). */
   entry: { x: STAFF_SHAFT.x - 0.85, z: CORRIDOR_Z } as XZ,
@@ -202,6 +210,16 @@ export const STAFF_LANDING = {
     { x: STAFF_SHAFT.x + 0.6, z: CORRIDOR_Z + 0.4 },
     { x: STAFF_SHAFT.x + 0.45, z: CORRIDOR_Z - 0.6 },
   ] as readonly XZ[],
+  /**
+   * Exit lanes (CEO film review "asansörden inme ile ilgili sorun var"): riders leave two abreast through the wide
+   * door, so a full cabin empties at once instead of queueing at the corridor end. The north-side riders walk a
+   * second lane across the landing to `exit:0` and join the corridor west of the landing apron.
+   */
+  exitSpots: [{ x: HALF_WIDTH - 0.55, z: CORRIDOR_Z + 0.45 }] as readonly XZ[],
+  /** Exit lane of each rider spot: an `exitSpots` index, or -1 straight out along the corridor. */
+  riderExit: [-1, 0, -1, -1, 0, -1] as readonly number[],
+  /** A walker east of this x still stands in the cabin doorway (door sensor; cabin door plane minus a body radius). */
+  doorClearX: STAFF_SHAFT.x - STAFF_SHAFT.cabinHalf - 0.2,
 } as const;
 
 /** Penthouse signing desk: the two visitor spots in front of it (the CEO uses its own seat). */
@@ -225,7 +243,8 @@ export type SpotKind =
   | 'meeting-seat'
   | 'meeting-lead'
   | 'meeting-sign'
-  | 'cabin';
+  | 'cabin'
+  | 'cabin-exit';
 
 export interface Spot extends XZ {
   readonly id: string;
@@ -418,10 +437,14 @@ export function floorLayout(floor: number, owners: readonly DeskOwner[]): FloorL
   COFFEE_SPOTS.forEach((c, i) => spots.push({ id: `coffee:${i}`, kind: 'coffee', via: 'corridor', ...c }));
   STAFF_LANDING.waitingSpots.forEach((w, i) => spots.push({ id: `wait:${i}`, kind: 'landing-wait', via: 'corridor', ...w }));
   spots.push({ id: 'call', kind: 'landing-call', via: 'corridor', ...STAFF_LANDING.callSpot });
-  STAFF_LANDING.riderSpots.forEach((r, i) => spots.push({ id: `cabin:${i}`, kind: 'cabin', via: 'corridor', ...r }));
+  STAFF_LANDING.exitSpots.forEach((e, i) => spots.push({ id: `exit:${i}`, kind: 'cabin-exit', via: 'corridor', ...e }));
+  STAFF_LANDING.riderSpots.forEach((r, i) => {
+    const lane = STAFF_LANDING.riderExit[i] ?? -1;
+    spots.push({ id: `cabin:${i}`, kind: 'cabin', via: lane >= 0 ? `exit:${lane}` : 'corridor', ...r });
+  });
 
   const aisles: Aisle[] = [];
-  const corridorXs = spots.filter((s) => s.via === 'corridor' && s.kind !== 'cabin').map((s) => s.x);
+  const corridorXs = spots.filter((s) => s.via === 'corridor' && s.kind !== 'cabin' && s.kind !== 'cabin-exit').map((s) => s.x);
   if (!penthouse) corridorXs.push(WORK_DOOR_X);
   if (floor === MEETING_FLOOR) {
     const m = MEETING_ROOM;
@@ -475,6 +498,7 @@ export function floorLayout(floor: number, owners: readonly DeskOwner[]): FloorL
   }
   for (const d of desks) if (!d.wide) circle(`pair-seat:${d.owner}`, d.seat);
   zones.push({ id: 'cabin', x: STAFF_SHAFT.x, z: STAFF_SHAFT.z, r: STAFF_SHAFT.cabinHalf, square: true });
+  zones.push({ id: 'landing-apron', ...LANDING_APRON, square: true });
 
   return { floor, desks, spareDesks, spots, aisles, footprints, seatZones, zones };
 }
