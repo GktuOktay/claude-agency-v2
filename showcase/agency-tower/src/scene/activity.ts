@@ -199,7 +199,9 @@ const CAMPUS_SEED_SALT = 0x5eed;
 /** Occupancy director (Rev 39) re-checks the zone targets this often, simulation seconds. */
 export const DIRECTOR_TICK_S = 1;
 /** A stay ending within this many seconds is relieved early (the relief's trip overlaps the stay's end). */
-export const RELIEF_LEAD_S = 30;
+export const RELIEF_LEAD_S = 45;
+/** Rev 44: longest overstay of a zone's last robot waiting for its relief (hand-over), seconds. */
+export const RELIEF_WAIT_S = 60;
 /** The lab crew leaves home this many seconds before the break logic's morning (a wing trip takes 15–90 s). */
 export const MORNING_LEAD_S = 30;
 
@@ -397,6 +399,29 @@ export function createActivitySim(specs: readonly ActivitySpec[], seed: number, 
     return true;
   }
 
+  /**
+   * Rev 44 hand-over: the last robot of a director session in a zone stays on (at most RELIEF_WAIT_S past its stay)
+   * while its relief is on the way, so the zone does not stand empty during the relief's trip.
+   */
+  function awaitingRelief(r: Internal): boolean {
+    const b = r.brk;
+    if (!b || b.slot !== null || b.stay === undefined || b.partner !== null || r.elapsed >= r.limit + RELIEF_WAIT_S) return false;
+    const zone = b.spot.zone;
+    let coming = false;
+    for (const o of robots.values()) {
+      if (o === r) continue;
+      if (o.brk && o.brk.spot.zone === zone) {
+        if (o.brk.phase === 'stay') return false;
+        if (o.brk.phase === 'go') coming = true;
+      } else if (o.summon === zone) coming = true;
+    }
+    if (coming) return true;
+    // No relief on the way: a zone the current period still staffs keeps its last robot (at most RELIEF_WAIT_S).
+    const p = campus?.period?.();
+    const want = p === 'work' ? OCCUPANCY_WORK : p === 'lunch' ? OCCUPANCY_LUNCH : p === 'coffee' || p === 'tea' ? OCCUPANCY_SLOT : null;
+    return (want?.[zone] ?? 0) > 0;
+  }
+
   const mateOf = (r: Internal): Internal | null => {
     const id = r.brk?.partner;
     const m = id ? robots.get(id) : undefined;
@@ -448,7 +473,7 @@ export function createActivitySim(specs: readonly ActivitySpec[], seed: number, 
         else leaveBreak(r, mv, sim.time);
         return;
       }
-      if (r.elapsed >= r.limit || (b.partner !== null && !mateOf(r))) leaveBreak(r, mv, sim.time);
+      if ((r.elapsed >= r.limit && !awaitingRelief(r)) || (b.partner !== null && !mateOf(r))) leaveBreak(r, mv, sim.time);
     } else if (mv.isAt(id, homeTarget(id))) {
       r.brk = null;
       r.backAt = sim.time;
@@ -473,10 +498,17 @@ export function createActivitySim(specs: readonly ActivitySpec[], seed: number, 
     const morning = period === 'after' && campus.periodAhead?.(MORNING_LEAD_S) === 'work';
     const targets = period === 'work' ? OCCUPANCY_WORK : period === 'lunch' ? OCCUPANCY_LUNCH : period === 'after' ? (morning ? OCCUPANCY_MORNING : null) : OCCUPANCY_SLOT;
     if (!targets) return;
+    // Rev 44: in a coffee / tea slot (and at lunch) the director may place robots that are joining the break.
+    const slotTargets = period === 'coffee' || period === 'tea' || period === 'lunch';
     const mv = campus.movement;
     const committed = new Map<AmenityZoneId, number>();
     const add = (z: AmenityZoneId): void => void committed.set(z, (committed.get(z) ?? 0) + 1);
     for (const r of robots.values()) {
+      // Rev 44: a robot a job took (reserved) holds no place, even with its break or summon pending.
+      if (r.reserved) {
+        r.summon = null;
+        continue;
+      }
       // A robot near the end of its stay no longer counts: its relief is summoned while it still sits there.
       if (r.brk && (r.brk.phase === 'go' || (r.brk.phase === 'stay' && r.limit - r.elapsed > RELIEF_LEAD_S))) add(r.brk.spot.zone);
       else if (r.summon) add(r.summon);
@@ -491,12 +523,13 @@ export function createActivitySim(specs: readonly ActivitySpec[], seed: number, 
       if (!first) continue;
       // Free ambient robots: idle at home, at the desk or the coffee station (never a job step, §7.5).
       const cands = order
-        .filter((r) => !r.reserved && !r.waving && !r.brk && !r.summon && !r.join && r.kind !== 'walk' && !excluded.has(r.spec.id) && campus.floors.has(r.spec.id) && time - r.backAt >= ROTATE_REST_S)
+        .filter((r) => !r.reserved && !r.waving && !r.brk && !r.summon && (!r.join || slotTargets) && r.kind !== 'walk' && !excluded.has(r.spec.id) && campus.floors.has(r.spec.id) && time - r.backAt >= ROTATE_REST_S)
         .map((r) => ({ r, rank: zoneRank(r.spec.id, zone, campus.floors.get(r.spec.id) ?? 0, first.floor) }))
         .sort((a, b) => a.rank - b.rank || Number(b.r.kind === 'idle') - Number(a.r.kind === 'idle') || a.r.visits - b.r.visits);
       const pick = cands[0];
       if (!pick) continue;
       pick.r.summon = zone;
+      pick.r.join = false; // Rev 44: a slot joiner the director places takes this session as its break
       pick.r.visits++;
       if (pick.r.kind === 'idle') startSession(pick.r, time);
       else pick.r.limit = Math.min(pick.r.limit, pick.r.elapsed); // finishes the desk / coffee stay now
