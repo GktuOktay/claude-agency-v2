@@ -21,6 +21,11 @@ export interface SimClock {
   selected(): string[];
   /** Feeds one frame; returns the simulation step in seconds (≤ 0.1; 0 while paused). */
   tick(frameMs: number): number;
+  /**
+   * Rev 43 "Gün hızı": one extra simulation step of `dt` seconds (≤ 0.1) in the same frame; 0 while paused.
+   * Wall time is not fed (the frame was already counted by `tick`).
+   */
+  advance(dt: number): number;
 }
 
 export function createSimClock(): SimClock {
@@ -54,6 +59,12 @@ export function createSimClock(): SimClock {
       const dt = Math.min(ms / 1000, MAX_SIM_STEP_S);
       time += dt;
       return dt;
+    },
+    advance(dt) {
+      if (active.size > 0) return 0;
+      const d = Math.min(Math.max(dt, 0), MAX_SIM_STEP_S);
+      time += d;
+      return d;
     },
   };
 }

@@ -9,6 +9,7 @@ import { tenths } from '../scene/director';
 import { createRng } from '../scene/rng';
 import { createSimClock, pauseText, type SimClock } from '../sim/clock';
 import { createWorkflow, MASTER_SEED, streamSeed, type WfEvent, type Workflow, type WorkflowOptions } from '../sim/workflow';
+import type { DaySpeed } from '../sim/dayControl';
 import { el } from '../ui/dom';
 import { createJobStrip, type JobStrip } from '../ui/jobStrip';
 import { cardLines, type BreakKey, type CardLines } from '../ui/nowLine';
@@ -48,6 +49,9 @@ export interface SimRuntime {
    * skipped while paused) and the strip. Returns the simulation dt in seconds.
    */
   frame(frameMs: number): number;
+  /** Rev 43 "Gün hızı": simulation steps per frame (1, 2 or 4); pause semantics unchanged. */
+  setSpeed(n: DaySpeed): void;
+  speed(): DaySpeed;
   setOrg(on: boolean): void;
   setHidden(on: boolean): void;
   select(unit: string): void;
@@ -59,6 +63,7 @@ export interface SimRuntime {
 export function createSimRuntime(o: SimRuntimeOptions): SimRuntime {
   const seed = o.seed ?? MASTER_SEED;
   const clock = createSimClock();
+  let speed: DaySpeed = 1;
   const titles = createTitleSequence(o.titles, createRng(streamSeed(seed, 'titles')));
   const workflow = createWorkflow({
     scenarios: o.scenarios,
@@ -110,16 +115,26 @@ export function createSimRuntime(o: SimRuntimeOptions): SimRuntime {
     pauseButton,
     frame(frameMs) {
       const dt = clock.tick(frameMs);
-      if (dt > 0) {
-        o.onAmbient?.(dt);
-        workflow.step(dt);
+      // Rev 43: at 2× / 4× the same frame runs 2 / 4 identical sub-steps (each ≤ 0.1 s), so the engine sees the
+      // same step sizes as at 1× (deterministic: N frames at 2× = 2N frames at 1×). Paused: dt = 0, no sub-steps.
+      let total = 0;
+      for (let k = 0; k < speed; k++) {
+        const d = k === 0 ? dt : dt > 0 ? clock.advance(dt) : 0;
+        if (d > 0) {
+          o.onAmbient?.(d);
+          workflow.step(d);
+        }
+        total += d;
+        const events = workflow.drainEvents();
+        if (events.length) o.onEvents?.(events);
+        o.onStep?.(d, events);
+        if (d === 0) break;
       }
-      const events = workflow.drainEvents();
-      if (events.length) o.onEvents?.(events);
-      o.onStep?.(dt, events);
       render();
-      return dt;
+      return total;
     },
+    setSpeed: (n) => void (speed = n),
+    speed: () => speed,
     setOrg: (on) => clock.setReason('org', on),
     setHidden: (on) => clock.setReason('hidden', on),
     select: (u) => clock.select(u),

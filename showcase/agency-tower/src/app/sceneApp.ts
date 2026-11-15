@@ -57,7 +57,7 @@ import { breakPeriodAt, createOfficeSchedule, type OfficeClock } from '../sim/sc
 import { createScenarioSection } from '../ui/settings/scenario';
 import { createAccessibilitySection } from '../ui/settings/accessibility';
 import { RENDERER_OPTIONS, applyQuality, createQualityContext, initialTier, roomEnvironment } from './quality';
-import { MASTER_SEED } from '../sim/workflow';
+import { MASTER_SEED, type WfEvent } from '../sim/workflow';
 import { framePose, shouldStepSim } from './frameUpdate';
 import { createSelectionFlow } from './selection';
 import { sceneLight } from './sceneLight';
@@ -74,6 +74,13 @@ import { createStaff, type StaffModel } from '../scene/staff';
 import { createRoomLife, frameRoomLife } from '../scene/roomLife';
 import { rideToFloor } from './stripActivation';
 import type { SceneContext } from './bootstrap';
+import { LUNCH_AT, createOfficeTime } from '../sim/dayControl';
+import { createFeedModel, createPulse, placeOf, type FeedItem, type Place } from '../sim/pulse';
+import { createEventFeed, readStoredFeed } from '../ui/eventFeed';
+import { createScreenshotButton } from '../ui/screenshot';
+import { createDaySpeedControl, createLunchButton } from '../ui/settings/daySpeed';
+import { createPulseSection } from '../ui/settings/pulse';
+import { HALF_WIDTH } from '../sim/layout';
 
 const SEED = 20261113;
 
@@ -183,11 +190,13 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     renderPosition: (u, reduced) => breakNav?.renderPosition(u, reduced) ?? { x: 0, y: 0, z: 0 },
   };
   // Rev 35 P3: the office day runs on the 0002 simulation clock (bound lazily: the runtime is created below).
-  const office: OfficeClock = createOfficeSchedule({
+  // Rev 43 C3: the office reads simulation time + the "Öğle arasına atla" offset (the engine never sees it).
+  const officeTime = createOfficeTime({
     get time() {
       return runtime.clock.time;
     },
   });
+  const office: OfficeClock = createOfficeSchedule(officeTime);
   const sim = createActivitySim(
     model.robots.map((r) => ({ id: r.unit.id, home: r.homePoint, work: r.workPoint, coffee: r.coffeePoint })),
     SEED,
@@ -198,7 +207,7 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
         movement: breakMovement,
         floors: new Map(data.units.map((u) => [u.id, u.floor])),
         period: () => office.breakPeriod(),
-        periodAhead: (s) => breakPeriodAt(runtime.clock.time + s),
+        periodAhead: (s) => breakPeriodAt(officeTime.time + s),
         paused: () => runtime.clock.paused,
         queued: () => breakNav?.elevator.queue().length ?? BREAK_QUEUE_MAX,
       }),
@@ -236,6 +245,7 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
       director?.ingest(events);
       board.ingest(events);
       director?.update(dt, runtime.workflow);
+      onLiveEvents(events); // Rev 43 C1 / C2
     },
     isNarrow: () => narrowMq?.matches ?? false,
     reducedMotion: () => reducedMq?.matches ?? false,
@@ -452,11 +462,77 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     resize();
   };
   // Rev 35 P3: live office clock on the simulation clock (src/sim/schedule.ts).
-  const officeSection = createOfficeSection({ controls: [runtime.pauseButton, orgBtn], schedule: office });
+  // ---- Rev 43 C: Şirket nabzı, Olay akışı, Gün hızı, Ekran görüntüsü ----
+  const pulse = createPulse();
+  const feedModel = createFeedModel();
+  const unitById = new Map(data.units.map((u) => [u.id, u]));
+  const pad2 = (n: number): string => String(n).padStart(2, '0');
+  const officeHm = (): string => {
+    const n = office.now();
+    return `${pad2(n.hh)}:${pad2(n.mm)}`;
+  };
+  /** A feed event: zoom to its robot (selection flow), else ride to the job's floor. */
+  const goToEvent = (item: FeedItem, opener: HTMLButtonElement): void => {
+    const fromMenu = settings.panel.contains(opener);
+    settings.close(false);
+    const u = item.unit ? unitById.get(item.unit) : undefined;
+    if (u) {
+      exitCameraMode(false);
+      flow.select(u, fromMenu ? settings.button : opener, { fromOrg: orgOn });
+      return;
+    }
+    const floor = runtime.workflow.stripFloor(item.job);
+    if (floor !== null) rideToFloor({ cardOpen: () => card.isOpen(), closeCard: () => closeCard(), orgOn: () => orgOn, leaveOrg: () => dropOrg(), goFloor: (f) => goFloor(f) }, floor);
+  };
+  const feed = createEventFeed({ onActivate: goToEvent, enabled: readStoredFeed() });
+  const pulseSection = createPulseSection({ feedToggle: feed.toggle, onEvent: goToEvent });
+  feed.onChange((recent) => pulseSection.setEvents(recent));
+  function onLiveEvents(events: readonly WfEvent[]): void {
+    if (!events.length) return;
+    pulse.ingest(events);
+    feed.push(feedModel.ingest(events, officeHm()));
+  }
+  const places: Place[] = [];
+  const refreshPulse = (): void => {
+    places.length = 0;
+    for (const r of model.robots) {
+      const v = director?.view(r.unit.id);
+      const floor = v ? v.floor : r.unit.floor;
+      const x = v ? v.x : sim.get(r.unit.id).x;
+      places.push(placeOf(floor, x < -HALF_WIDTH, data.floors.find((f) => f.id === floor)?.nameTr ?? `${tr.floorShort} ${floor}`));
+    }
+    const c = pulse.counts();
+    pulseSection.update({
+      ...c,
+      jobsActive: runtime.workflow.jobs().filter((j) => !j.done).length,
+      busiest: pulse.busiest(places),
+      officeTime: officeHm(),
+      simSeconds: runtime.clock.time,
+    });
+  };
+  const daySpeed = createDaySpeedControl({ current: runtime.speed(), onSpeed: (n) => runtime.setSpeed(n) });
+  const lunch = createLunchButton({
+    onJump: () => {
+      const d = officeTime.jumpTo(LUNCH_AT, { skipIf: 'lunch' });
+      officeSection.refresh();
+      return d > 0 ? 'jumped' : 'already';
+    },
+  });
+  const screenshot = createScreenshotButton({
+    capture: () => {
+      renderer.render(scene, camera); // same task as the read: no preserveDrawingBuffer needed
+      return canvas.toDataURL('image/png');
+    },
+  });
+  const viewExtras = el('div', { class: 'view-extras' });
+  viewExtras.append(dnControl.element, screenshot.element);
+
+  const officeSection = createOfficeSection({ controls: [runtime.pauseButton, orgBtn, daySpeed.element, lunch.element], schedule: office });
   const settings = createSettingsMenu({
     sections: [
-      createAppearanceSection({ dayNight: dnControl.element, current: currentTier, onQuality }),
+      createAppearanceSection({ dayNight: viewExtras, current: currentTier, onQuality }),
       createActiveJobsSection({ strip: runtime.strip.element }),
+      { ...pulseSection, onShow: refreshPulse },
       officeSection,
       createScenarioSection({ seed: MASTER_SEED, laneWeights: scenarios.laneWeights, quality: quality.quality, maxJobs: { low: maxJobsFor('low'), high: maxJobsFor('high') } }),
       createAccessibilitySection({ keys }),
@@ -713,7 +789,7 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
 
   const rail = mountHud(root, { menu: toolbar, panel: panel.element, legend });
   rail.append(modeUi.walkButton);
-  root.append(unitList.element, labels, fpsEl, modeUi.bar);
+  root.append(unitList.element, labels, fpsEl, modeUi.bar, feed.element);
 
   let hoverId: string | null = null;
   let focusId: string | null = null;
@@ -1070,7 +1146,11 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     if (officeTick >= 0.25) {
       officeTick = 0;
       officeSection.refresh();
+      // Rev 43 C1: break starts sampled 4× a second (stays last seconds); the Nabız figures refresh while open.
+      pulse.sampleBreaks(model.robots.map((r) => [r.unit.id, sim.onBreak(r.unit.id) !== null || sim.get(r.unit.id).kind === 'coffee'] as const));
+      if (settings.isOpen()) refreshPulse();
     }
+    feed.tick(dt); // toast display time (wall seconds)
 
     placeSun();
     renderer.render(scene, camera);
