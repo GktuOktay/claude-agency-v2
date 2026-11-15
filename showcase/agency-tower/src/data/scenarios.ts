@@ -649,6 +649,21 @@ function validate(raw: unknown, units: UnitFloors, tables: readonly VariantTable
   return { laneWeights: [nums[0]!, nums[1]!, nums[2]!, nums[3]!], scenarios };
 }
 
+/**
+ * One scenario outside the random pool (the promo film's `film-flagship`): the same schema, matrix and pipeline
+ * rules P-1..P-8 as the committed set, without the §7.2 variant-table match (P-9 covers only the pool).
+ */
+export function loadStandaloneScenario(raw: unknown, units: UnitFloors): { ok: true; data: Scenario } | { ok: false; error: string } {
+  try {
+    const scn = parseScenario(raw, isRecord(raw) && typeof raw.id === 'string' ? raw.id : 'scenario', units);
+    checkScenario(scn);
+    return { ok: true, data: scn };
+  } catch (e) {
+    if (e instanceof Invalid) return { ok: false, error: e.message };
+    throw e;
+  }
+}
+
 export function loadScenarios(raw: unknown, units: UnitFloors, tables: readonly VariantTable[] = VARIANT_TABLES): ScenarioResult {
   try {
     return { ok: true, data: validate(raw, units, tables) };
