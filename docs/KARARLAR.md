@@ -333,3 +333,6 @@ Eski kurulum: ~/.claude-backup-2026-11-01 (silme işlemi henüz yapılmadı).
     - "Ajan gözü": seçili robotu omuz arkasından takip eden kamera.
     - "Gezinti": kat içinde göz hizasında yürüme. Klavye, sürükleyerek bakma ve "tıkla, oraya git" Street View tarzı ileri gitme var; duvar ve eşyalara çarpmaz.
 - **Ruling:** gerçek bir haritacılık ürününün arayüzü, ikonları ya da adı kopyalanmaz; özgün bir gezinti modu yapılır. Yanlışsa maliyet: yok.
+- **Ruling (D paketi uygulaması):** "İçeride gez" düğmesi kat panelinin içinde değil, hemen altında durur. Telefondaki iki satırlı kat şeridinde yer yok. Yalnız kat ve kanat görünümlerinde görünür, çatı bahçesinde görünmez. Yanlışsa maliyet: tek CSS kuralı.
+- **Ruling:** gezintide yürünebilir alan, kattaki yol ağının 0.5 birim çevresi. Duvar ve eşya izlerine 0.15 birimden fazla yaklaşılmaz. Tıklayınca gidilecek yol, robotların yol ağından hesaplanır. Yanlışsa maliyet: `src/scene/walk.ts` içindeki iki sabit.
+- **Ruling:** takip ve gezinti sırasında yalnız `Esc` çalışır; kat ve şema kısayolları yok sayılır. Panelden kat seçmek modu kapatır, sonra o kata gider. Azaltılmış harekette takip kamerası yumuşatma yapmaz, tıkla-git anında varılır, çıkış anlık kesmedir. Yanlışsa maliyet: `keymap.ts` içinde tek dal.

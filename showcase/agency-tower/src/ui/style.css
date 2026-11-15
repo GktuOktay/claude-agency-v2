@@ -356,3 +356,22 @@ html.is-org .robot-label { box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.25), 0 4p
 .card-original { margin-top: 6px; font-size: 0.8rem; color: var(--fg-muted); }
 .card-original summary { cursor: pointer; display: list-item; box-sizing: border-box; min-height: var(--touch); min-width: var(--touch); padding: 12px 0; }
 .card-original p { margin: 4px 0 0; }
+
+/* KARARLAR Rev 42 camera modes: "Takip et" on the card, "İçeride gez" under the floor panel, the mode bar. */
+.card-follow { min-width: var(--touch); min-height: var(--touch); margin: 0 0 var(--space-3); padding: 6px var(--space-4); border-radius: var(--radius-pill); background: var(--pill-dark); color: #fff; font-weight: 600; }
+.card-follow:hover { background: var(--pill-dark); color: #fff; border-color: transparent; box-shadow: 0 0 0 3px var(--accent-soft); }
+.walk-enter { min-width: var(--touch); min-height: var(--touch); align-self: flex-start; padding: 6px var(--space-4); border-radius: var(--radius-pill); background: var(--panel); border: 1px solid var(--panel-border); box-shadow: var(--panel-shadow); font-size: 0.85rem; font-weight: 600; }
+.walk-enter[hidden], .camera-mode[hidden] { display: none; }
+.camera-mode { position: absolute; z-index: 16; left: 50%; top: var(--space-4); transform: translateX(-50%); max-width: min(36rem, calc(100vw - 2 * var(--space-4))); display: flex; align-items: center; gap: var(--space-3); padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4); background: var(--panel); border: 1px solid var(--panel-border); border-radius: var(--radius); box-shadow: var(--panel-shadow); backdrop-filter: blur(8px); }
+.camera-mode-text { min-width: 0; }
+.camera-mode-title { margin: 0; font-weight: 700; font-size: 0.9rem; overflow-wrap: anywhere; }
+.camera-mode-hint { margin: 2px 0 0; color: var(--fg-muted); font-size: 0.75rem; }
+.camera-mode-exit { min-width: var(--touch); min-height: var(--touch); flex: none; padding: 6px var(--space-4); border-radius: var(--radius-pill); background: var(--pill-dark); color: #fff; font-weight: 600; }
+.camera-mode-exit:hover { background: var(--pill-dark); color: #fff; }
+/* Walking: only the scene and the mode bar (with its exit button) stay on screen. */
+html.is-walk .hud-rail, html.is-walk .settings, html.is-walk .settings-panel, html.is-walk .overlay, html.is-walk .card-host { display: none; }
+html.is-follow .walk-enter { display: none; }
+@media (max-width: 767px) {
+  .camera-mode { top: auto; bottom: calc(var(--space-2) + env(safe-area-inset-bottom, 0px)); width: calc(100vw - 2 * var(--space-2)); max-width: none; }
+  .walk-enter { margin-top: auto; }
+}

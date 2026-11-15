@@ -22,6 +22,9 @@ WebGL2 gerekir. URL parametreleri: `?quality=low|high`, `?debug=1` (fps gösterg
 - **Kat seçimi:** soldaki panel (telefonda üstte numaralı şerit) veya `0`–`5`. Asansör kabini kamerayla birlikte gider.
 - **Robot kartı:** robota tıklayın/dokunun veya klavyeyle birim listesinde Enter. Kamera robota yaklaşır, robot el sallar; kart 768 px altında alttan açılan sayfadır.
 - **Organizasyon şeması:** araç çubuğundaki düğme veya `O`. Bina saydamlaşır, robotlar yerinde durur, her birimden bağlı olduğu birime sabit bir çizgi çizilir (bağımsız birim kesik çizgi; açıklama ekranda). Kapatınca önceki görünüm ve kat geri gelir.
+- **Kat etiketinden yakınlaşma:** genel görünümde kulenin yanındaki kat etiketine tıklayınca kamera o kata gider.
+- **Ajan gözü:** robot kartındaki "Takip et" düğmesi. Kamera robotu omuz arkasından izler, asansörle kat değiştirse de bırakmaz. `Esc` ya da "Takibi bırak" önceki görünüme döner.
+- **Gezinti:** kat görünümünde kat panelinin altındaki "İçeride gez". Göz hizasında yürürsünüz: `W A S D` ya da oklar yürür ve döner, sürükleyince etrafa bakarsınız, zemine tıklayınca (dokununca) oraya yol üzerinden yürürsünüz; duvar ve eşyalardan geçilmez. Panel ve etiketler gizlenir; `Esc` ya da "Çık" geri döndürür.
 - **Gündüz / Gece / Otomatik:** varsayılan Otomatik; 90 saniyelik döngü öğle saatinden başlar. Gece pencereler, zemin ışıkları ve lambalar yanar.
 - **Dokunmatik:** tek parmak döndürür, iki parmak yakınlaştırır, dokunma seçer; sayfa kaymaz.
 - **Azaltılmış hareket:** işletim sisteminde açıksa kamera ve asansör geçişleri anlık olur, robotlar sabit pozda durur (el sallamak yerine kol kalkık), ekranlar kaymaz, gün ışığı Gündüz'de kalır ve Otomatik seçeneği kapanır (Gündüz/Gece elle seçilebilir). Sayfa yenilenmeden uygulanır.

@@ -110,3 +110,16 @@ export function bubbleCovers(x: number, y: number, size: { w: number; h: number 
   const b = { x0: x - size.w / 2, x1: x + size.w / 2, y0: y - size.h, y1: y };
   return fixed.some((r) => b.x0 < r.x1 + pad && r.x0 - pad < b.x1 && b.y0 < r.y1 + pad && r.y0 - pad < b.y1);
 }
+
+/** Pointer slop around an overview floor label (px), so a touch on its edge still counts. */
+export const FLOOR_LABEL_SLOP = 4;
+
+/** KARARLAR Rev 42: the floor whose overview label (`rects[i]` for `floors[i]`) is under (x, y), or null. */
+export function floorLabelAt(rects: readonly ScreenRect[], floors: readonly number[], x: number, y: number, slop = FLOOR_LABEL_SLOP): number | null {
+  for (let i = 0; i < rects.length; i++) {
+    const r = rects[i]!;
+    const f = floors[i];
+    if (f !== undefined && x >= r.x0 - slop && x <= r.x1 + slop && y >= r.y0 - slop && y <= r.y1 + slop) return f;
+  }
+  return null;
+}

@@ -7,6 +7,8 @@ import type { CardLines } from './nowLine';
 export interface CardOptions {
   resolveName(id: string): string;
   onClose?: () => void;
+  /** KARARLAR Rev 42 "Ajan gözü": scene only; adds a "Takip et" button to the card. */
+  onFollow?: (unit: Unit) => void;
 }
 
 export interface CardController {
@@ -72,7 +74,14 @@ export function createCard(parent: HTMLElement, opts: CardOptions): CardControll
           close();
         }
       });
-      p.append(closeBtn, title, dl);
+      p.append(closeBtn, title);
+      const onFollow = opts.onFollow;
+      if (onFollow) {
+        const follow = el('button', { type: 'button', class: 'card-follow', 'aria-label': tr.camera.followLabel(unit.nameTr) }, tr.camera.follow);
+        follow.addEventListener('click', () => onFollow(unit));
+        p.append(follow);
+      }
+      p.append(dl);
       parent.append(p);
       panel = p;
       closeBtn.focus();

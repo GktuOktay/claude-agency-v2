@@ -173,4 +173,19 @@ export const tr = {
     coffee: 'Kahve molasında',
   },
 
+  // KARARLAR Rev 42 camera modes: "Ajan gözü" (follow) and "Gezinti" (walk).
+  camera: {
+    follow: 'Takip et',
+    followLabel: (name: string): string => `Takip et: ${name}`,
+    following: (name: string): string => `Ajan gözü: ${name}`,
+    followHint: 'Esc: takibi bırak',
+    stopFollow: 'Takibi bırak',
+    walk: 'İçeride gez',
+    walkLabel: (place: string): string => `İçeride gez: ${place}`,
+    walking: (place: string): string => `Gezinti: ${place}`,
+    walkHint: 'W A S D ya da oklar: yürü · Sürükle: bak · Zemine tıkla: oraya git · Esc: çık',
+    walkHintTouch: 'Sürükle: bak · Zemine dokun: oraya git',
+    exitWalk: 'Çık',
+    exitWalkLabel: 'Gezintiden çık',
+  },
 } as const;

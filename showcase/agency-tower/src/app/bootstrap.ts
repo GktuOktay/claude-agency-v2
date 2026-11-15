@@ -2,7 +2,7 @@
 import { loadJobTitles } from '../data/jobTitles';
 import { loadData } from '../data/loader';
 import { loadScenarios, type ScenarioSet } from '../data/scenarios';
-import type { TowerData } from '../data/types';
+import type { TowerData, Unit } from '../data/types';
 import { tr } from '../i18n/tr';
 import { createCard, type CardController } from '../ui/card';
 import { el } from '../ui/dom';
@@ -16,7 +16,7 @@ export interface SceneContext {
   titles: readonly string[];
   card: CardController;
   nameOf(id: string): string;
-  hooks: { onCardClosed?: () => void };
+  hooks: { onCardClosed?: () => void; onFollow?: (unit: Unit) => void };
 }
 
 export interface BootDeps {
@@ -69,7 +69,7 @@ export async function boot(deps: BootDeps): Promise<BootState> {
   root.replaceChildren();
   const hooks: SceneContext['hooks'] = {};
   const cardHost = el('div', { class: 'card-host' });
-  const card = createCard(cardHost, { resolveName: nameOf, onClose: () => hooks.onCardClosed?.() });
+  const card = createCard(cardHost, { resolveName: nameOf, onClose: () => hooks.onCardClosed?.(), onFollow: (u) => hooks.onFollow?.(u) });
   root.append(cardHost);
   deps.startScene({ root, data, scenarios, titles, card, nameOf, hooks });
   return 'scene';
