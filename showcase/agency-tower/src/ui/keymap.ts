@@ -3,6 +3,8 @@ export interface KeyState {
   busy: boolean; // a ride or camera move is in progress
   cardOpen: boolean;
   mode: 'overview' | 'floor' | 'org';
+  /** KARARLAR Rev 42: an active camera mode; only Esc (leave it) is handled while one runs. */
+  camera?: 'follow' | 'walk' | null;
 }
 
 export interface KeyDeps {
@@ -13,6 +15,8 @@ export interface KeyDeps {
   closeCard(): void;
   /** `K`: next campus area (wing level / roof garden); absent = key unused. */
   cycleCampus?(): void;
+  /** Esc in a camera mode (follow / walk): back to the previous camera. */
+  exitCamera?(): void;
   orgEnabled: boolean;
 }
 
@@ -77,6 +81,10 @@ export function createKeyHandler(deps: KeyDeps): KeyHandler {
     handle(e) {
       if (!enabled || e.ctrlKey || e.altKey || e.metaKey || e.shiftKey || isTextField(e.target)) return;
       const s = deps.getState();
+      if (s.camera) {
+        if (e.key === 'Escape') deps.exitCamera?.();
+        return;
+      }
       let req: Request | null = null;
       if (/^[0-5]$/.test(e.key)) req = { kind: 'floor', n: Number(e.key) };
       else if (e.key === 'o' || e.key === 'O') req = deps.orgEnabled ? { kind: 'org' } : null;

@@ -10,6 +10,7 @@ import {
   PerspectiveCamera,
   MeshBasicMaterial,
   Mesh,
+  Plane,
   Ray,
   Scene,
   Vector2,
@@ -26,10 +27,15 @@ import { buildOrgLines, orgLines } from '../scene/org';
 import { createDayNightControl } from '../ui/dayNightControl';
 import { createOrgLegend } from '../ui/orgLegend';
 import { bindReducedMotion, type MediaQueryLike } from './motion';
-import { bubbleCovers, bubbleSize, bubbleVisible, floorLabelColumn, robotLabelVisible, roomLabelVisible, type FloorColumnItem, type ScreenRect } from '../scene/labels';
+import { bubbleCovers, bubbleSize, bubbleVisible, floorLabelAt, floorLabelColumn, robotLabelVisible, roomLabelVisible, type FloorColumnItem, type ScreenRect } from '../scene/labels';
 import { bubbleLift, createDeclutter, declutterDue } from '../scene/declutter';
-import { FLOOR_HEIGHT, FLOOR_TOP, accentCss, buildTower, floorAccent, type RobotEntry } from '../scene/model';
-import { ROBOT_BASE_SCALE, ROBOT_HEIGHT } from '../scene/robot';
+import { FLOOR_HEIGHT, FLOOR_TOP, accentCss, buildTower, floorAccent, type RobotEntry, type ViewState } from '../scene/model';
+import { ROBOT_BASE_SCALE, ROBOT_HEIGHT, tierStyle } from '../scene/robot';
+import { FOLLOW_FOV, createFollower, type Follower } from '../scene/follow';
+import { WALK_FOV, createWalker, isWalkKey, walkInputFromKeys, type Walker } from '../scene/walk';
+import { buildCampusGraph, type CampusGraph } from '../sim/nav';
+import { createCameraModeUi } from '../ui/cameraModeUi';
+import type { Unit } from '../data/types';
 import { blobTexture, hatchTexture, screenTexture, woodTexture } from '../scene/textures';
 import { pickRobot } from '../scene/picking';
 import { applyPose } from '../scene/pose';
@@ -61,7 +67,7 @@ import { syncStaffCabinFrom } from './elevatorView';
 import { createDirector, type Director, type RobotView } from '../scene/director';
 import { createProps, propRobotsOf } from '../scene/props';
 import { createWhiteboard, createWhiteboardTexture } from '../scene/whiteboard';
-import { HALF_DEPTH, SHAFT_X, STAFF_SHAFT, whiteboardTextureSize } from '../sim/layout';
+import { HALF_DEPTH, SHAFT_X, STAFF_SHAFT, WING_LEVELS, floorY, whiteboardTextureSize } from '../sim/layout';
 import { isNavMovement, type NavMovement } from '../sim/navMovement';
 import { createStaffRuntime, type StaffRuntime } from './staffRuntime';
 import { createStaff, type StaffModel } from '../scene/staff';
@@ -328,6 +334,7 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
   };
   function enterOrg(): void {
     if (orgOn) return;
+    exitCameraMode(false);
     closeCardQuiet();
     orgOn = true;
     runtime.setOrg(true);
@@ -397,6 +404,7 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
 
   let campusAt: CampusKey | null = null;
   function goCampus(k: CampusKey): void {
+    exitCameraMode(false);
     const c = campusItem(k);
     model.setView({ mode: 'floor', focusFloor: c.focusFloor }); // ghosting follows the same tower floor
     syncStaff();
@@ -404,6 +412,7 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     panel.setCurrent((campusAt = k));
   }
   function goFloor(n: number): void {
+    exitCameraMode(false);
     campusAt = null;
     model.setView({ mode: 'floor', focusFloor: n });
     syncStaff();
@@ -411,6 +420,7 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     panel.setCurrent(n);
   }
   function goOverview(): void {
+    exitCameraMode(false);
     campusAt = null;
     model.setView({ mode: 'overview', focusFloor: 0 });
     syncStaff();
@@ -419,7 +429,8 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
   }
 
   const keys = createKeyHandler({
-    getState: () => ({ busy: rig.busy, cardOpen: card.isOpen(), mode: orgOn ? 'org' : rig.mode === 'org' ? 'overview' : rig.mode }),
+    getState: () => ({ busy: rig.busy, cardOpen: card.isOpen(), mode: orgOn ? 'org' : rig.mode === 'org' ? 'overview' : rig.mode, camera: camMode?.kind ?? null }),
+    exitCamera: () => exitCameraMode(true),
     goFloor: (n) => {
       dropOrg();
       goFloor(n);
@@ -533,8 +544,176 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
   const fpsEl = el('div', { class: 'fps' }, '');
   fpsEl.hidden = !params.debug;
   // Tab order: settings button, floor panel, then the rest. Rev 35: the strip lives in the settings menu.
-  mountHud(root, { menu: toolbar, panel: panel.element, legend });
-  root.append(unitList.element, labels, fpsEl);
+  // ---- camera modes (KARARLAR Rev 42): "Ajan gözü" follow and "Gezinti" walk ----
+  type CamMode = { kind: 'follow'; id: string; follower: Follower; scale: number } | { kind: 'walk'; walker: Walker };
+  let camMode: CamMode | null = null;
+  /** The view to return to when the mode ends. */
+  let camPrev: { view: ViewState; campus: CampusKey | null } | null = null;
+  const walkKeys = new Set<string>();
+  const NEAR = camera.near;
+  const graphs = new Map<number, CampusGraph>();
+  const graphFor = (level: number): CampusGraph | null => {
+    const layout = model.layouts[level];
+    if (!layout) return null;
+    let g = graphs.get(level);
+    if (!g) graphs.set(level, (g = buildCampusGraph(layout)));
+    return g;
+  };
+  const floorName = (n: number): string => `${tr.floorShort} ${n} · ${data.floors.find((f) => f.id === n)?.nameTr ?? ''}`;
+  /** Walkable level of the current floor view (tower floor or wing level 0-2; not the roof garden), or null. */
+  const walkLevel = (): number | null => {
+    if (orgOn || model.view.mode !== 'floor') return null;
+    if (campusAt) {
+      const c = campusItem(campusAt);
+      return WING_LEVELS.includes(c.level) ? c.level : null;
+    }
+    return model.view.focusFloor;
+  };
+  const walkPlace = (): string => (campusAt ? campusItem(campusAt).label : floorName(model.view.focusFloor));
+  const modeUi = createCameraModeUi({ onWalk: () => startWalk(), onExit: () => exitCameraMode(true), touch: coarse });
+  /** Stop any rig move: the mode drives the camera directly from now on. */
+  const holdRig = (): void => {
+    rig.run([]);
+    rig.doors = 'open';
+  };
+  const rememberView = (): void => {
+    if (!camMode) camPrev = { view: { ...model.view }, campus: campusAt };
+  };
+  function startFollow(u: Unit): void {
+    if (!robotById.has(u.id)) return;
+    closeCard(); // releases the selection; its return-to-floor move is replaced below
+    if (orgOn) dropOrg();
+    rememberView();
+    holdRig();
+    camMode = { kind: 'follow', id: u.id, follower: createFollower(camera.position, controls.target), scale: tierStyle(u.tier).scale };
+    walkKeys.clear();
+    hoverId = null;
+    modeUi.showFollow(u.nameTr);
+  }
+  ctx.hooks.onFollow = (u) => startFollow(u);
+  function startWalk(): void {
+    const level = walkLevel();
+    if (camMode || level === null) return;
+    const g = graphFor(level);
+    if (!g) return;
+    const place = walkPlace();
+    closeCard();
+    rememberView();
+    holdRig();
+    const t = controls.target;
+    const yaw = Math.atan2(t.x - camera.position.x, t.z - camera.position.z);
+    camMode = { kind: 'walk', walker: createWalker({ graph: g, footprints: g.layout.footprints, floor: level, start: { x: t.x, z: t.z }, yaw }) };
+    walkKeys.clear();
+    camera.near = 0.05; // eye height next to low partitions
+    camera.updateProjectionMatrix();
+    hoverId = null;
+    modeUi.showWalk(place);
+  }
+  /** Leave follow / walk back to the remembered view (a move, or a cut with reduced motion). */
+  function exitCameraMode(focus: boolean): void {
+    const was = camMode;
+    if (!was) return;
+    camMode = null;
+    walkKeys.clear();
+    camera.near = NEAR;
+    camera.updateProjectionMatrix();
+    modeUi.hide();
+    // The rig starts from where the mode left the camera.
+    rig.position.copy(camera.position);
+    rig.target.copy(controls.target);
+    rig.fov = camera.fov;
+    const prev = camPrev;
+    camPrev = null;
+    if (prev && prev.view.mode === 'floor' && rig.mode === 'floor') {
+      campusAt = prev.campus;
+      model.setView(prev.view);
+      syncStaff();
+      rig.returnToFloor();
+      panel.setCurrent(prev.campus ?? prev.view.focusFloor);
+    } else {
+      campusAt = null;
+      model.setView({ mode: 'overview', focusFloor: 0 });
+      syncStaff();
+      rig.goOverview();
+      panel.setCurrent('all');
+    }
+    refreshWalkOffer();
+    if (!focus) return;
+    if (was.kind === 'walk' && !modeUi.walkButton.hidden) modeUi.walkButton.focus();
+    else canvas.focus();
+  }
+  let walkOffer = '-';
+  /** "İçeride gez" follows the view (floor views only, not org, not while a mode runs). */
+  function refreshWalkOffer(): void {
+    const level = camMode ? null : walkLevel();
+    const k = level === null ? '' : `${level}|${walkPlace()}`;
+    if (k === walkOffer) return;
+    walkOffer = k;
+    modeUi.setWalkAvailable(level !== null, level === null ? undefined : walkPlace());
+  }
+  const normKey = (k: string): string => (k.length === 1 ? k.toLowerCase() : k);
+  window.addEventListener('keydown', (e) => {
+    if (camMode?.kind !== 'walk' || e.ctrlKey || e.altKey || e.metaKey || !isWalkKey(e.key)) return;
+    const t = e.target;
+    if (t instanceof HTMLElement && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return;
+    walkKeys.add(normKey(e.key));
+    e.preventDefault();
+  });
+  window.addEventListener('keyup', (e) => walkKeys.delete(normKey(e.key)));
+  window.addEventListener('blur', () => walkKeys.clear());
+  const walkPlane = new Plane(new Vector3(0, 1, 0), 0);
+  const walkHit = new Vector3();
+  const walkNdc = new Vector2();
+  /** Floor point under the pointer on the walked level, or null. */
+  const floorPointAt = (clientX: number, clientY: number, level: number): { x: number; z: number } | null => {
+    const r = canvas.getBoundingClientRect();
+    walkNdc.set(((clientX - r.left) / r.width) * 2 - 1, -((clientY - r.top) / r.height) * 2 + 1);
+    camera.updateMatrixWorld();
+    const origin = new Vector3().setFromMatrixPosition(camera.matrixWorld);
+    const dir = new Vector3(walkNdc.x, walkNdc.y, 0.5).unproject(camera).sub(origin).normalize();
+    walkPlane.constant = -floorY(level);
+    const hit = new Ray(origin, dir).intersectPlane(walkPlane, walkHit);
+    return hit ? { x: hit.x, z: hit.z } : null;
+  };
+  /** Applies the active mode to the camera for this frame. */
+  function frameCameraMode(dt: number, still: boolean): void {
+    const m = camMode;
+    if (!m) return;
+    let pose: { pos: Vector3; target: Vector3 };
+    let fov: number;
+    if (m.kind === 'follow') {
+      const r = robotById.get(m.id);
+      if (!r) {
+        exitCameraMode(true);
+        return;
+      }
+      // Follow across floors (elevator): the view ghosts the floor the robot is on now.
+      const f = floorOf(r);
+      if (model.view.mode !== 'floor' || model.view.focusFloor !== f) {
+        model.setView({ mode: 'floor', focusFloor: f });
+        syncStaff();
+        panel.setCurrent(f);
+      }
+      pose = m.follower.update(r.group.position, r.group.rotation.y, dt, still, m.scale);
+      fov = FOLLOW_FOV;
+    } else {
+      m.walker.update(dt, walkInputFromKeys(walkKeys), still);
+      pose = m.walker.pose();
+      fov = WALK_FOV;
+    }
+    controls.enabled = false;
+    camera.position.copy(pose.pos);
+    controls.target.copy(pose.target);
+    camera.lookAt(pose.target);
+    if (Math.abs(camera.fov - fov) > 1e-3) {
+      camera.fov = fov;
+      camera.updateProjectionMatrix();
+    }
+  }
+
+  const rail = mountHud(root, { menu: toolbar, panel: panel.element, legend });
+  rail.append(modeUi.walkButton);
+  root.append(unitList.element, labels, fpsEl, modeUi.bar);
 
   let hoverId: string | null = null;
   let focusId: string | null = null;
@@ -556,24 +735,55 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     model.root.updateMatrixWorld(true);
     return pickRobot(model, new Ray(origin, dir), floorOf);
   };
+  let dragAt: { x: number; y: number } | null = null;
   canvas.addEventListener('pointerdown', (e) => {
     down = { x: e.clientX, y: e.clientY };
+    dragAt = { x: e.clientX, y: e.clientY };
+  });
+  canvas.addEventListener('pointermove', (e) => {
+    // Walk mode: drag (mouse or finger) looks around.
+    if (camMode?.kind !== 'walk' || !e.buttons || !dragAt) return;
+    camMode.walker.look(e.clientX - dragAt.x, e.clientY - dragAt.y);
+    dragAt = { x: e.clientX, y: e.clientY };
   });
   canvas.addEventListener('pointerup', (e) => {
+    dragAt = null;
     if (!down) return;
     const kind = classifyPointer(down, { x: e.clientX, y: e.clientY });
     down = null;
     if (kind !== 'click') return;
+    if (camMode) {
+      // Walk: a click / tap on the floor walks there along the graph. Follow: the scene is not pickable.
+      if (camMode.kind === 'walk') {
+        const p = floorPointAt(e.clientX, e.clientY, camMode.walker.floor);
+        if (p) camMode.walker.walkTo(p, motion.active());
+      }
+      return;
+    }
+    // Overview: a floor label in the column beside the tower zooms to its floor (KARARLAR Rev 42).
+    if (model.view.mode === 'overview' && !orgOn) {
+      const r = canvas.getBoundingClientRect();
+      const f = floorLabelAt(floorRects, floorColFloors, e.clientX - r.left, e.clientY - r.top);
+      if (f !== null) {
+        closeCard();
+        goFloor(f);
+        return;
+      }
+    }
     const hit = pick(e.clientX, e.clientY);
     if (hit) flow.select(hit.unit, canvas, { fromOrg: orgOn });
   });
   let hoverPending = false;
+  let hoverLabel = false;
   canvas.addEventListener('pointermove', (e) => {
-    if (hoverPending || e.buttons) return;
+    if (hoverPending || e.buttons || camMode) return;
     hoverPending = true;
     requestAnimationFrame(() => {
       hoverPending = false;
+      if (camMode) return;
       hoverId = pick(e.clientX, e.clientY)?.unit.id ?? null;
+      const r = canvas.getBoundingClientRect();
+      hoverLabel = model.view.mode === 'overview' && !orgOn && floorLabelAt(floorRects, floorColFloors, e.clientX - r.left, e.clientY - r.top) !== null;
     });
   });
 
@@ -622,6 +832,8 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
   // Overview floor label column (rebuilt every frame) and the rects bubbles must keep clear of.
   const floorCol: FloorColumnItem[] = [];
   const floorColEls: HTMLElement[] = [];
+  /** Floor of each overview column label, parallel to floorColEls / floorRects (label click, Rev 42). */
+  const floorColFloors: number[] = [];
   let floorRects: ScreenRect[] = [];
   const colAnchor = new Vector3();
   const fps = createFpsMeter();
@@ -678,19 +890,23 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     if (director) props.frame(director, model.view, orgOn);
 
     rig.update(dt);
-    if (Math.abs(camera.fov - rig.fov) > 1e-3) {
-      camera.fov = rig.fov;
-      camera.updateProjectionMatrix();
+    if (camMode) frameCameraMode(dt, still);
+    else {
+      if (Math.abs(camera.fov - rig.fov) > 1e-3) {
+        camera.fov = rig.fov;
+        camera.updateProjectionMatrix();
+      }
+      if (rig.busy) {
+        camera.position.copy(rig.position);
+        controls.target.copy(rig.target);
+        controls.enabled = false;
+      } else {
+        controls.enabled = true;
+      }
+      controls.update();
+      if (!rig.busy) rig.position.copy(camera.position);
     }
-    if (rig.busy) {
-      camera.position.copy(rig.position);
-      controls.target.copy(rig.target);
-      controls.enabled = false;
-    } else {
-      controls.enabled = true;
-    }
-    controls.update();
-    if (!rig.busy) rig.position.copy(camera.position);
+    refreshWalkOffer();
     if (wasBusy && !rig.busy) keys.onIdle();
     wasBusy = rig.busy;
     model.cabin.setHeight(rig.cabinY - FLOOR_TARGET_Y + FLOOR_TOP);
@@ -702,6 +918,7 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     if (pass) clutter.begin();
     floorCol.length = 0;
     floorColEls.length = 0;
+    floorColFloors.length = 0;
     const columnOn = model.view.mode === 'overview';
     for (const { room, e } of roomEls) {
       const on = !orgOn && roomLabelVisible(room, model.view) && !(selected && room.floor === model.view.focusFloor && !room.primary);
@@ -721,6 +938,7 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
         if (e.hidden) e.hidden = false; // measured shown (widthOf caches its first reading); placed below this frame
         floorCol.push({ east: pe.x, west: pw.x, y: (pe.y + pw.y) / 2, w: widthOf(e), h: heightOf(e) });
         floorColEls.push(e);
+        floorColFloors.push(room.floor);
         continue;
       }
       const p = project(room.position);
@@ -818,7 +1036,7 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
       if (e) e.hidden = true;
     }
 
-    canvas.style.cursor = hoverId ? 'pointer' : '';
+    canvas.style.cursor = camMode?.kind === 'walk' ? 'grab' : hoverId || hoverLabel ? 'pointer' : '';
     // day / night: sky, sun, fill, window and floor-light glow (lights fade on over ~0.7 s, cut if reduced)
     dayNight.step(dt);
     // Rev 35 P3: in Otomatik the light follows the office clock (dark after hours); Gündüz / Gece hold.
