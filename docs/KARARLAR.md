@@ -336,3 +336,27 @@ Eski kurulum: ~/.claude-backup-2026-11-01 (silme işlemi henüz yapılmadı).
 - **Ruling (D paketi uygulaması):** "İçeride gez" düğmesi kat panelinin içinde değil, hemen altında durur. Telefondaki iki satırlı kat şeridinde yer yok. Yalnız kat ve kanat görünümlerinde görünür, çatı bahçesinde görünmez. Yanlışsa maliyet: tek CSS kuralı.
 - **Ruling:** gezintide yürünebilir alan, kattaki yol ağının 0.5 birim çevresi. Duvar ve eşya izlerine 0.15 birimden fazla yaklaşılmaz. Tıklayınca gidilecek yol, robotların yol ağından hesaplanır. Yanlışsa maliyet: `src/scene/walk.ts` içindeki iki sabit.
 - **Ruling:** takip ve gezinti sırasında yalnız `Esc` çalışır; kat ve şema kısayolları yok sayılır. Panelden kat seçmek modu kapatır, sonra o kata gider. Azaltılmış harekette takip kamerası yumuşatma yapmaz, tıkla-git anında varılır, çıkış anlık kesmedir. Yanlışsa maliyet: `keymap.ts` içinde tek dal.
+
+## Revizyon 43: Ajanlar arası geçiş, eşyalı aktiviteler, kullanıcı özellikleri ve tanıtım filmi (2026-11-15)
+- CEO: "ajan gözündeyken başka bir ajana atlanabilsin. bir de hareketleri arttırsak mı? kahve barına gidince kahve içebilir spor salonunda spor yapar falan." Önerilen paketlere: "hepsi ok bugün ne yaptıya gerek yok. bu iş bitince bir tanıtım filmi gibi video çekebilir miyiz?"
+- Rev 31 yetkisiyle imzasız kodlanır. Paketler:
+  - **A, kamera:**
+    - Ajan gözünde ◀ ▶ düğmeleri, Tab / Shift+Tab ile sıradaki ajana geçiş; alt çubukta ajan listesi.
+    - Takip kamerası daha geride ve yukarıda.
+    - "Tanıtım turu": tek tuşla sinematik kamera turu.
+  - **B, aktiviteler:** eşya, yer ve hareket birlikte.
+    - Kahve barında fincan alıp içme.
+    - Koşu bandı, dambıl, esneme.
+    - Beyaz tahtaya yazma, ayakta toplantı, telefon, gerinme.
+    - Karşılıklı sohbet, tepsi taşıma.
+  - **C, arayüz:**
+    - Şirket nabzı panosu.
+    - Olaya tıklayınca kameranın oraya gittiği bildirim akışı.
+    - Gün hızı 1×/2×/4× ve "öğle arasına atla".
+    - Yerel PNG ekran görüntüsü.
+- "Bugün ne yaptı" günlüğü yapılmaz (CEO).
+- **Ruling:**
+  - Ekran görüntüsü yalnız yerel indirmedir: ağ isteği yok, REQ-16 korunur.
+  - Gün hızı yalnız simülasyon saatini çarpar; duraklatma anlamı değişmez.
+  - Yanlışsa maliyet: tek modül.
+- **Ruling:** tanıtım filmi uygulamanın kendi turundan kaydedilir: Playwright, 1920×1080, ffmpeg ile mp4. Filme gerçek şirket adı ya da logosu girmez. Yanlışsa maliyet: yeniden kayıt.
