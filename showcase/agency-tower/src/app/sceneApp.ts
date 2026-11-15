@@ -74,6 +74,7 @@ import { isNavMovement, type NavMovement } from '../sim/navMovement';
 import { createStaffRuntime, type StaffRuntime } from './staffRuntime';
 import { createStaff, type StaffModel } from '../scene/staff';
 import { createRoomLife, frameRoomLife } from '../scene/roomLife';
+import { createRobotActions } from './robotActions';
 import { rideToFloor } from './stripActivation';
 import type { SceneContext } from './bootstrap';
 import { LUNCH_AT, createOfficeTime } from '../sim/dayControl';
@@ -284,6 +285,9 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     }
   }
   const props = createProps({ robots: propRobotsOf(model), model });
+  // Rev 43 B: cups, dumbbells, trays, phones, markers in the robots' hands (five shared instanced meshes).
+  const actions = createRobotActions(model.robots);
+  model.root.add(actions.group);
   /** R-5: the floor each robot is on now (labels, bubbles, picking), refreshed every frame. */
   const floorNow = new Map<string, number>(model.robots.map((r) => [r.unit.id, r.floor]));
   const floorOf = (r: RobotEntry): number => floorNow.get(r.unit.id) ?? r.floor;
@@ -1082,16 +1086,19 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     frameRoomLife(roomLife, runtime.clock, dt, office.minutes()); // room life: office clock, same pause reasons
     const selected = flow.selectedId();
     const still = motion.active();
+    actions.begin(sim, still, orgOn, staff?.drainEvents() ?? []);
     for (const r of model.robots) {
       if (r.unit.id === selected) sim.faceToward(r.unit.id, camera.position.x, camera.position.z);
       const dv = director ? director.view(r.unit.id) : null;
       const v = dv ?? ambientView(sim.get(r.unit.id));
-      r.group.position.set(v.x, v.y, v.z);
-      r.group.rotation.y = v.facing;
+      const act = actions.get(r.unit.id); // Rev 43 B: object activity (render overlay), null = as before
+      r.group.position.set(v.x + (act?.dx ?? 0), v.y + (act?.dy ?? 0), v.z + (act?.dz ?? 0));
+      r.group.rotation.y = act ? act.facing : v.facing;
       // A robot on a campus break shows its amenity pose (the director reports the ambient kind).
       const breakPose = sim.isReserved(r.unit.id) ? undefined : sim.get(r.unit.id).pose;
-      const fp = framePose(orgOn, breakPose ?? v.pose, v.walkPhase, clock, still, r.unit.id.length);
+      const fp = act ? { kind: act.pose, walkPhase: act.walkPhase, timeSec: act.timeSec } : framePose(orgOn, breakPose ?? v.pose, v.walkPhase, clock, still, r.unit.id.length);
       applyPose(r.parts, fp.kind, fp.walkPhase, fp.timeSec);
+      actions.attach(r, act);
       r.screen.scrolling = v.screenScroll;
       r.screen.update(dt);
       if (dv) {
@@ -1099,6 +1106,7 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
         props.robot(r.unit.id, dv, model.view, orgOn); // marker, stamp, current-floor visibility (R-5)
       }
     }
+    actions.end();
     if (director) props.frame(director, model.view, orgOn);
 
     rig.update(dt);
