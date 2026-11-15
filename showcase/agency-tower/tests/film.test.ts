@@ -9,7 +9,7 @@ import { loadStandaloneScenario, type Scenario } from '../src/data/scenarios';
 import { FILM_SCENARIO_RAW, loadFilmScenario, withFilm } from '../src/film/filmData';
 import { createFilmDirector, type FilmDirector } from '../src/film/director';
 import { DIRECTOR_SCENES, FILM_LINES, FILM_PLACES, FILM_SCENES, FILM_SPEED, FILM_VARIANT, LINE_S, MAX_BUBBLES } from '../src/film/script';
-import { createFilmOverlay, installFilmHook, toCanvasPixels } from '../src/film/overlay';
+import { createFilmOverlay, filmLayout, installFilmHook, toCanvasPixels } from '../src/film/overlay';
 import { filmShotPlan } from '../src/film/shots';
 import { createWorkflow, type WfEvent, type Workflow } from '../src/sim/workflow';
 import { createOfficeSchedule, periodAt } from '../src/sim/schedule';
@@ -237,7 +237,7 @@ describe('film overlay and recorder hook', () => {
   });
 
   it('installs window.__film only in film mode; bubbles map to canvas pixels', () => {
-    const api = { caption: () => null, bubbles: () => [] };
+    const api = { caption: () => null, bubbles: () => [], labels: () => [], layout: () => filmLayout(1920, 1080) };
     const off: { __film?: unknown } = {};
     installFilmHook(off, api, { film: false });
     expect(off.__film).toBeUndefined();

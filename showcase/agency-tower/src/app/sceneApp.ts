@@ -35,7 +35,11 @@ import { FOLLOW_FOV, createFollower, cycleFollow, followBounds, followOrder, typ
 import { createTourPlayer, installTourHook, tourParams, tourPlan, type TourPlayer, type TourPose, type TourSegment } from '../scene/tour';
 import { createFilmDirector, type FilmDirector } from '../film/director';
 import { loadFilmScenario, withFilm } from '../film/filmData';
-import { createFilmOverlay, installFilmHook, toCanvasPixels, type FilmBubble } from '../film/overlay';
+import { createFilmOverlay, filmLayout, installFilmHook, labelToCanvasPixels, toCanvasPixels, type FilmBubble, type FilmHookApi } from '../film/overlay';
+import { FOLLOW_FIT, aspectFit, pullBack } from '../film/framing';
+import { STAFF_NAME_TR, STAFF_ROLE_TR, bubbleAnchorY, filmLabels, type FilmCharacter, type FilmLabel } from '../film/labels';
+import { createFixedStepper, filmFixedParam } from '../film/fixedStep';
+import { setDisplayClock } from '../scene/amenities';
 import { FILM_TITLE } from '../film/script';
 import { filmShotPlan } from '../film/shots';
 import { WALK_FOV, createWalker, isWalkKey, walkInputFromKeys, type Walker } from '../scene/walk';
@@ -118,6 +122,10 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
   // Promo film (Rev 43, `?film=1` only): the film-flagship job is the only job; the pool and the normal app are
   // untouched otherwise (filmScn is null and every option below falls back to the normal value).
   const filmParams = tourParams(window.location.search);
+  // Rev 45 `?film=1&fixed=1`: no animation loop; the recorder steps 1/30 s frames through `window.__film.step`.
+  const filmFixed = filmParams.film && filmFixedParam(window.location.search);
+  let fixedNowS = 0;
+  if (filmFixed) setDisplayClock(() => fixedNowS);
   const filmScn = filmParams.film ? loadFilmScenario(new Map(data.units.map((u) => [u.id, u.floor]))) : null;
   const simScenarios = filmScn ? withFilm(scenarios, filmScn) : scenarios;
   let filmDir: FilmDirector | null = null;
@@ -902,7 +910,9 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     canvas.focus();
     if (filmDir) {
       runtime.setSpeed(1);
-      filmOverlay.update(null, []);
+      filmTags = [];
+      filmBubbles = [];
+      filmOverlay.update(null, [], []);
     }
     for (const cb of tourEnded) cb();
   }
@@ -966,6 +976,7 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
   // ---- promo film (`?film=1`): story director → day speed, camera, captions, dialogue bubbles ----
   const filmOverlay = createFilmOverlay();
   let filmBubbles: FilmBubble[] = [];
+  let filmTags: FilmLabel[] = [];
   /** The robot nearest the shot's look-at point that is on screen (`here` speakers, staff fallback). */
   const nearestHead = (): Vector3 | null => {
     let best: Vector3 | null = null;
@@ -990,6 +1001,31 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     const r = robotById.get(speaker);
     return r ? headPos(r) : null;
   };
+  /** The speaker's head and the id of the character there (so its bubble clears that character's tag). */
+  const speakerOf = (speaker: string): { id: string; head: Vector3 } | null => {
+    const head = speakerHead(speaker);
+    if (!head) return null;
+    if (robotById.has(speaker)) return { id: speaker, head };
+    if (speaker.startsWith('staff:') && staff?.headPosition(speaker)?.equals(head)) return { id: speaker, head };
+    // `here` (or a staff fallback): the robot whose head this is.
+    const r = model.robots.find((m) => headPos(m).distanceToSquared(head) < 1e-6);
+    return { id: r?.unit.id ?? speaker, head };
+  };
+  /** Characters the film may tag now: robots (incl. the CEO) and staff shown in the current view. */
+  const shownOn = (floor: number): boolean => model.view.mode === 'overview' || floor === model.view.focusFloor;
+  const filmCharacters = (): FilmCharacter[] => {
+    const out: FilmCharacter[] = [];
+    for (const r of model.robots) {
+      if (!r.group.visible || !shownOn(floorOf(r))) continue;
+      out.push({ id: r.unit.id, head: headPos(r), name: r.unit.nameTr, role: tr.tiers[r.unit.tier] });
+    }
+    for (const v of staff?.snapshot() ?? []) {
+      if (v.opacity < 0.5 || !shownOn(v.floor)) continue;
+      const head = staff?.headPosition(v.id);
+      if (head) out.push({ id: v.id, head, name: STAFF_NAME_TR[v.role], role: STAFF_ROLE_TR });
+    }
+    return out;
+  };
   function frameFilm(dt: number, still: boolean): void {
     const t = tour;
     if (!t || !filmDir) return;
@@ -998,7 +1034,7 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     if (f.shotChanged) {
       t.follow = null;
       t.golden = 0;
-      if (f.shot.kind === 'place') t.player = createTourPlayer(filmShotPlan(f.shot.place), still);
+      if (f.shot.kind === 'place') t.player = createTourPlayer(filmShotPlan(f.shot.place, camera.aspect), still);
       else {
         const r = robotById.get(f.shot.unit);
         if (r) t.follow = { id: r.unit.id, follower: createFollower(camera.position, controls.target), scale: tierStyle(r.unit.tier).scale };
@@ -1010,9 +1046,15 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     if (t.follow && fr) {
       const fl = floorOf(fr);
       if (model.view.mode !== 'floor' || model.view.focusFloor !== fl || campusAt) tourView(fl, null);
-      const p = t.follow.follower.update(fr.group.position, fr.group.rotation.y, dt, still, t.follow.scale, followBounds(fr.group.position));
-      pose = { pos: p.pos, target: p.target, fov: FOLLOW_FOV };
-      fov = FOLLOW_FOV;
+      const bounds = followBounds(fr.group.position);
+      const p = t.follow.follower.update(fr.group.position, fr.group.rotation.y, dt, still, t.follow.scale, bounds);
+      // Rev 45: a portrait frame widens the lens and pulls back a little, kept inside the building.
+      const fit = aspectFit(FOLLOW_FOV, camera.aspect, FOLLOW_FIT);
+      const pos = pullBack(p.pos, p.target, fit.distScale);
+      pos.x = Math.min(bounds.x1, Math.max(bounds.x0, pos.x));
+      pos.z = Math.min(bounds.z1, Math.max(bounds.z0, pos.z));
+      pose = { pos, target: p.target, fov: fit.fov };
+      fov = fit.fov;
     } else {
       const pf = t.player.update(dt, { pos: camera.position, target: controls.target, fov: camera.fov });
       t.golden = pf.golden;
@@ -1030,32 +1072,46 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
       camera.fov = fov;
       camera.updateProjectionMatrix();
     }
-    // Dialogue bubbles over the speakers' heads (CSS px relative to the canvas), at most two (director).
+    // Rev 45 name tags over every character on screen, then the dialogue bubbles above the speakers' tags
+    // (CSS px relative to the canvas), at most two bubbles (director).
+    const cr = canvas.getBoundingClientRect();
+    filmTags = filmLabels(filmCharacters(), camera, controls.target, cr.width, cr.height);
+    const tagOf = new Map(filmTags.map((l) => [l.id, l]));
     const out: FilmBubble[] = [];
     for (const { line, alpha } of filmDir.lines()) {
-      const hp = speakerHead(line.speaker);
-      if (!hp) continue;
-      const p = project(hp);
-      if (p.visible) out.push({ x: p.x, y: p.y - 6, text: line.text, alpha });
+      const sp = speakerOf(line.speaker);
+      if (!sp) continue;
+      const p = project(sp.head);
+      if (p.visible) out.push({ x: p.x, y: bubbleAnchorY(p.y, tagOf.get(sp.id)), text: line.text, alpha });
     }
     filmBubbles = out;
-    filmOverlay.update(filmDir.caption(), out);
+    filmOverlay.update(filmDir.caption(), out, filmTags);
     if (f.done) endTour();
   }
-  installFilmHook(
-    window,
-    {
-      caption: () => (tour?.film ? filmDir?.caption() ?? null : null),
-      bubbles: () => {
-        const r = canvas.getBoundingClientRect();
-        return tour?.film ? filmBubbles.map((b) => toCanvasPixels(b, r.width, r.height, canvas.width, canvas.height)) : [];
-      },
+  let filmEnded = false;
+  tourEnded.push(() => {
+    if (filmDir?.done) filmEnded = true;
+  });
+  const filmHook: FilmHookApi = {
+    caption: () => (tour?.film ? filmDir?.caption() ?? null : null),
+    bubbles: () => {
+      const r = canvas.getBoundingClientRect();
+      return tour?.film ? filmBubbles.map((b) => toCanvasPixels(b, r.width, r.height, canvas.width, canvas.height)) : [];
     },
-    { film: filmDir !== null },
-  );
-  // Recording hook: `?tour=1` / `?film=1` only; `?film=1` hides all UI and starts after 3 s.
+    labels: () => {
+      const r = canvas.getBoundingClientRect();
+      return tour?.film ? filmTags.map((l) => labelToCanvasPixels(l, r.width, r.height, canvas.width, canvas.height)) : [];
+    },
+    layout: () => {
+      const r = canvas.getBoundingClientRect();
+      return filmLayout(canvas.width, canvas.height, r.width > 0 ? canvas.width / r.width : 1);
+    },
+  };
+  installFilmHook(window, filmHook, { film: filmDir !== null });
+  // Recording hook: `?tour=1` / `?film=1` only; `?film=1` hides all UI and starts after 3 s (real time), or on the
+  // first `__film.step()` with `&fixed=1`.
   installTourHook(window, { start: () => startTour(), onEnd: (cb) => tourEnded.push(cb) }, tourOpts);
-  if (tourOpts.film) window.setTimeout(() => startTour(), 3000);
+  if (tourOpts.film && !filmFixed) window.setTimeout(() => startTour(), 3000);
 
   const rail = mountHud(root, { menu: toolbar, panel: panel.element, legend });
   rail.append(modeUi.walkButton, breakButtons.screen);
@@ -1205,6 +1261,10 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
   const tick = (now: number): void => {
     const dt = last ? Math.min((now - last) / 1000, 0.1) : 0;
     last = now;
+    frameAt(dt, now, true);
+  };
+  /** One app frame of `dt` seconds; `draw` = render it (the fixed-step film renders once per step call). */
+  const frameAt = (dt: number, now: number, draw: boolean): void => {
     clock += dt;
 
     // Simulation clock (≤ 100 ms steps, frozen by org / user / hidden), then on its dt: the ambient cycle and the
@@ -1434,11 +1494,27 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     }
     feed.tick(dt); // toast display time (wall seconds)
 
+    if (!draw) return;
     placeSun();
     renderer.render(scene, camera);
     if (params.debug) fpsEl.textContent = `${fps.frame(now).toFixed(0)} fps · ${qualityCtx.tier ?? quality.quality}`;
   };
 
+  if (filmFixed) {
+    // Rev 45: the recorder owns time. Each step is exactly 1/30 s for everything that reads the frame dt.
+    const stepper = createFixedStepper({
+      frame: (dt, nowMs, draw) => {
+        fixedNowS = nowMs / 1000;
+        frameAt(dt, nowMs, draw);
+      },
+      ended: () => filmEnded,
+      start: () => startTour(),
+    });
+    filmHook.step = (frames = 1) => stepper.step(frames);
+    // First frame drawn so the canvas is not blank before the recorder's first step.
+    frameAt(0, 0, true);
+    return;
+  }
   const loop = createLoop({
     raf: (cb) => requestAnimationFrame(cb),
     caf: (id) => cancelAnimationFrame(id),
