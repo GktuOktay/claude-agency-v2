@@ -195,10 +195,29 @@ export function offsetPath(g: FloorGraph, path: readonly string[], offset = LANE
     const r = rightOf(s.dir);
     return { x: p.x + r.x * offset, z: p.z + r.z * offset };
   };
+  /**
+   * A spur leaving (or joining) an aisle on the walker's own lane side: walk straight between the lane and the spur
+   * instead of stepping across to the aisle centre and back (that U-turn made a walker turning into a waiting spot
+   * stop dead in front of the walker behind it; door-jam fix).
+   */
+  const laneSide = (a: Seg, b: Seg): boolean => {
+    const spur = a.through ? b : a;
+    if (dist(spur.a, spur.b) <= offset + EPS) return false;
+    if (a.through && !b.through) {
+      const r = rightOf(a.dir);
+      return r.x * b.dir.x + r.z * b.dir.z > 1 - 1e-6;
+    }
+    if (!a.through && b.through) {
+      const r = rightOf(b.dir);
+      return r.x * a.dir.x + r.z * a.dir.z < -1 + 1e-6;
+    }
+    return false;
+  };
   push({ x: first.x, z: first.z });
   segs.forEach((s, i) => {
     const prev = segs[i - 1];
     if (!prev) push(shifted(s, s.a));
+    else if (laneSide(prev, s)) push(prev.through ? shifted(prev, s.a) : shifted(s, s.a));
     else if (prev.through && s.through) {
       const cos = prev.dir.x * s.dir.x + prev.dir.z * s.dir.z;
       const turnRight = rightOf(prev.dir).x * s.dir.x + rightOf(prev.dir).z * s.dir.z > EPS;
@@ -218,7 +237,7 @@ export function offsetPath(g: FloorGraph, path: readonly string[], offset = LANE
       push(shifted(s, s.a));
     }
     const next = segs[i + 1];
-    if (!next || !(s.through && next.through)) push(shifted(s, s.b));
+    if (!next || !((s.through && next.through) || laneSide(s, next))) push(shifted(s, s.b));
   });
   const last = segs[segs.length - 1];
   if (last) push({ x: last.b.x, z: last.b.z });
