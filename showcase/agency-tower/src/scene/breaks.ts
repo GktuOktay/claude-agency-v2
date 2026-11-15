@@ -142,11 +142,11 @@ export const LAB_WORKERS: ReadonlySet<string> = new Set([
 
 /** Robots committed (walking there or staying) per zone during work hours. */
 export const OCCUPANCY_WORK: Readonly<Partial<Record<AmenityZoneId, number>>> = {
-  'rnd-lab': 6,
+  'rnd-lab': 5,
   gym: 2,
   'game-room': 2,
   'snack-bar': 1,
-  terrace: 1,
+  terrace: 2,
   archive: 1,
   'sleep-pods': 1,
 };
@@ -155,14 +155,23 @@ export const OCCUPANCY_LUNCH: Readonly<Partial<Record<AmenityZoneId, number>>> =
   yemekhane: 4,
   terrace: 1,
   'rnd-lab': 3,
+  gym: 1,
+  'snack-bar': 1,
 };
 /** Shortly before the morning the lab crew heads in (the rest of the office stays home after hours). */
 export const OCCUPANCY_MORNING: Readonly<Partial<Record<AmenityZoneId, number>>> = {
   'rnd-lab': 3,
+  gym: 1,
+  'snack-bar': 1,
+  terrace: 1,
 };
 /** In the coffee and tea slots the joins fill the social zones; the director keeps the lab staffed. */
 export const OCCUPANCY_SLOT: Readonly<Partial<Record<AmenityZoneId, number>>> = {
   'rnd-lab': 5,
+  gym: 2,
+  'snack-bar': 1,
+  terrace: 1,
+  'sleep-pods': 1,
 };
 /**
  * Director stay per zone, seconds [min, max). A trip to the wing takes 15–90 s (bridge or staff elevator),
@@ -182,7 +191,7 @@ export const ZONE_STAY_S: Readonly<Record<AmenityZoneId, readonly [number, numbe
 /** A robot back from a director session rests at least this long before the next one (rotation). */
 export const ROTATE_REST_S = 12;
 /** Nap pods are "occasional": a pods top-up is attempted on this share of director ticks only. */
-export const PODS_TICK_CHANCE = 0.25;
+export const PODS_TICK_CHANCE = 0.5;
 
 /** Preference of a robot for a zone (lower is better): fans first, then robots that need no elevator. */
 export function zoneRank(unit: string, zone: AmenityZoneId, homeFloor: number, zoneFloor: number): number {

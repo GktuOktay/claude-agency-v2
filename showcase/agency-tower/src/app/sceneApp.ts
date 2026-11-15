@@ -82,6 +82,8 @@ import { createFeedModel, createPulse, placeOf, type FeedItem, type Place } from
 import { createEventFeed, readStoredFeed } from '../ui/eventFeed';
 import { createScreenshotButton, flattenOnPage } from '../ui/screenshot';
 import { createDaySpeedControl, createLunchButton } from '../ui/settings/daySpeed';
+import { createBreakButtons } from '../ui/settings/breakButton';
+import { createBreakOverride } from '../sim/breakOverride';
 import { createPulseSection } from '../ui/settings/pulse';
 import { HALF_WIDTH } from '../sim/layout';
 
@@ -202,6 +204,8 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     },
   });
   const office: OfficeClock = createOfficeSchedule(officeTime);
+  // Rev 44: "Molaya çık" / "Molayı bitir" override the break logic's period until the next scheduled transition.
+  const breakOverride = createBreakOverride(() => office.breakPeriod());
   const sim = createActivitySim(
     model.robots.map((r) => ({ id: r.unit.id, home: r.homePoint, work: r.workPoint, coffee: r.coffeePoint })),
     SEED,
@@ -211,7 +215,8 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
       campus: appCampusOptions({
         movement: breakMovement,
         floors: new Map(data.units.map((u) => [u.id, u.floor])),
-        period: () => office.breakPeriod(),
+        period: () => breakOverride.period(),
+        override: () => breakOverride.mode(),
         periodAhead: (s) => breakPeriodAt(officeTime.time + s),
         paused: () => runtime.clock.paused,
         queued: () => breakNav?.elevator.queue().length ?? BREAK_QUEUE_MAX,
@@ -388,7 +393,7 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     linesFor: (id) => {
       const kind = sim.get(id).kind;
       // Rev 38: a break names its venue (or the tea / coffee slot at the floor station).
-      return runtime.cardLinesFor(id, kind, breakKeyOf({ spot: sim.onBreak(id), phase: sim.breakPhase(id), kind, period: office.breakPeriod() }));
+      return runtime.cardLinesFor(id, kind, breakKeyOf({ spot: sim.onBreak(id), phase: sim.breakPhase(id), kind, period: breakOverride.period() }));
     },
     onSelect: (id) => runtime.select(id),
     onRelease: (id) => runtime.release(id),
@@ -540,7 +545,8 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
   // Rev 43 "Tanıtım turu": the start button joins the "Ofis" controls (no new tab); `?film=1` records without UI.
   const tourOpts = tourParams(window.location.search);
   const tourUi = createTourUi({ onStart: () => startTour(), onEnd: () => endTour(), film: tourOpts.film });
-  const officeSection = createOfficeSection({ controls: [runtime.pauseButton, orgBtn, daySpeed.element, lunch.element, tourUi.startButton], schedule: office });
+  const breakButtons = createBreakButtons({ override: breakOverride, paused: () => runtime.clock.paused });
+  const officeSection = createOfficeSection({ controls: [runtime.pauseButton, orgBtn, daySpeed.element, lunch.element, breakButtons.section, tourUi.startButton], schedule: office });
   const settings = createSettingsMenu({
     sections: [
       createAppearanceSection({ dayNight: viewExtras, current: currentTier, onQuality }),
@@ -928,7 +934,7 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
   if (tourOpts.film) window.setTimeout(() => startTour(), 3000);
 
   const rail = mountHud(root, { menu: toolbar, panel: panel.element, legend });
-  rail.append(modeUi.walkButton);
+  rail.append(modeUi.walkButton, breakButtons.screen);
   root.append(unitList.element, labels, fpsEl, modeUi.bar, feed.element, tourUi.exitButton);
 
   let hoverId: string | null = null;
@@ -1295,6 +1301,7 @@ export function startSceneApp(ctx: SceneContext, params: Params): void {
     if (officeTick >= 0.25) {
       officeTick = 0;
       officeSection.refresh();
+      breakButtons.refresh();
       // Rev 43 C1: break starts sampled 4× a second (stays last seconds); the Nabız figures refresh while open.
       pulse.sampleBreaks(model.robots.map((r) => [r.unit.id, sim.onBreak(r.unit.id) !== null || sim.get(r.unit.id).kind === 'coffee'] as const));
       if (settings.isOpen()) refreshPulse();
