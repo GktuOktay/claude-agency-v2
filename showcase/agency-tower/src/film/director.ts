@@ -3,12 +3,12 @@
 // 13, 18), picks the camera shot, the day speed and the office clock, and runs the captions and dialogue lines.
 // Time is real (wall) seconds; the engine runs at the speed this director asks for.
 import type { Scenario, Step } from '../data/scenarios';
-import type { DaySpeed } from '../sim/dayControl';
 import { DEFAULT_START, OFFICE_DAY_S, dayOffsetOf } from '../sim/schedule';
 import type { Outcome, ScriptOutcomes, WfEvent } from '../sim/workflow';
 import {
   CAPTION_FADE_S,
   DIRECTOR_SCENES,
+  FILM_SPEED,
   FILM_LINES,
   FILM_OUTCOMES,
   FILM_SCENES,
@@ -49,7 +49,8 @@ export interface FilmFrame {
   shot: FilmShot;
   /** The shot differs from last frame's (the app cuts / eases to it). */
   shotChanged: boolean;
-  speed: DaySpeed;
+  /** Engine speed multiplier (FILM_SPEED values; 1 before the start and after the end). */
+  speed: number;
   done: boolean;
 }
 
@@ -159,16 +160,18 @@ export function createFilmDirector(o: { workflow: FilmWorkflow; scenario: Scenar
     return { kind: 'follow', unit: s.actors[0]! };
   }
 
-  function speedNow(): DaySpeed {
+  function speedNow(): number {
     const n = scene().n;
-    if (n <= 2) return 4;
-    if (n === 12 || n === 13 || n === 18) return 1;
-    let best: DaySpeed = 4;
+    if (n <= 2) return FILM_SPEED.walk;
+    // The R&D and break inserts run while the engineers build (4×, so the build is done when they end).
+    if (n === 12 || n === 13) return FILM_SPEED.work;
+    if (n === 18) return FILM_SPEED.key;
+    let best: number = FILM_SPEED.walk;
     for (const r of wf.running()) {
       if (r.job !== job || r.kind === 'carry') continue;
       if ((wf.stepProgress(job, r.step) ?? 0) <= 0) continue;
-      if (KEY_STEPS.has(r.step)) return 1;
-      best = 2;
+      if (KEY_STEPS.has(r.step)) return FILM_SPEED.key;
+      best = FILM_SPEED.work;
     }
     return best;
   }

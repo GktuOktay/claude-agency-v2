@@ -8,11 +8,12 @@ import scenariosRaw from '../src/data/scenarios.json';
 import { loadStandaloneScenario, type Scenario } from '../src/data/scenarios';
 import { FILM_SCENARIO_RAW, loadFilmScenario, withFilm } from '../src/film/filmData';
 import { createFilmDirector, type FilmDirector } from '../src/film/director';
-import { FILM_LINES, FILM_PLACES, FILM_SCENES, FILM_VARIANT, LINE_S, MAX_BUBBLES } from '../src/film/script';
+import { DIRECTOR_SCENES, FILM_LINES, FILM_PLACES, FILM_SCENES, FILM_SPEED, FILM_VARIANT, LINE_S, MAX_BUBBLES } from '../src/film/script';
 import { createFilmOverlay, installFilmHook, toCanvasPixels } from '../src/film/overlay';
 import { filmShotPlan } from '../src/film/shots';
 import { createWorkflow, type WfEvent, type Workflow } from '../src/sim/workflow';
 import { createOfficeSchedule, periodAt } from '../src/sim/schedule';
+import { createStepPacer } from '../src/sim/dayControl';
 import { appRoot } from './helpers';
 import { scenarioSet, unitFloors } from './workflowHelpers';
 
@@ -33,9 +34,11 @@ interface Run {
   captionNull: boolean;
   /** Office periods seen per scene. */
   periods: Map<number, Set<string>>;
+  /** Wall seconds each dialogue line was on screen. */
+  lineShown: Map<string, number>;
 }
 
-/** Plays the film like the app does: 30 fps wall frames, `speed` engine sub-steps per frame (simRuntime.frame). */
+/** Plays the film like the app does: 30 fps wall frames, `speed` engine sub-steps per frame (simRuntime.frame paces 1.5×). */
 function playFilm(maxWallS = 400): Run {
   const wf = createWorkflow({ scenarios: withFilm(scenarioSet(), film()), units: UNITS, scripted: false, autoStart: false, record: true });
   const dir = createFilmDirector({ workflow: wf, scenario: film() });
@@ -46,9 +49,12 @@ function playFilm(maxWallS = 400): Run {
   let maxBubbles = 0;
   const speeds = new Set<number>();
   const periods = new Map<number, Set<string>>();
+  const lineShown = new Map<string, number>();
+  const pace = createStepPacer();
   for (let i = 0; i < maxWallS * 30 && !dir.done; i++) {
     const events: WfEvent[] = [];
-    for (let k = 0; k < speed; k++) {
+    const steps = Math.max(1, pace(speed));
+    for (let k = 0; k < steps; k++) {
       wf.step(dt);
       events.push(...wf.drainEvents());
     }
@@ -56,11 +62,12 @@ function playFilm(maxWallS = 400): Run {
     speed = f.speed;
     speeds.add(speed);
     maxBubbles = Math.max(maxBubbles, dir.lines().length);
+    for (const v of dir.lines()) lineShown.set(v.line.text, (lineShown.get(v.line.text) ?? 0) + dt);
     const ps = periods.get(f.scene.n) ?? new Set<string>();
     ps.add(periodAt(dir.officeClock()));
     periods.set(f.scene.n, ps);
   }
-  return { wf, dir, maxBubbles, speeds, captionNull, periods };
+  return { wf, dir, maxBubbles, speeds, captionNull, periods, lineShown };
 }
 
 describe('film-flagship scenario', () => {
@@ -103,10 +110,32 @@ describe('film-flagship scenario', () => {
 describe('film story director', () => {
   const r = playFilm();
 
-  it('ends (the tour onEnd fires on this) within 2.5–3.5 minutes of wall time', () => {
+  // CEO film review "daha hızlı bir çekim istiyorum": 203 s -> 110–140 s.
+  it('ends (the tour onEnd fires on this) within 110–140 s of wall time', () => {
     expect(r.dir.done).toBe(true);
-    expect(r.dir.elapsed).toBeGreaterThanOrEqual(150);
-    expect(r.dir.elapsed).toBeLessThanOrEqual(210);
+    console.info(`film length ${r.dir.elapsed.toFixed(1)} s`);
+    expect(r.dir.elapsed).toBeGreaterThanOrEqual(110);
+    expect(r.dir.elapsed).toBeLessThanOrEqual(140);
+  });
+
+  it('holds the director shots (scenes 1, 2, 12, 13, 18) at most 6 s each', () => {
+    const tl = r.dir.timeline();
+    for (let i = 0; i < tl.length; i++) {
+      const n = tl[i]!.scene;
+      if (!DIRECTOR_SCENES.has(n)) continue;
+      const end = tl[i + 1]?.at ?? r.dir.elapsed;
+      expect(end - tl[i]!.at, `scene ${n}`).toBeLessThanOrEqual(6 + 0.6);
+      expect(FILM_SCENES.find((s) => s.n === n)!.minS, `scene ${n}`).toBeLessThanOrEqual(6);
+    }
+  });
+
+  it('keeps every caption and every dialogue line on screen at least 1.8 s', () => {
+    const tl = r.dir.timeline();
+    for (let i = 0; i < tl.length; i++) {
+      const end = tl[i + 1]?.at ?? r.dir.elapsed;
+      expect(end - tl[i]!.at, `caption ${tl[i]!.scene}`).toBeGreaterThanOrEqual(1.8);
+    }
+    for (const l of FILM_LINES) expect(r.lineShown.get(l.text) ?? 0, l.text).toBeGreaterThanOrEqual(1.8);
   });
 
   it('plays the 18 scenes in order, each at least its minimum', () => {
@@ -136,9 +165,11 @@ describe('film story director', () => {
     expect(t.some((e) => e.type === 'sign')).toBe(true);
   });
 
-  it('runs 4× on walks and 1× at key moments', () => {
+  it('runs 8× on walks, 4× on desk work and 1.5× at key moments', () => {
+    expect(FILM_SPEED).toEqual({ walk: 8, work: 4, key: 1.5 });
+    expect(r.speeds.has(8)).toBe(true);
     expect(r.speeds.has(4)).toBe(true);
-    expect(r.speeds.has(1)).toBe(true);
+    expect(r.speeds.has(1.5)).toBe(true);
   });
 
   it('schedules and shows every dialogue row of the screenplay, never more than 2 bubbles at once', () => {

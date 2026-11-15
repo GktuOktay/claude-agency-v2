@@ -10,6 +10,25 @@ export const LUNCH_AT = '12:30';
 
 const mod = (x: number, n: number): number => ((x % n) + n) % n;
 
+/** The control's speed for a runtime speed (the film runs at other multipliers; the control then shows 1×). */
+export function asDaySpeed(n: number): DaySpeed {
+  return DAY_SPEEDS.find((d) => d === n) ?? 1;
+}
+
+/**
+ * Engine sub-steps per frame for a speed that may be fractional (the film's 1.5×): the remainder carries over, so
+ * 1.5× runs 1, 2, 1, 2 … sub-steps of the same size. Deterministic; whole speeds give exactly `n` every frame.
+ */
+export function createStepPacer(): (speed: number) => number {
+  let carry = 0;
+  return (speed) => {
+    carry += Math.max(0, speed);
+    const n = Math.floor(carry + 1e-9);
+    carry -= n;
+    return n;
+  };
+}
+
 /** Simulation seconds from `simTime` until the office clock next reads `hhmm` (0 when it reads it now). */
 export function secondsUntilOffice(simTime: number, hhmm: string, startAt = DEFAULT_START): number {
   const now = mod(dayOffsetOf(startAt) + Math.max(0, simTime), OFFICE_DAY_S);

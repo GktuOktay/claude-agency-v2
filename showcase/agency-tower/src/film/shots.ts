@@ -4,13 +4,13 @@ import { tourPlan, type TourPlace, type TourSegment } from '../scene/tour';
 import type { FilmPlace } from './script';
 
 const PLAN: Readonly<Record<FilmPlace, readonly (readonly [TourPlace, number])[]>> = {
-  overview: [['overview', 10]],
-  lobby: [['lobby', 4.5]],
+  overview: [['overview', 6]],
+  lobby: [['lobby', 3]],
   meeting: [['meeting', 4]],
   engineering: [['engineering', 5]],
-  rnd: [['rnd', 8]],
-  gym: [['gym', 10]],
-  finale: [['roof', 4], ['finale', 6]],
+  rnd: [['rnd', 5.5]],
+  gym: [['gym', 6]],
+  finale: [['roof', 2.5], ['finale', 3.5]],
 };
 
 /** Tour segments for a film place (path segments only; built now, so the overview fits the current window). */

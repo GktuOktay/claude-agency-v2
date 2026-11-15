@@ -1,6 +1,6 @@
 # Tanıtım filmi senaryosu: "Bir işin yolculuğu"
 
-- **Süre:** yaklaşık 3 dakika.
+- **Süre:** yaklaşık 2 dakika (110–140 s; CEO film incelemesi: "daha hızlı bir çekim istiyorum"). Tablodaki sahne süreleri ilk taslaktır; güncel tutma süreleri `src/film/script.ts` içindedir.
 - **Biçim:** 1920×1080, 30 fps. Filmde arayüz görünmez; yalnız alt yazı ve sahne başlığı görünür.
 - **Kaynak:** `?film=1` modu. Kayıt uygulamanın kendi senaryolu işinden alınır. Videoyu CEO'ya doğrudan veririz, GitHub'a yüklenmez.
 - **Kural:** filmde gerçek şirket adı, logo ya da ürün geçmez.
@@ -8,7 +8,7 @@
 ## Hikâye
 CEO sabah şirkete gelir ve büyük bir iş getirir: **"Kooperatif Pazarı"**. Bu, küçük üreticilerin ürünlerini satacağı bir web ve mobil uygulama. Lane 3 bir iş: şirketteki **her birim** bir aşamada görev alır. Film zarfın CEO'dan çıkıp teslime kadar izlediği yolu anlatır.
 
-Gün hızı yürüme ve bekleme anlarında 4×, kilit anlarda 1×. Kamera her sahnede işi taşıyan robota keser.
+Gün hızı yürüme, bekleme ve sabah gelişinde 8×, masa işinde 4×, kilit anlarda 1,5×. CEO geliyor sahnesi kısa bir lobi çekimi ve CEO’ya kesmeyle geçer. Kamera her sahnede işi taşıyan robota keser.
 
 | # | Sahne | Yer | Görünenler | Alt yazı | Süre |
 |---|---|---|---|---|---|
