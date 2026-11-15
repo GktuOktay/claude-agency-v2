@@ -420,3 +420,7 @@ html.is-film .tower-canvas { cursor: none; }
   .event-feed li { animation: feed-in 180ms ease-out; }
 }
 @keyframes feed-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+/* KARARLAR Rev 44: on-screen "Molaya çık / Molayı bitir" in the HUD rail, under the floor panel (never over it). */
+.break-screen { min-width: var(--touch); min-height: var(--touch); align-self: flex-start; padding: 6px var(--space-4); border-radius: var(--radius-pill); background: var(--panel); border: 1px solid var(--panel-border); box-shadow: var(--panel-shadow); font-size: 0.85rem; font-weight: 600; }
+.break-toggle button { min-height: var(--touch); }

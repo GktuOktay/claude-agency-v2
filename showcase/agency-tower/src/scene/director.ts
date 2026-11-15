@@ -133,7 +133,7 @@ export function createAnchors(layouts: readonly FloorLayout[]): Anchors {
     },
     signTable: () => at(room, MEETING_ROOM.signSpot, MEETING_ROOM.signSpot.facing),
     landing: (floor, slot) => at(floor, STAFF_LANDING.waitingSpots[slot % 3] ?? STAFF_LANDING.entry, Math.PI / 2),
-    cabin: (floor, slot) => at(floor, STAFF_LANDING.riderSpots[slot % 3] ?? STAFF_LANDING.entry, -Math.PI / 2),
+    cabin: (floor, slot) => at(floor, STAFF_LANDING.riderSpots[slot % STAFF_LANDING.riderSpots.length] ?? STAFF_LANDING.entry, -Math.PI / 2),
     deskOf: (u) => desks.get(u) ?? null,
   };
 }

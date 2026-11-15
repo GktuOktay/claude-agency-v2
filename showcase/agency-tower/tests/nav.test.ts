@@ -2,6 +2,7 @@
 // zones, keep-right offset lanes, shortest path and offset path length. Pure: no three.js except the
 // scene model (see layout-scene.test.ts).
 import { describe, it, expect } from 'vitest';
+import { CABIN_CAPACITY } from '../src/sim/elevator';
 import {
   FLOOR_COUNT,
   FURNITURE_CLEARANCE,
@@ -334,6 +335,8 @@ describe('meeting-room and staff-landing constants (T-5, used by T-8)', () => {
       expect(Math.abs(r.x - STAFF_SHAFT.x)).toBeLessThan(STAFF_SHAFT.cabinHalf - 0.2);
       expect(Math.abs(r.z - STAFF_SHAFT.z)).toBeLessThan(STAFF_SHAFT.cabinHalf - 0.2);
     }
-    expect(STAFF_LANDING.riderSpots).toHaveLength(3);
+    // Rev 44: one rider spot per cabin place (3 -> 6).
+    expect(STAFF_LANDING.riderSpots).toHaveLength(CABIN_CAPACITY);
+    expect(CABIN_CAPACITY).toBe(6);
   });
 });

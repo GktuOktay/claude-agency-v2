@@ -765,13 +765,15 @@ export function buildTower(data: TowerData, options: BuildOptions = {}): TowerMo
   const staffShaft = new Group();
   staffShaft.name = 'staff-shaft';
   const staffPostMat = new MeshStandardMaterial({ color: PALETTE.graphite, roughness: 0.45, metalness: 0.3 });
-  for (const [x, z] of [[-0.7, -0.7], [0.7, -0.7], [-0.7, 0.7], [0.7, 0.7]] as const) {
+  // Rev 44: the frame grows with the six-rider cabin (posts just outside the cabin plate).
+  const sp = STAFF_SHAFT.cabinHalf + 0.075;
+  for (const [x, z] of [[-sp, -sp], [sp, -sp], [-sp, sp], [sp, sp]] as const) {
     const post = new Mesh(postGeo, staffPostMat);
     post.position.set(STAFF_SHAFT.x + x, shaftH / 2, STAFF_SHAFT.z + z);
     post.userData.shadow = 'slab';
     staffShaft.add(post);
   }
-  const capGeo = new RoundedBoxGeometry(1.5, 0.1, 1.5, 2, 0.03);
+  const capGeo = new RoundedBoxGeometry(2 * (STAFF_SHAFT.cabinHalf + 0.125), 0.1, 2 * (STAFF_SHAFT.cabinHalf + 0.125), 2, 0.03);
   const cap = new Mesh(capGeo, staffPostMat);
   cap.position.set(STAFF_SHAFT.x, shaftH + 0.05, STAFF_SHAFT.z);
   staffShaft.add(cap);
@@ -791,22 +793,25 @@ export function buildTower(data: TowerData, options: BuildOptions = {}): TowerMo
   sFloor.position.y = 0.04;
   const sRoof = new Mesh(plate, sBody);
   sRoof.position.y = 1.5;
-  const sBack = new Mesh(new RoundedBoxGeometry(1.2, 1.4, 0.04, 2, 0.015), sGlass);
-  sBack.position.set(0, 0.78, -0.6);
-  const sideGeo = new RoundedBoxGeometry(0.04, 1.4, 1.2, 2, 0.015);
-  const sSides = [-0.6, 0.6].map((x) => {
+  const wallIn = half - 0.025; // glass walls just inside the plate edge
+  const sBack = new Mesh(new RoundedBoxGeometry(wallIn * 2, 1.4, 0.04, 2, 0.015), sGlass);
+  sBack.position.set(0, 0.78, -wallIn);
+  const sideGeo = new RoundedBoxGeometry(0.04, 1.4, wallIn * 2, 2, 0.015);
+  const sSides = [-wallIn, wallIn].map((x) => {
     const s = new Mesh(sideGeo, sGlass);
     s.position.set(x, 0.78, 0);
     return s;
   });
-  const doorGeo = new RoundedBoxGeometry(0.58, 1.38, 0.04, 2, 0.015);
-  const sDoors = [-0.3, 0.3].map((x) => {
+  // Two leaves, each half the door opening; they slide apart along the cabin front (Rev 44: wider doors).
+  const leaf = half - 0.03;
+  const doorGeo = new RoundedBoxGeometry(leaf, 1.38, 0.04, 2, 0.015);
+  const sDoors = [-leaf / 2, leaf / 2].map((x) => {
     const d = new Mesh(doorGeo, sDoor);
     d.name = 'staff-cabin-door';
-    d.position.set(x, 0.77, 0.6);
+    d.position.set(x, 0.77, wallIn);
     return d;
   });
-  const sLamp = new Mesh(new RoundedBoxGeometry(0.5, 0.02, 0.5, 2, 0.008), sLight);
+  const sLamp = new Mesh(new RoundedBoxGeometry(0.7, 0.02, 0.7, 2, 0.008), sLight);
   sLamp.position.y = 1.45;
   staffGroup.add(sFloor, sRoof, sBack, ...sSides, ...sDoors, sLamp);
   staffGroup.rotation.y = -Math.PI / 2; // local +z (door side) -> world -x, toward the building
@@ -840,8 +845,8 @@ export function buildTower(data: TowerData, options: BuildOptions = {}): TowerMo
     setDoorsOpen(t) {
       staffDoors = Math.min(1, Math.max(0, t));
       const [l, r] = sDoors;
-      if (l) l.position.x = -0.3 - 0.27 * staffDoors;
-      if (r) r.position.x = 0.3 + 0.27 * staffDoors;
+      if (l) l.position.x = -leaf / 2 - leaf * 0.9 * staffDoors;
+      if (r) r.position.x = leaf / 2 + leaf * 0.9 * staffDoors;
     },
     getDoorsOpen: () => staffDoors,
     currentFloor: staffFloor,
