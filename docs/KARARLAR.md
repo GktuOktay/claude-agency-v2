@@ -382,3 +382,15 @@ Eski kurulum: ~/.claude-backup-2026-11-01 (silme işlemi henüz yapılmadı).
   - Dikey çekimde kamera kadrajı ve alt yazı yerleşimi dikeye göre ayarlanır.
 - **Ruling:** 4K gerçek zamanlı kayıtta kare hızı düşer ve simülasyon yavaşlar. Bu yüzden film sabit adımlı çekilir: her kare simülasyonu tam 1/30 s ilerletir, kare yakalanır ve ffmpeg'e verilir. Sonuç kare hızından bağımsız, akıcı ve tekrarlanabilir. Yanlışsa maliyet: kayıt betiği.
 - Mesai 09:00 yerine 08:00'de başlar; 18:00 bitiş ve mola saatleri aynı kalır. Film 08:00'de açılır.
+
+## Revizyon 46: Film metinleri pazarlamada; "Yazılım Evi"; GökRota; dolu sahneler (2026-11-15)
+- CEO, metinler için: "konuşmaları ve baloncuktaki açıklamaları biraz daha iyi hale getir. benim sana söylediklerimi doğrudan yazma. marketing ile işle. son kullanıcıyı etkilesin."
+- CEO, sahneleme için: "4 kişi kodluyor diyorsun ama odada 2 kişi var. gerekiyorsa robot yani personel çıksın. ceo geldiğinde bir ağırlık olmalı"
+- CEO, marka ve proje için: "ajans değil yazılım evi olsun. proje içeriği de değişebilir. daha teknolojik bir şey bulalım"
+- Metinleri `marketing` birimi yazdı: `docs/marka/2026-11-15-tanitim-filmi-metinleri.md`; senaryo dosyasına aynen işlendi.
+- Proje GökRota oldu: dron teslimatını canlı yöneten platform. Şirket adı filmde ve görünür markada "Yazılım Evi".
+- humanize-check: film metni TEMİZ.
+- Sahneleme:
+  - Kodlamada 4 mühendis aynı odada görünür; gerekirse ek ekip robotu ve personel eklenir.
+  - CEO penthouse'a gelince bir karşılama ekibi hazır bekler.
+- **Ruling:** binadaki "AJANS" tabelası ve sayfa başlığı "Yazılım Evi" olur. Kod içi adlar (`agency-tower`, dosya adları) değişmez. Yanlışsa maliyet: tek metin sabiti.
