@@ -40,7 +40,7 @@ export function createFilmOverlay(): FilmOverlay {
           const role = el('span', { class: 'film-label-role' });
           const e = el('div', { class: 'film-label' });
           e.append(name, role);
-          element.prepend(e);
+          element.insertBefore(e, caption);
           t = { e, name, role };
           labelEls[i] = t;
         }
@@ -85,7 +85,7 @@ export interface FilmHookApi {
   labels(): FilmLabel[];
   /** Rev 45: caption box, safe margins and type sizes in canvas pixels for the current canvas aspect. */
   layout(): FilmLayout;
-  /** Rev 45 `?fixed=1`: advance `frames` × 1/30 s, render once; null outside fixed-step mode. */
+  /** Rev 45 `?fixed=1`: advance `frames` × 1/30 s, render once; absent outside fixed-step mode. */
   step?: (frames?: number) => { done: boolean };
 }
 
