@@ -1,11 +1,29 @@
 # STATE — harness enforcement gaps and consistency cleanup
 
-Spec: `specs/active/0004-harness-enforcement-gaps.md` (sha256 `a686d6dc68c3…`; branch `harness/0004-host-enforcement`)   Plan: none yet
+Spec: `specs/active/0004-harness-enforcement-gaps.md` (sha256 `9f1371e1ae39…`, re-signed 2026-11-21 after the REQ-37 delta; branch `harness/0004-host-enforcement`)   Plan: `plans/0004-plan.md` (Awaiting approval; delivery-manager, 2026-11-21)
 Queue (drafts, unsigned): 0006 -> 0005 -> 0007 in `specs/draft/`
 Last updated: 2026-11-21   Tokens used:
 
-## Tasks
+## Tasks (spec 0004, from `plans/0004-plan.md`; strictly sequential, `check` green after each)
 | ID | Task | Status (waiting / in progress / done / PARK) | Commit | Note |
+|---|---|---|---|---|
+| T-0 | Prerequisites: findings folded, ADR synced, spec active and signed | done | 6951d7b | verify -> APPROVED. Open, not blocking: ADR header still `Status: Proposed` and draft spec path (architecture-board); branch has no upstream |
+| T-1 | Host verification with the CEO; `docs/kanit/0004-t1.md`, 3 sanitized fixtures | waiting | - | NEXT. Manual, needs the CEO; checklist in the plan. 4 stop conditions |
+| T-2 | `\|\| exit 2` wrapper: `.claude/settings.json` (2 guard commands), `harness/container-settings.json` | waiting | - | polyglot-engineer; 2 CEO dialogs minimum; after T-1 |
+| T-3 | `harness/policy.js`, `policy-driver.js`, `policy.sh`, `check` lists | waiting | - | polyglot-engineer; 0 dialogs (G-11) |
+| T-4 | `approval.js` (`verifyBuffer`, `--expect`), `approve.sh` (`--preview`, `--expect`), `run.sh` additions | waiting | - | polyglot-engineer; 1 dialog minimum; signing form changes live |
+| T-5 | `gate.js` via policy (host + container), `host-gate.sh`, `run.sh` container cases | waiting | - | polyglot-engineer; 1 dialog minimum; live in the container |
+| T-6 | `guard.js` (collector, writer targets, git options, signing dialog, mode rule), `guard.sh` + `policy.sh` additions | waiting | - | polyglot-engineer; 1 dialog minimum, likely several; live at next Bash call |
+| T-7 | `lint.js` rules + `COMPANY_LINT_ROOT`, `lint-rules.sh`, `check` | waiting | - | polyglot-engineer; no dialog |
+| T-8 | `harness/README.md` (Bilinen boşluklar G-1..G-22), spec templates, lint string checks | waiting | - | polyglot-engineer; no dialog |
+| T-9 | Wiring: host gate in `.claude/settings.json`, one-owner lint rule, `install-project.sh`, `routing.md`, `CLAUDE.md` rule 1 | waiting | - | polyglot-engineer; 2 dialogs minimum; needs T-1 evidence; host gate live |
+| T-10 | First run with the CEO (3 dialog observations, `host-gate.sh --bench` p95 < 150 ms) | waiting | - | manual, needs the CEO |
+| T-11 | Verification: fresh `check`, 13 mutation probes, criterion map; appsec, internal-auditor, quality-office | waiting | - | qa-engineer -> appsec -> internal-auditor -> quality-office |
+
+Waiting for the CEO: T-1 sitting; approval to push the branch and to open issues and a draft PR (public repository); plan approval.
+
+## (history) pre-signature tasks
+| ID | Task | Status | Commit | Note |
 |---|---|---|---|---|
 | 1 | Structure review, 12 findings reported to CEO | done | - | no file changed |
 | 2 | Draft specs 0004 (items 1-5) and 0005 (items 6-12) | done | - | business-analyst |
