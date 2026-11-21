@@ -1,6 +1,6 @@
 # STATE — harness enforcement gaps and consistency cleanup
 
-Spec: `specs/active/0004-harness-enforcement-gaps.md` (sha256 `9f1371e1ae39…`, re-signed 2026-11-21 after the REQ-37 delta; branch `harness/0004-host-enforcement`)   Plan: `plans/0004-plan.md` (Awaiting approval; delivery-manager, 2026-11-21)
+Spec: `specs/active/0004-harness-enforcement-gaps.md` (sha256 `9f1371e1ae39…`, re-signed 2026-11-21 after the REQ-37 delta; branch `harness/0004-host-enforcement`)   Plan: `plans/0004-plan.md` (Approved by the CEO 2026-11-21; delivery-manager, 2026-11-21)
 Queue (drafts, unsigned): 0006 -> 0005 -> 0007 in `specs/draft/`
 Last updated: 2026-11-21   Tokens used:
 
