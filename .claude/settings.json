@@ -21,7 +21,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/harness/guard.js\""
+            "command": "node \"$CLAUDE_PROJECT_DIR/harness/guard.js\" || exit 2"
           }
         ]
       },
@@ -30,7 +30,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/harness/guard.js\""
+            "command": "node \"$CLAUDE_PROJECT_DIR/harness/guard.js\" || exit 2"
           }
         ]
       }

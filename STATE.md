@@ -2,14 +2,14 @@
 
 Spec: `specs/active/0004-harness-enforcement-gaps.md` (sha256 `9f1371e1ae39…`, re-signed 2026-11-21 after the REQ-37 delta; branch `harness/0004-host-enforcement`)   Plan: `plans/0004-plan.md` (Approved by the CEO 2026-11-21; delivery-manager, 2026-11-21)
 Queue (drafts, unsigned): 0006 -> 0005 -> 0007 in `specs/draft/`
-Last updated: 2026-11-21   Tokens used:
+Last updated: 2026-11-22   Tokens used:
 
 ## Tasks (spec 0004, from `plans/0004-plan.md`; strictly sequential, `check` green after each)
 | ID | Task | Status (waiting / in progress / done / PARK) | Commit | Note |
 |---|---|---|---|---|
 | T-0 | Prerequisites: findings folded, ADR synced, spec active and signed | done | 6951d7b | verify -> APPROVED. Open, not blocking: ADR header still `Status: Proposed` and draft spec path (architecture-board); branch has no upstream |
-| T-1 | Host verification with the CEO; `docs/kanit/0004-t1.md`, 3 sanitized fixtures | waiting | - | NEXT. Manual, needs the CEO; checklist in the plan. 4 stop conditions |
-| T-2 | `\|\| exit 2` wrapper: `.claude/settings.json` (2 guard commands), `harness/container-settings.json` | waiting | - | polyglot-engineer; 2 CEO dialogs minimum; after T-1 |
+| T-1 | Host verification with the CEO; `docs/kanit/0004-t1.md`, 3 sanitized fixtures | done | d0c2070 | proven modes: `default`, `acceptEdits`; finding B-1 (`auto` swallows ask); `pretooluse-main.json` not captured |
+| T-2 | `\|\| exit 2` wrapper: `.claude/settings.json` (2 guard commands), `harness/container-settings.json` | done | (this commit) | 2026-11-22: diff = 3 lines; verify APPROVED, CHECK GREEN (full); CEO confirmed in chat he saw both dialogs. Note: session mode read `auto` again after the run; UI picker must stay on Manual for T-4..T-9 |
 | T-3 | `harness/policy.js`, `policy-driver.js`, `policy.sh`, `check` lists | waiting | - | polyglot-engineer; 0 dialogs (G-11) |
 | T-4 | `approval.js` (`verifyBuffer`, `--expect`), `approve.sh` (`--preview`, `--expect`), `run.sh` additions | waiting | - | polyglot-engineer; 1 dialog minimum; signing form changes live |
 | T-5 | `gate.js` via policy (host + container), `host-gate.sh`, `run.sh` container cases | waiting | - | polyglot-engineer; 1 dialog minimum; live in the container |
