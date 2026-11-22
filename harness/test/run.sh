@@ -118,5 +118,34 @@ vb() { ( cd "$WS4" && node -e 'const a=require(process.argv[1]);const fs=require
 t "AC-7 verifyBuffer accepts the signed bytes"         "true:valid signature" "$(vb same)"
 t "AC-7 verifyBuffer refuses other bytes"              "false:spec changed after approval" "$(vb changed)"
 
+# ---- spec 0004 AC-5: container gate through the shared policy, one case per delta of §7.1 ----
+# cg <ws> <path>: container mode (no --host), throwaway plain key; stdout is kept to prove no case prints a permissionDecision.
+cg() { printf '{"hook_event_name":"PreToolUse","tool_name":"Write","cwd":"%s","tool_input":{"file_path":"%s"}}' "$1" "$2" | env -u CLAUDE_PROJECT_DIR COMPANY_PUBKEY="$T/plain/ceo.pub.pem" node "$HERE/gate.js" >>"$T/cg.out" 2>/dev/null; echo $?; }
+cws() { mkdir -p "$1/specs/active" "$1/approvals" "$1/src" "$1/harness/bin"; printf "$2" > "$1/specs/active/0001.md"; }
+csign() { ( cd "$1" && node "$HERE/approval.js" sign specs/active/0001.md approvals "$T/plain/ceo.key.pem" >/dev/null 2>&1 ); }
+C1="$T/c1"; cws "$C1" '# Spec c1\n\n## 1\n'; csign "$C1"
+echo x > "$C1/harness/gate.js"; ln -s ../harness/gate.js "$C1/src/link.cs"; mkdir -p "$T/cout"; mkdir -p "$C1/docs"; ln -s "$T/cout/o.md" "$C1/docs/out.md"
+t "AC-5 signed: code write is still allowed"                       0 "$(cg "$C1" "$C1/src/app.cs")"
+t "AC-5 signed: harness/gate.js is blocked (enforcement)"          2 "$(cg "$C1" "$C1/harness/gate.js")"
+t "AC-5 signed: src/CLAUDE.md is blocked (enforcement)"            2 "$(cg "$C1" "$C1/src/CLAUDE.md")"
+t "AC-5 signed: .github/workflows/x.yml is blocked"                2 "$(cg "$C1" "$C1/.github/workflows/x.yml")"
+t "AC-5 signed, no Unlocks: harness/bin/x.sh is blocked"           2 "$(cg "$C1" "$C1/harness/bin/x.sh")"
+t "AC-5 signed: src/link.cs -> ../harness/gate.js is blocked"      2 "$(cg "$C1" "$C1/src/link.cs")"
+t "AC-5 signed: .CLAUDE/settings.json is blocked (case fold)"      2 "$(cg "$C1" "$C1/.CLAUDE/settings.json")"
+t "AC-5 signed: src/features/approvals/x.ts is blocked"            2 "$(cg "$C1" "$C1/src/features/approvals/x.ts")"
+t "AC-5 signed: docs/out.md -> outside is blocked"                 2 "$(cg "$C1" "$C1/docs/out.md")"
+C2="$T/c2"; cws "$C2" '# Spec c2\n- Unlocks: harness/bin/x.sh\n\n## 1\n'; csign "$C2"
+t "AC-5 signed, Unlocks harness/bin/x.sh: that path is allowed"    0 "$(cg "$C2" "$C2/harness/bin/x.sh")"
+t "AC-5 signed, Unlocks harness/bin/x.sh: another one is blocked"  2 "$(cg "$C2" "$C2/harness/bin/y.sh")"
+C3="$T/c3"; cws "$C3" '# Spec c3\n- Unlocks: .claude/agents/**\n\n## 1\n'; csign "$C3"
+t "AC-5 signed, Unlocks .claude/agents/**: still blocked"          2 "$(cg "$C3" "$C3/.claude/agents/x.md")"
+C4="$T/c4"; cws "$C4" '# Spec c4\n\n## 1\n'
+t "AC-5 unsigned: plans/x.md is allowed"                           0 "$(cg "$C4" "$C4/plans/x.md")"
+t "AC-5 unsigned: STATE.md is allowed"                             0 "$(cg "$C4" "$C4/STATE.md")"
+t "AC-5 unsigned: code write is still blocked"                     2 "$(cg "$C4" "$C4/src/app.cs")"
+t "AC-5 unsigned: harness/bin/x.sh is blocked"                     2 "$(cg "$C4" "$C4/harness/bin/x.sh")"
+t "AC-5 container ignores CLAUDE_PROJECT_DIR (root is cwd)"        2 "$(printf '{"tool_name":"Write","cwd":"%s","tool_input":{"file_path":"%s"}}' "$C4" "$C4/src/app.cs" | CLAUDE_PROJECT_DIR="$C1" COMPANY_PUBKEY="$T/plain/ceo.pub.pem" node "$HERE/gate.js" >>"$T/cg.out" 2>/dev/null; echo $?)"
+t "AC-5 no case prints a permissionDecision"                       0 "$(grep -c permissionDecision "$T/cg.out")"
+
 echo; if [ "$fail" -eq 0 ]; then echo "HARNESS TESTS GREEN: $pass passed, 0 failed"; else echo "HARNESS TESTS FAILED: $pass passed, $fail failed"; fi
 [ "$fail" -eq 0 ]

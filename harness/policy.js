@@ -13,9 +13,10 @@ const path = require("path");
 const os = require("os");
 const { execFileSync } = require("child_process");
 
-// Modes in which a hook "ask" is proven to reach the CEO as a dialog (T-1 record, docs/kanit/0004-t1.md).
+// Modes that may ask (spec 0004 Ruling R-11): `default`, `plan`, plus each mode the T-1 record shows a dialog for
+// (docs/kanit/0004-t1.md: `acceptEdits`). `plan` is named by the signed spec; T-1 did not observe it.
 // Any other reported mode turns an ask into a refusal; no reported mode asks (§7.7).
-const ASK_MODES = Object.freeze(["default", "acceptEdits"]);
+const ASK_MODES = Object.freeze(["default", "plan", "acceptEdits"]);
 
 // Today's guard expression (guard.js ENFORCEMENT), compared case-insensitively (REQ-3). policy.sh asserts the two sources are equal.
 const ENFORCEMENT = /(^|\/)(harness\/(guard|gate|stop|approval|loop)\.js|harness\/keys\/|harness\/container-settings\.json|\.claude\/settings(\.local)?\.json|approvals\/|\.github\/workflows\/|CLAUDE\.md$)/i;
