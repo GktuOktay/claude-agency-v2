@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Company approval tool: ed25519 signature bound to the spec's exact content.
 // keygen <dir> [--no-passphrase]     create a private key (encrypted unless --no-passphrase) + public key
-// sign   <spec> <approvalsDir> <key> CEO signs (needs a terminal and a passphrase)
+// sign   <spec> <approvalsDir> <key> [--expect <sha12>]  CEO signs (needs a terminal and a passphrase); --expect refuses other bytes (exit 5)
 // verify <spec> <approvalsDir> <pub> prints APPROVED / NOT APPROVED, exit 0 / 1
 "use strict";
 const fs = require("fs");
@@ -33,6 +33,11 @@ function verify(spec, dir, pubPath, root) {
   const rel = path.relative(root, path.resolve(spec));
   let content;
   try { content = fs.readFileSync(spec); } catch { return [false, "spec not readable"]; }
+  return verifyBuffer(rel, content, dir, pubPath);
+}
+
+// Verifies bytes the caller already holds, so the caller can parse exactly what was verified (spec 0004 Ruling R-9).
+function verifyBuffer(rel, content, dir, pubPath) {
   let rec;
   try { rec = JSON.parse(fs.readFileSync(sigFile(dir, rel), "utf8")); } catch { return [false, "no approval record"]; }
   const hash = sha256(content);
@@ -61,6 +66,14 @@ async function main() {
     const root = process.cwd();
     const rel = path.relative(root, path.resolve(a));
     const content = fs.readFileSync(a);
+    const hash = sha256(content);
+    // --expect <sha12> binds the signature to the bytes the CEO previewed (spec 0004 §7.5): the file is read once, compared, and that buffer is signed.
+    const ei = process.argv.indexOf("--expect", 5);
+    if (ei >= 0) {
+      const expect = process.argv[ei + 1];
+      if (!expect) { console.error("usage: sign <spec> <approvalsDir> <key> [--expect <sha12>]"); process.exit(2); }
+      if (hash.slice(0, 12) !== expect) { console.error("REFUSED: file changed since preview"); process.exit(5); }
+    }
     // An unencrypted key signs without a prompt: the CEO's click on the app's permission dialog (guard.js) is the presence proof.
     const pem = fs.readFileSync(c, "utf8");
     const encrypted = /ENCRYPTED/.test(pem);
@@ -68,7 +81,6 @@ async function main() {
     let key;
     try { key = crypto.createPrivateKey(encrypted ? { key: pem, passphrase: pass } : { key: pem }); }
     catch { console.error("REFUSED: wrong passphrase"); process.exit(4); }
-    const hash = sha256(content);
     const signature = crypto.sign(null, message(rel, hash), key).toString("base64");
     fs.mkdirSync(b, { recursive: true });
     fs.writeFileSync(sigFile(b, rel), JSON.stringify({ version: 1, spec: rel, sha256: hash, signature, signedAt: new Date().toISOString() }, null, 2));
@@ -83,4 +95,4 @@ async function main() {
   }
 }
 if (require.main === module) main();
-module.exports = { verify };
+module.exports = { verify, verifyBuffer };
