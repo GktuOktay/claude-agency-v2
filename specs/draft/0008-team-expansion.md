@@ -4,9 +4,9 @@
 - Status: Awaiting approval
 - Tier: full
 - Lane: 3
-- Previous spec: none (dependencies D1, D2 in §6.7)
-- Unlocks: `.claude/agents/*.md`, `.claude/skills/**`, `.claude/rules/routing.md`, `evals/*.md`, `harness/bin/lint.js`, `harness/bin/site-data.js`, `site/index.html`, `docs/architecture/STACK.md`
-- Self-critique: round 1 done (spec-critic 5 BLOCKER, appsec 2 HIGH, board CONDITIONAL K1-K7); round 2: board APPROVE; spec-critic and appsec round 2 pending
+- Previous spec: none (dependencies D1, D2 and related spec D3 in §6.7)
+- Unlocks: `.claude/agents/product-designer.md`, `.claude/agents/ux-writer.md`, `.claude/agents/rn-engineer.md`, `.claude/agents/swift-engineer.md`, `.claude/agents/flutter-engineer.md`, `.claude/agents/marketing.md`, `.claude/skills/product-design/**`, `.claude/skills/ux-writing/**`, `.claude/skills/rn-engineering/**`, `.claude/skills/mobile-common/**`, `.claude/skills/store-release/**`, `.claude/skills/swift-engineering/**`, `.claude/skills/flutter-engineering/**`, `.claude/skills/data-design/**`, `.claude/skills/ai-integration/**`, `.claude/skills/graphic-design/**`, `.claude/skills/qa-verification/**`, `.claude/skills/application-security/**`, `.claude/skills/devops-sre/**`, `.claude/skills/product-management/**`, `.claude/skills/marketing-brand/**`, `.claude/skills/quality-compliance/**`, `.claude/skills/dotnet-engineering/**`, `.claude/skills/react-engineering/**`, `.claude/rules/routing.md`, `evals/product-design.md`, `evals/ux-writing.md`, `evals/rn-engineering.md`, `evals/mobile-common.md`, `evals/store-release.md`, `evals/swift-engineering.md`, `evals/flutter-engineering.md`, `evals/data-design.md`, `evals/ai-integration.md`, `evals/graphic-design.md`, `evals/qa-verification.md`, `evals/application-security.md`, `evals/devops-sre.md`, `evals/product-management.md`, `evals/marketing-brand.md`, `evals/quality-compliance.md`, `evals/dotnet-engineering.md`, `harness/bin/lint.js`, `harness/bin/site-data.js`, `site/index.html`, `docs/architecture/STACK.md`
+- Self-critique: done. Round 1: spec-critic 5 BLOCKER, appsec 2 HIGH, board CONDITIONAL K1-K7. Round 2: board APPROVE, appsec PASS WITH FOLLOW-UPS (0 HIGH; F-1..F-8 applied or routed to D2). Round 3 (diff): spec-critic "signable", 0 BLOCKER; its 3 SHOULD and 4 NIT applied by the main session. Reports: `docs/kanit/0008-kapi-raporlari-tur1.md`, `-tur2.md`, `docs/architecture/gorus-0008-team-expansion-2026-11-22.md`
 
 ## 1. Intent
 The CEO's words (2026-11-21/22, source `docs/KARARLAR.md` Revizyon 49):
@@ -34,7 +34,7 @@ none (internal structure). The mobile stack comparison exists in `docs/scout/000
 - REQ-11 — New units shall appear in no default lane chain; only conditional steps tied to the spec's area.
 - REQ-12 — Files shall stay inside the size and token caps of §6.6.
 - REQ-13 — New units shall default to `sonnet`; `haiku` is used per call for translation and mechanical checks; no new unit is `opus`.
-- REQ-14 — Each new playbook shall have an eval set (≥ 3 cases, passes `eval.js self`) plus one QA-written adversarial case; each new unit shall pass one smoke job graded with `eval.js grade`.
+- REQ-14 — Each new playbook shall have an eval set (≥ 3 cases, passes `eval.js self`) plus one adversarial case drafted by `qa-engineer` (R-16); each new unit shall pass one smoke job graded with `eval.js grade`.
 - REQ-15 — Each addendum to an existing unit shall be an on-demand reference file plus a one-line pointer; cumulative growth of an existing playbook ≤ 600 bytes.
 - REQ-16 — Each stack's playbook shall state per evidence type what runs in the Linux container and what on the macOS host (§6.4); mobile builds run on the host; no paid macOS runner.
 - REQ-17 — Host installs and licence acceptance are the CEO's, one by one; no unit uses `sudo` or changes `xcode-select`.
@@ -53,6 +53,11 @@ none (internal structure). The mobile stack comparison exists in `docs/scout/000
 - REQ-30 — `store-release` shall carry the header "unverified": real device, device signing, provisioning, TestFlight/Play upload and store review were never exercised (trial report, Doğrulanamayanlar, Öneri 3); it becomes "evidenced" only after a separate CEO-approved trial with accounts and fees (§13).
 - REQ-31 — A unit body shall name no playbook that has not shipped; the pointer line is added to `product-designer` in the phase that ships the playbook (`mobile-common` in 1b, `graphic-design` in 4).
 - REQ-32 — Phase 2 and 3 playbooks shall carry their stack's own pinning and upgrade rules (Xcode + Swift toolchain pin; Flutter channel/version pin), and the MASVS reference shall be stack-neutral.
+- REQ-33 — Before the first host build of Phase 1b (and of each later stack) the plan shall record the output of `security find-identity -v -p codesigning` run in the agent's user context showing no distribution identity, or that builds run under a separate macOS user or machine; if a distribution identity is visible, the build shall not start and the unit shall stop and report to the CEO.
+- REQ-34 — Until D3 (draft spec 0006, per-unit write areas) merges, the docs-only write areas of `product-designer` and `ux-writer` are kept by instruction only (known gap); D3 does not block 1a.
+- REQ-35 — Agent-built artefacts shall be marked "not uploadable"; the package shall record the `apksigner verify --print-certs` fingerprint; a throwaway or debug key shall never become a Play upload key; the first-store-job ADR shall require a CEO-generated upload key.
+- REQ-36 — Units shall never run Gradle with `--scan` (it uploads build data to a third party) nor put `VAR=password` inline on a command line; throwaway passwords are generated per build outside the repo.
+- REQ-37 — Evidence logs committed under `docs/kanit/` shall be redacted (tokens, `EXPO_TOKEN`, app-specific passwords); no store credential goes into CI secrets without its own spec.
 
 ## 4. User experience
 none: no product UI. One visible page changes: `site/index.html` (node map, counts); states n/a (static page); checked at both themes, 375 px and by eye (rule 9), AC-13.
@@ -60,9 +65,9 @@ none: no product UI. One visible page changes: `site/index.html` (node map, coun
 ## 5. Acceptance criteria
 Global (every phase, for that phase's files):
 - [ ] AC-1 — `harness/bin/check` ends `CHECK GREEN (full)`; fresh output shown per phase.
-- [ ] AC-2 — Each new agent file: name = file name; `tools`, `model`, `effort`, `maxTurns`, `skills` present; ≤ 1,100 B; description ≤ 170 chars; no `Agent`, `WebFetch`, `WebSearch`; the body names the unit's write area (grep).
+- [ ] AC-2 — Each new agent file: name = file name; `tools`, `model`, `effort`, `maxTurns`, `skills` present; ≤ 1,100 B; description ≤ 170 chars; no `Agent`, `WebFetch`, `WebSearch`; `model: sonnet` exactly (haiku is a per-call override, never frontmatter); the body names the unit's write area and carries its §6.2 Never items, for stack engineers including `sudo`/`xcode-select`, release signing material and store actions (grep for each).
 - [ ] AC-3 — Each new SKILL.md passes lint "standard playbook format", has a description starting "Playbook:" (≤ 170 chars) and respects the §6.6 byte caps (checked by `wc -c` in the QA table; lint checks minimums only).
-- [ ] AC-4 — `node harness/bin/eval.js self evals/<p>.md` exits 0 for every new playbook (≥ 3 cases) and each set contains one adversarial case written by `qa-engineer`.
+- [ ] AC-4 — `node harness/bin/eval.js self evals/<p>.md` exits 0 for every new playbook (≥ 3 cases) and each set contains one case titled "Adversarial (QA)" (greppable): `qa-engineer` drafts it in its report, the main session commits it verbatim, QA then verifies it (no unit writes `evals/**`; `appsec` reports likewise, never writes).
 - [ ] AC-5 — One smoke job per new unit (plan mode, Task of case 1) is graded `eval.js grade ... 1 <output>` exit 0; outputs stay outside the repo.
 - [ ] AC-6 — `footprint.js` "Always loaded" vs baseline 2,910 est. tokens: after 1a ≤ +500, after 1b ≤ +850, after all phases ≤ +1,400; numbers in each phase PR.
 - [ ] AC-7 — footprint "Per agent spawn" for each new unit ≤ 4,090 (today's maximum, `devops-sre`); the worst-case job (stack playbook + all three on-demand reads) is recorded (board estimate ≈ 8.5k).
@@ -80,20 +85,25 @@ Phase 1b:
 - [ ] AC-17 — `rn-engineering`: header cites "RAPOR.md, Bulgular 1-12, commit e023b19" and `docs/kanit/0008-rn-deneme-ozeti.md`; an eval case requires the 12 findings (§6.5, `at least 12`) and the board SDK rules; a Metro case rejects bare `expo start`, requires `--localhost` marked "unverified" until measured, and a stop step; the evidence matrix rejects Expo Go / debug-only / "Metro compiled".
 - [ ] AC-18 — `mobile-common` states its boundary with `react-engineering` (mobile-only, pointer instead of repetition); an eval case rejects repeated web WCAG text.
 - [ ] AC-19 — qa-engineer and appsec each gain one reference file ≤ 3,000 B, a pointer ≤ 300 B and one eval case; the MASVS file covers the board C5 list (secret, token storage, local storage, network, privacy manifest).
-- [ ] AC-20 — `devops-sre` `skills:` unchanged; its SKILL.md gains only the `store-release` pointer.
+- [ ] AC-20 — `devops-sre` `skills:` unchanged; its SKILL.md gains only the `store-release` pointer (≤ 300 B), and that pointer line itself states the REQ-7/8 rule (never read, export or use release signing material; never upload or change a store record), since `store-release` is on demand (grep).
 - [ ] AC-21 — STACK.md: RN + Expo and the test-stack row "dene"; Flutter, Swift "değerlendir"; no "benimse"; rows reconciled with those already on the 0004 branch.
 Phases 2, 3:
 - [ ] AC-22 — Starts only after the stack's trial quick spec passed (minimum: headless-prerequisite / simulator-runtime check, account-free build, release-configuration build, one unit + one UI test headless twice from clean, supply-chain check, one upgrade rehearsal; defined in that spec) and, for Flutter, a recorded CEO approval of the SDK install; the playbook header cites the trial and carries the stack's own pinning/upgrade rules (Xcode + Swift toolchain pin; Flutter channel/version pin); its evidence matrix states Swift = nothing in the container (`check` cannot gate it; the host command is the evidence) and Flutter = host only until a spec adds the SDK to the agent image.
 Phase 4:
 - [ ] AC-23 — `data-design`, `ai-integration`, `graphic-design` meet AC-3/4; `ai-integration` covers prompt versioning, validated output, eval regression, cost per request, injection; each remaining addendum meets REQ-15 with one passing eval case.
 Phase checks:
-- [ ] AC-24 — D1 and D2 are verified merged before the phases they gate (`git log main`), recorded in the plan.
-- [ ] AC-25 — Each phase: `qa-engineer` evidence table complete, `internal-auditor` CLEAN; `appsec` PASS on `store-release`, the MASVS reference, `mobile-common`, `rn-engineering` (1b) and on the first spec of each stack; chains per §6.7.
+- [ ] AC-24 — D1 and D2 are verified merged before the phases they gate (`git log main`), recorded in the plan; and D2's own ACs trace every item of the §6.7 minimum list (checked item by item, not only the merge).
+- [ ] AC-25 — Each phase: `qa-engineer` evidence table complete, `internal-auditor` CLEAN; `appsec` PASS on `store-release`, the MASVS reference, `mobile-common`, `rn-engineering` (1b) and on the first spec of each stack; chains per §6.7. AC-27 is a post-1b follow-up owned by T-31 (first RN job), not a 1b exit criterion.
 - [ ] AC-26 — `rn-engineering` has an eval criterion requiring `EXPO_NO_TELEMETRY=1` on every Expo command shown in its pass sample (fail sample omits it).
-- [ ] AC-27 — The first RN job's evidence includes the measured `--localhost` effect (`lsof -iTCP:8081` output shows 127.0.0.1 only) and the playbook is updated from "unverified" to the measured result; until then the playbook text says "unverified".
+- [ ] AC-27 — Post-1b follow-up (T-31, not a 1b exit criterion): the first RN job's evidence includes the measured `--localhost` effect (`lsof -iTCP:8081` output shows 127.0.0.1 only) and the playbook is updated from "unverified" to the measured result; until then the playbook text says "unverified".
 - [ ] AC-28 — No unit body references a playbook that has not shipped (grep of each agent body against existing skill folders); `product-designer` gains the `mobile-common` pointer in 1b and the `graphic-design` pointer in 4.
 - [ ] AC-29 — `store-release` header says "unverified" with the reason (REQ-30); its eval has a case requiring Android throwaway-key signing via `ORG_GRADLE_PROJECT_android.injected.signing.*` and rejecting a password on a command line, and a fail sample using `-allowProvisioningUpdates`.
 - [ ] AC-30 — The first-store-job ADR template line in `store-release` requires custody evidence (where keys live, who can read them); the MASVS reference names no single stack's API only (stack-neutral, checked by grep for per-stack sections: each stack named only as an example).
+- [ ] AC-31 — Before 1b ships, `appsec` probes each command in the §6.7 D2 minimum list against the hook as installed on the host (read-only, dummy input) and attaches the output; a command that passes silently is a finding routed to D2 (T-32).
+- [ ] AC-32 — The plan records the `security find-identity -v -p codesigning` output (or the separate-user/machine statement) before the first host build of each stack (REQ-33); an eval case in `rn-engineering` rejects a build step run without it.
+- [ ] AC-33 — The diff of every delivery removes or weakens no existing eval case and no existing lint check (rule 7); QA checks `git diff` on `evals/` and `harness/bin/lint.js`.
+- [ ] AC-34 — `store-release` eval fail samples: an artefact not marked "not uploadable", a debug/throwaway key used as an upload key, Gradle `--scan`, `VAR=password` inline; pass sample records the `apksigner verify --print-certs` fingerprint and a CEO-generated upload key in the ADR line. The `--scan` and inline-password fail samples (REQ-36) are also in the `rn-engineering` eval set, since stack engineers run Gradle.
+- [ ] AC-35 — `grep` over the added lines only (`git diff`) of `docs/kanit/` finds no token pattern (`EXPO_TOKEN`, app-specific password shapes); no store credential appears in any workflow file's secrets (REQ-37).
 
 ## 6. Architecture and technology decision
 
@@ -201,7 +211,7 @@ Board §3(4) rules carried: exact SDK pin (lockfile + Node); upgrade is its own 
 | Existing playbook, cumulative growth | ≤ 600 B | `wc -c` before/after |
 | Always-loaded | ≤ +500 after 1a, ≤ +850 after 1b, ≤ +1,400 total | `footprint.js` |
 | Per-spawn, new unit | ≤ 4,090; worst-case job recorded (≈ 8.5k) | `footprint.js` |
-| `routing.md` additions | ≤ 1,700 B total (measured draft 1,424 B incl. table pipes) | `wc -c` |
+| `routing.md` additions | ≤ 1,700 B total (hand count ≈ 980 B; real `wc -c` in T-1/T-6) | `wc -c` |
 | Expertise | only in skills; on-demand playbooks in no `skills:` list | AC-8 |
 | Default pipeline | new units in no lane chain | AC-9 |
 | Models | sonnet default, haiku per call, no new opus | frontmatter, routing |
@@ -219,13 +229,14 @@ The software-architect step is in the D2 spec (enforcement design); this spec st
 
 Dependencies:
 - D1 — spec 0004 (`harness/0004-host-enforcement`) merged to main (CEO ordering, Revizyon 48).
-- D2 — a separate CEO-signed lane-3 "guard hardening for mobile" spec merged before anything in 1b ships (not part of 0008). Minimum content, as input: the envelope hook asks for `xcodebuild -exportArchive`, `xcodebuild -allowProvisioningUpdates`, `xcrun iTMSTransporter`, `eas-cli`/`npx eas-cli submit`, `./gradlew publish*`, `bundletool`, Play publisher API scripts, `security export`/`keytool` reads; secret scan by file name for `*.jks *.keystore *.p12 *.mobileprovision key.properties` (content scan already catches `.p8` and service-account JSON; `check` line 17 uses `grep -I`, which skips binaries); `.claude/agents|skills|rules`, `evals/`, `harness/bin/lint.js` protected on the host; write-area rows for `product-designer` and `ux-writer` in 0004's policy table. Today (`guard.js:56-59` REMOTE_BIN has fastlane, altool, notarytool, iTMSTransporter, transporter, eas, appcenter; PUBLISH only `xcrun altool/notarytool`; `guard.js:50` ENFORCEMENT does not cover `.claude/agents|skills|rules`).
+- D2 — a separate CEO-signed lane-3 "guard hardening for mobile" spec merged before anything in 1b ships (not part of 0008). Minimum content, as input: the envelope hook asks for `xcodebuild -exportArchive`, `xcodebuild -allowProvisioningUpdates` and `-authenticationKey*`, `xcrun iTMSTransporter`, `eas-cli`/`npx eas-cli submit`, `./gradlew publish*` and `promote*` (rollout change), `bundletool`, Play publisher API scripts; wrappers `bundle exec`, `npm exec`, `pnpm dlx`/`dlx` (e.g. `bundle exec fastlane pilot upload`, `npm exec eas-cli -- submit`), which are not in `WRAPPERS` (`guard.js:52-53`); every `security` subcommand that reads or exports (`find-generic-password -w`, `export`; `find-identity` is allowed as a read-only listing); non-adhoc `codesign -s`; `keytool -list`/export; `base64`/`cat` of keystore files. Secret scan by file name for `*.jks *.keystore *.p12 *.mobileprovision key.properties`, with the RN template's `android/app/debug.keystore` allowlisted by exact path (content scan already catches `.p8` and service-account JSON; `check` line 17 uses `grep -I`, which skips binaries). Source: appsec probe 2026-11-22, all passed `harness/guard.js` silently except `eas submit`. Today `guard.js:56-59` REMOTE_BIN has fastlane, altool, notarytool, iTMSTransporter, transporter, eas, appcenter (direct calls only, not via `xcrun`); PUBLISH only `xcrun altool/notarytool`.
+- D3 — related spec, not a gating dependency: draft spec 0006 (harness unit write areas). Per-unit write areas belong there, not to 0004 or D2. It gates no phase; until it merges the areas of `product-designer` and `ux-writer` are instruction-only (REQ-34). After D1, `.claude/agents|skills|rules` on the host are product-config: the guard asks unless the signed spec's `Unlocks:` matches (hence the exact paths in the header).
 
 ### 6.8 Routing text to add (exact, per phase; total ≤ 1,700 B)
 - 1a rows: `new screens, flows, design system, icons/assets` → `product-designer`; `in-product text, translation, a11y labels` → `ux-writer`. Stop line (holds from 1a until each unit ships): "App in React Native/Expo, Swift or Flutter whose unit is not yet opened: stop, report 'unit not yet opened; needs its trial / D2'; never `polyglot-engineer`." Order line: "Design order: BA drafts → `product-designer` (only if the draft adds or redesigns screens) → `ux-writer` (copy deck with keys; straight after the draft if no screen changes) → BA fixes §4 → gates." Models line: "`ux-writer` translation and key checks: `haiku`."
 - 1b rows: `React Native/Expo app` → `rn-engineer`; `App Store / Play release, signing, store package` → `devops-sre` (loads `store-release`; prepares, CEO signs and submits). The stop line drops RN (now "Swift or Flutter app"). Lane line: "Store release, first app of a stack, secure storage, push, permissions, LLM call: lane 3." Briefs line: "A stack engineer's brief names the one stack playbook and any on-demand playbook the spec touches."
 - 2, 3: one row each (`Swift app` → `swift-engineer`; `Flutter/Dart app` → `flutter-engineer`); the stop line is trimmed accordingly and disappears after Phase 3.
-- Byte accounting: the stop line (~190 B) moves into 1a; the 1700 B total is unchanged (measured draft 1,424 B incl. pipes, plus ~100 B for the RN wording); `wc -c` of the 1a diff is recorded in T-1/T-6 and re-checked at each phase.
+- Byte accounting (spec-critic hand count): 1a ≈ 547 B (includes the stop line), 1b ≈ 356 B, phases 2+3 ≈ 75 B, total ≈ 980 B against the 1,700 B cap; the real `wc -c` of each diff is taken in T-1/T-6 and re-checked at each phase.
 
 ### 6.9 Adoption criteria
 | Item | Needs |
@@ -246,6 +257,8 @@ none (no entities or endpoints). File inventory (also the AC-12 allowlist):
 | `.claude/agents/rn-engineer.md`; `.claude/skills/{rn-engineering,mobile-common,store-release}/SKILL.md`; `evals/{same}.md` | new | 1b |
 | `.claude/skills/qa-verification/refs/e2e-mobile-web.md`; `.claude/skills/application-security/refs/mobile-masvs.md` | new | 1b |
 | `.claude/skills/{qa-verification,application-security,devops-sre}/SKILL.md` (pointers); `evals/{qa-verification,application-security}.md` (+1 case) | changed | 1b |
+| `.claude/agents/product-designer.md` (`mobile-common` pointer line, T-29) | changed | 1b |
+| `.claude/agents/product-designer.md` (`graphic-design` pointer line, T-30) | changed | 4 |
 | `.claude/rules/routing.md` | changed | 1a, 1b, 2, 3 |
 | `docs/architecture/STACK.md` | changed | 1b, 2, 3 |
 | `harness/bin/site-data.js` (UNITS, WRITE, EDGES per unit); `site/index.html` (data block, prose counts) | changed | every phase |
@@ -261,42 +274,48 @@ Sensitive area: code-signing material and store credentials (named in playbooks,
 | Boundary | Risk | Mitigation |
 |---|---|---|
 | Stack engineers' Bash on the host (no container gate) | build scripts (Gradle plugins, CocoaPods, npm postinstall) run arbitrary code; signing identities in the login keychain | trial report, Riskler: Gradle and CocoaPods have no `--ignore-scripts` equivalent and run as the CEO's user beside the real keychain; its recommendation is a separate macOS user or machine while real signing keys sit on this host. That is a CEO setup decision recorded in the first store job's ADR, not enforced by this spec. Meanwhile: D1 guard (raises the bar, does not stop a determined agent); D2 hardening; REQ-7 (unsigned/throwaway builds); `npm ci --ignore-scripts`; no sudo; CEO installs |
-| Signing material | leak into repo, chat, logs; a unit reading or using release identities | instruction-only (REQ-7: units never read, export or use them; no `-allowProvisioningUpdates`); technical separation is the CEO's setup; custody evidence in each ADR (REQ-24); `.gitignore` + pre-commit snippet (AC-16); content scan catches `.p8` and service-account JSON; binaries (`.jks`, `.p12`, `.mobileprovision`) are skipped by `grep -I`: file-name scan comes with D2 |
-| Store/EAS actions | unapproved release, review reply, tester invite, spend | REQ-8; today REMOTE_BIN covers fastlane, altool, notarytool, iTMSTransporter, transporter, eas, appcenter and PUBLISH covers `xcrun altool/notarytool`; the rest (`-exportArchive`, Gradle publish, `bundletool`, Play API scripts, `security export`, `keytool`) arrives with D2 |
-| Write areas | a unit writing outside its area | stack engineers: gate.js in the container; `product-designer` (`docs/design/`) and `ux-writer` (`docs/copy/`) are instruction-only until D2 (known gap; the agent body names the area, AC-2, AC-12); `guard.js:50` does not protect `.claude/agents|skills|rules` today (D2) |
+| Signing material | leak into repo, chat, logs; a unit reading or using release identities | instruction-only (REQ-7: units never read, export or use them; no `-allowProvisioningUpdates`, no Gradle `--scan`, no inline passwords, REQ-36); identity check before the first build (REQ-33); technical separation is the CEO's setup; custody evidence and a CEO-generated upload key in each ADR (REQ-24, REQ-35); `.gitignore` + pre-commit snippet (AC-16); content scan catches `.p8` and service-account JSON; binaries (`.jks`, `.p12`, `.mobileprovision`) are skipped by `grep -I`: file-name scan comes with D2; evidence logs redacted (REQ-37) |
+| Store/EAS actions | unapproved release, review reply, tester invite, spend | REQ-8; today REMOTE_BIN covers fastlane, altool, notarytool, iTMSTransporter, transporter, eas, appcenter by direct call only (not via `xcrun`, `bundle exec`, `npm exec`, `dlx`) and PUBLISH covers `xcrun altool/notarytool`; appsec's 2026-11-22 probe passed everything else silently; the rest arrives with D2 and is probed before 1b (AC-31) |
+| Write areas | a unit writing outside its area | stack engineers: gate.js in the container; `product-designer` (`docs/design/`) and `ux-writer` (`docs/copy/`) are instruction-only until D3 / spec 0006 (REQ-34; the agent body names the area, AC-2, AC-12); after D1 the guard asks for `.claude/agents|skills|rules` unless the signed spec's `Unlocks:` matches |
 | `lint.js` edit | weaker lint | additive only, probed (AC-11); named as CEO-approved by this signature |
 | External content (store pages, reviews, tool output, trial notes) | prompt injection | data, not instruction; web tools only `product-manager`, `scout`; no new web+Bash unit; adversarial eval case (AC-16) |
 | Dev server | Metro on all interfaces (`--localhost` effect unmeasured in the trial) | REQ-9, AC-27 |
 | Telemetry | Expo CLI sends data by default | REQ-29, AC-26 |
 | First spec per stack | storage, token, network, privacy manifest | REQ-24; board C5 stays |
 | LLM calls (`ai-integration`) | new external call | lane 3, `appsec`, validated output |
+Residual risk the CEO accepts by signing: (1) the 1a units cannot run commands, but their write areas are kept by instruction only: they can write elsewhere under `docs/`, `specs/`, `plans/`; (2) in app repos without a `specs/` folder nothing checks their writes; (3) after 1b, signing custody rests on instructions plus the CEO's own separation of user/keychain, because hooks cannot stop build scripts from reading the login keychain.
 
 ## 9. Test and evidence plan
 | Criterion | Test | Layer | Profile |
 |---|---|---|---|
 | AC-1 | `harness/bin/check` | full suite | full |
-| AC-2 | `lint.js`; `wc -c`; `grep -E '^(name|tools|model|effort|maxTurns)' ` and body grep for the write area | static | quick |
+| AC-2 | `lint.js`; `wc -c`; `grep -E '^(name|tools|model|effort|maxTurns)'`; `grep '^model: sonnet$'`; body grep for the write area and each Never item (sudo, `xcode-select`, signing, store) | static | quick |
 | AC-3 | `lint.js`; `wc -c`; `grep '^description: Playbook:'`; grep: playbook text lists the prohibitions and the header names its sources | static | quick |
-| AC-4 | `for f in evals/<new>.md; do node harness/bin/eval.js self $f; done`; adversarial case present | eval | quick |
+| AC-4 | `for f in evals/<new>.md; do node harness/bin/eval.js self $f; done`; `grep -c 'Adversarial (QA)'` = 1 per set | eval | quick |
 | AC-5 | plan-mode run on case-1 Task; `eval.js grade` | eval | full |
-| AC-6, AC-7 | `node harness/bin/footprint.js` baseline (T-1) vs after; worst-case sum | measurement | full |
+| AC-6, AC-7 | `node harness/bin/footprint.js` baseline (T-1) vs after, every phase (T-9, T-20, T-23, T-26, T-28); worst-case sum | measurement | full |
 | AC-8, AC-10 | `grep -A6 '^skills:' .claude/agents/*.md`; listing | static | quick |
 | AC-9 | `git diff` of `routing.md`; `wc -c` of added text | static | quick |
 | AC-11 | QA breaks a temporary copy (remove an eval; break a section) → FAIL for each; real tree green | probe | full |
 | AC-12 | `git diff --stat`; `wc -c` of existing playbooks before/after | static | quick |
 | AC-13 | `site-data.js --check`; grep counts; `visual-check.sh` + by eye | static + visual | full |
 | AC-14, AC-15 | frontmatter grep; smoke outputs; `marketing.md` diff | static + eval | full |
-| AC-16, AC-17, AC-18 | the named eval cases (`self`) + graded smoke output; grep for the seven traps, SDK rules, `lsof` | eval | full |
+| AC-16, AC-17, AC-18 | the named eval cases (`self`) + graded smoke output; grep for the 12 findings, SDK rules, `--localhost` marked "unverified" (`lsof` belongs to AC-27) | eval | full |
 | AC-19, AC-20, AC-21 | `wc -c`; case self-check; STACK.md diff | static + eval | full |
 | AC-22 | trial spec number and evidence paths cited in the header; CEO approval quote (Flutter) | document check | full |
 | AC-23 | `wc -c`; `eval.js self`; content patterns | static + eval | full |
 | AC-24 | `git log main` shows the D1/D2 merges | static | quick |
-| AC-25 | QA table, audit and appsec reports, quality-office note, `git diff --stat` | review | full |
+| AC-25 | QA table, audit and appsec reports, quality-office note, `git diff --stat` (AC-27 excluded: post-1b, T-31) | review | full |
 | AC-26 | `eval.js self` on the telemetry criterion (pass vs fail sample); `grep EXPO_NO_TELEMETRY` | eval | quick |
-| AC-27 | first RN job's recorded `lsof -iTCP:8081` output; grep "unverified" until then | measurement | full |
+| AC-27 | post-1b (T-31): first RN job's recorded `lsof -iTCP:8081` output; grep "unverified" until then | measurement | full |
 | AC-28 | grep each agent body for skill names that have no folder; pointer diffs per phase | static | quick |
 | AC-29 | `eval.js self` on the store-release cases; grep header "unverified" | eval | quick |
 | AC-30 | grep ADR line and per-stack sections in the MASVS reference | static | quick |
+| AC-31 | appsec probe output per D2-list command, attached to the 1b report | probe | full |
+| AC-32 | plan contains the `find-identity` output; eval case self-check | document + eval | full |
+| AC-33 | `git diff` on `evals/` and `harness/bin/lint.js`: no removed or weakened case/check | static | quick |
+| AC-34 | `eval.js self` on the store-release cases; grep `apksigner verify --print-certs`, `--scan` | eval | quick |
+| AC-35 | `grep -rE 'EXPO_TOKEN|password' docs/kanit/`; grep workflow files for store secrets | static | quick |
 
 ## 10. Deployment and disaster recovery
 Target: the repository (no server). Each phase is one PR; the CEO merges (envelope). After each merge the host re-runs `harness/bin/install-global.sh` (CEO approves) because it links files one by one. Rollback: `git revert` of the phase PR (CEO approves the merge), re-run `install-global.sh`. No data, backup or monitoring beyond `check` in CI.
@@ -329,30 +348,32 @@ Checklist: tool licences recorded before "benimse" (Maestro Apache-2.0, RN/Expo 
 | T-5 | `marketing.md` description, `marketing-brand` pointer | AC-15 | main session | T-4 |
 | T-6 | Routing 1a text (§6.8), including the "unit not yet opened" stop line | AC-9, 14 | main session | T-4 |
 | T-7 | Site: UNITS (`product-designer` u1 row 6, `ux-writer` u1 row 7), WRITE, EDGES, `--write`, prose counts lines 230/378/513; on-demand skills without an owner unit appear in the generated skills list with no owner | AC-13 | main session | T-4 |
-| T-8 | Smoke jobs + QA-written adversarial cases (1a) | AC-4, 5 | qa-engineer (runs), main session (starts) | T-4 |
-| T-9 | 1a verification | AC-1, 6, 7, 12, 25 | qa-engineer, internal-auditor | T-1..T-8 |
+| T-8 | Smoke jobs (1a); QA drafts the "Adversarial (QA)" cases in its report, main session commits them verbatim, QA verifies | AC-4, 5 | qa-engineer (runs, drafts, verifies), main session (starts, commits) | T-4 |
+| T-9 | 1a verification | AC-1, 6, 7, 12, 25, 33 | qa-engineer, internal-auditor | T-1..T-8 |
 | T-10 | Confirm D2 merged | AC-24 | delivery-manager | D2 |
-| T-11 | `mobile-common`, `store-release` SKILL.md + evals | AC-3, 4, 16, 18 | main session | T-2, T-10 |
+| T-11 | `mobile-common`, `store-release` SKILL.md + evals | AC-3, 4, 16, 18, 29, 30, 34 | main session | T-2, T-10 |
 | T-12 | `rn-engineering` from "RAPOR.md, Bulgular 1-12, commit e023b19" + `docs/kanit/0008-rn-deneme-ozeti.md` | AC-3, 4, 17, 26 | main session | T-10 |
 | T-13 | `rn-engineer.md` | AC-2, 8 | main session | T-12 |
-| T-14 | qa ref, MASVS ref, pointers, +1 case each | AC-19 | main session | T-2 |
-| T-15 | `devops-sre` pointer | AC-20 | main session | T-11 |
+| T-14 | qa ref, MASVS ref, pointers, +1 case each (appsec drafts its case in its report; main session commits) | AC-19 | main session | T-2, T-10 |
+| T-15 | `devops-sre` pointer line (states the REQ-7/8 rule) | AC-20 | main session | T-11 |
 | T-16 | Routing 1b text | AC-9 | main session | T-13 |
 | T-17 | STACK.md rows (RN, test stack dene; Flutter, Swift değerlendir); reconcile with 0004-branch rows | AC-21 | architecture-board | T-13 |
 | T-18 | Site data 1b | AC-13 | main session | T-13 |
-| T-19 | Smoke jobs + adversarial cases (1b) | AC-4, 5 | qa-engineer, main session | T-13 |
-| T-20 | 1b verification: qa → appsec (first RN spec too) → audit → quality-office | AC-25 | qa-engineer, appsec, internal-auditor, quality-office | T-11..T-19 |
+| T-19 | Smoke jobs (1b); adversarial cases drafted by QA, committed verbatim by the main session, verified by QA | AC-4, 5 | qa-engineer, main session | T-13 |
+| T-20 | 1b verification: qa → appsec (first RN spec too) → audit → quality-office | AC-1, 6, 7, 25, 33-35 | qa-engineer, appsec, internal-auditor, quality-office | T-11..T-19, T-32, T-33 |
 | T-21 | Swift trial quick spec (separate) | AC-22 | business-analyst | 1b |
-| T-22 | Swift files, routing row, STACK, site, smoke | AC-2-5, 13, 22 | main session | T-21 |
-| T-23 | Phase 2 verification (as T-20) | AC-25 | qa-engineer, appsec, internal-auditor, quality-office | T-22 |
+| T-22 | Swift files, routing row, STACK, site, smoke | AC-2-8, 13, 22 | main session | T-21 |
+| T-23 | Phase 2 verification (as T-20, incl. REQ-33 identity check) | AC-1, 6, 7, 25, 32, 33 | qa-engineer, appsec, internal-auditor, quality-office | T-22 |
 | T-24 | Flutter: CEO approval + trial quick spec | AC-22 | business-analyst | 1b, CEO |
-| T-25 | Flutter files, routing row, STACK, site, smoke | AC-2-5, 13, 22 | main session | T-24 |
-| T-26 | Phase 3 verification (as T-20) | AC-25 | qa-engineer, appsec, internal-auditor, quality-office | T-25 |
+| T-25 | Flutter files, routing row, STACK, site, smoke | AC-2-8, 13, 22 | main session | T-24 |
+| T-26 | Phase 3 verification (as T-20, incl. REQ-33 identity check) | AC-1, 6, 7, 25, 32, 33 | qa-engineer, appsec, internal-auditor, quality-office | T-25 |
 | T-27 | Phase 4 item (playbook or addendum, eval, pointer, site) when a job touches it | AC-13, 23 | main session | that job's spec |
-| T-28 | Phase 4 verification | AC-25 | qa-engineer, internal-auditor, appsec | T-27 |
+| T-28 | Phase 4 verification | AC-25, 33 | qa-engineer, internal-auditor, appsec | T-27 |
 | T-29 | Add the `mobile-common` pointer line to `product-designer.md` (1b) | AC-28 | main session | T-11 |
 | T-30 | Add the `graphic-design` pointer line to `product-designer.md` (Phase 4, with that playbook) | AC-28 | main session | T-27 |
-| T-31 | First RN job: measure `--localhost` (`lsof` output), update `rn-engineering` from "unverified" | AC-27 | rn-engineer (measures), qa-engineer (verifies) | T-13, first RN spec |
+| T-31 | First RN job: `rn-engineer` measures `--localhost` (`lsof` output); main session edits `rn-engineering` from "unverified"; QA verifies | AC-27 | rn-engineer (measures), main session (edits), qa-engineer (verifies) | T-13, first RN spec |
+| T-32 | Read-only probe of every D2-list command against the installed hook (dummy input); output attached; silent passes routed to D2 | AC-31 | appsec | T-10 |
+| T-33 | Record `security find-identity -v -p codesigning` output (agent's user context) or the separate-user/machine statement in the plan before the first host build of each stack | AC-32 | qa-engineer (runs), delivery-manager (records) | T-10 |
 
 ## 13. Out of scope
 - Swift and Flutter trials, host installs, licence acceptance, store accounts, fees, submission.
@@ -374,14 +395,15 @@ Rulings (Type 2 and main-session rulings; format: decision — why — cost if w
 - R-5 Ruling: Phase 4 is lazy (first real job); the two addenda the first RN job needs are in 1b — speculative content goes stale and each skill costs a description line in every chat — a later job waits one small phase.
 - R-6 Ruling: `rn-engineering` is written from the final trial report ("RAPOR.md, Bulgular 1-12, commit e023b19" + the kanit summary), so 1b no longer waits for it — playbook quality from evidence — a finding the report missed is added later.
 - R-7 Ruling: `ux-writer` stays a unit (not a `marketing-brand` section) — the CEO asked for an in-app copywriter "if missing", the board said keep, it costs one description line; talent-capacity objection recorded — a unit file to merge back.
-- R-8 Ruling: `.claude/**`, `evals/**`, `harness/bin/*`, `site/**` are written by the main session on the host — no unit's write area covers them; `guard.js` does not protect `.claude/agents|skills|rules` until D2 — owner label changes.
+- R-8 Ruling: `.claude/**`, `evals/**`, `harness/bin/*`, `site/**` are written by the main session on the host — no unit's write area covers them; after D1 the guard treats `.claude/agents|skills|rules` as product-config and asks unless this spec's `Unlocks:` matches (exact paths in the header) — owner label changes.
 - R-9 Ruling: on-demand playbooks are real skills with the "Playbook:" prefix (lint demands 9 sections per skill folder); addenda are `refs/` files outside lint and footprint — one description line each — move content into a skill folder.
-- R-10 Ruling: `product-designer` and `ux-writer` write only docs; engineers wire strings and assets — keeps code behind the signature gate; write areas are instruction-only until D2 (known gap) — widen one area.
+- R-10 Ruling: `product-designer` and `ux-writer` write only docs; engineers wire strings and assets — keeps code behind the signature gate; write areas are instruction-only until D3 / spec 0006 (known gap, REQ-34) — widen one area.
 - R-11 Ruling: smoke jobs run in plan mode on the case-1 Task — no code, installs or signature needed; real-code proof comes with the first job or trial — add a throwaway-workspace run.
 - R-12 Ruling: caps come from the measured baseline, checked by `wc -c` (no lint max check) — keeps the lint edit minimal — tighten after 1a.
 - R-13 Ruling: signing custody is an instruction plus the CEO's technical separation, not an absolute guarantee (board round 2; trial report Riskler) — hooks cannot stop a determined agent — D2 or a separate user/machine adds enforcement.
 - R-14 Ruling: the "unit not yet opened" stop line lives in the 1a routing text and covers RN until 1b — closes the gap window with no unit to route to — a few bytes of routing text, removed after Phase 3.
 - R-15 Ruling: `store-release` ships as "unverified" (trial report Öneri 3) — no store, device or signing step was exercised — a later trial upgrades it.
+- R-16 Ruling: adversarial eval cases are drafted by `qa-engineer` (or `appsec`) in the report, committed verbatim by the main session, then verified by QA; the case title carries "Adversarial (QA)" — no unit writes `evals/**` (R-8) and QA's write area is reproduction tests — one extra hand-off per phase.
 
 Gate findings and closure (the round-1 brief gave ID ranges, not an ID-to-topic mapping, so rows are keyed by topic):
 | Finding | Closed in |
@@ -408,6 +430,16 @@ Gate findings and closure (the round-1 brief gave ID ranges, not an ID-to-topic 
 | Board round 2: dangling playbook references | REQ-31, AC-28, T-29, T-30 |
 | Board round 2: trial minimum, pinning rules, stack-neutral MASVS | §6.9, REQ-32, AC-22, AC-30 |
 | Final trial report: 12 findings, Metro unmeasured, telemetry, store-release unverified, env-var signing, host risk | §6.5, REQ-9, REQ-29, REQ-30, REQ-7, §8, R-6, R-15, AC-26, AC-27, AC-29 |
+| Round 2 spec-critic: adversarial-case flow (no unit writes `evals/**`) | AC-4, T-8, T-19, R-16 |
+| Round 2 spec-critic: T-31 roles; §7 `product-designer` rows; AC-27 post-1b; §9 rows; REMOTE_BIN direct-call only | T-31, §7, AC-25, AC-27, §9, §8 |
+| Round 2 spec-critic: AC-2 model and Never greps; devops-sre pointer states REQ-7/8; routing byte figures | AC-2, AC-20, §6.8, §6.6 |
+| Round 2 appsec F-1: D2 content traced, hook probed before 1b | AC-24, AC-31, T-32 |
+| Round 2 appsec F-2: D2 list extended (wrappers, promote, `security`, `codesign`, `keytool`, keystore reads, `-authenticationKey*`) | §6.7 D2 |
+| Round 2 appsec F-3: identity check before first host build | REQ-33, AC-32, T-33 |
+| Round 2 appsec F-4: write-area facts (spec 0006 = D3; guard asks for `.claude/**` unless `Unlocks:` matches) | §6.7 D3, REQ-34, §8, R-8, R-10 |
+| Round 2 appsec F-5: exact `Unlocks:` paths; no removed/weakened test or lint check | header, AC-33 |
+| Round 2 appsec F-6, F-7, F-8: not-uploadable artefacts and upload key; no `--scan`/inline passwords; redacted logs, no CI store secrets; T-14 after D2 | REQ-35, REQ-36, REQ-37, AC-34, AC-35, T-14, §6.7 D2 (`debug.keystore` allowlist) |
+| Round 2 appsec: residual-risk paragraph | §8 |
 
 ---
 ## Signature record (CEO only)
