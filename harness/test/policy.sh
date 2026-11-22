@@ -73,5 +73,70 @@ suite "AC-11 source order, no allow"           source
 n=$(node "$D" paths "$T" | wc -l | tr -d ' ')
 if [ "$n" -ge 100 ]; then pass=$((pass+1)); echo "ok    matrix path list for the consistency loop: $n rows"; else fail=$((fail+1)); echo "FAIL  matrix path list too short ($n rows)"; fi
 
+# --- spec 0004 T-6: gate/guard consistency loop (AC-1) and the broken policy.js copy (AC-11) -----
+# Both run a temp copy of the harness *.js with a throwaway public key and the temp HOME (the real key is never read).
+t() { if [ "$2" = "$3" ]; then pass=$((pass+1)); echo "ok    $1"; else fail=$((fail+1)); echo "FAIL  $1 (expected $2, got $3)"; fi; }
+HC="$T/hc/harness"; mkdir -p "$HC/keys"; cp "$HERE"/*.js "$HC/"; cp "$T/dkeys/ceo.pub.pem" "$HC/keys/ceo.pub.pem"
+HB="$T/hb/harness"; mkdir -p "$HB/keys"; cp "$HERE"/*.js "$HB/"; cp "$T/dkeys/ceo.pub.pem" "$HB/keys/ceo.pub.pem"
+printf '%s\n' '"use strict";' 'throw new Error("policy broken on purpose");' > "$HB/policy.js"
+# hook <entry file> <args|-> <project dir> <event json>  ->  deny | ask | none | error; stdout in $T/h.out, stderr in $T/h.err
+hook() {
+  entry=$1; harg=$2; proj=$3
+  if [ "$harg" = "-" ]; then harg=""; fi
+  # shellcheck disable=SC2086
+  printf '%s' "$4" | env -u COMPANY_PUBKEY -u COMPANY_SPEC -u COMPANY_HARNESS_DIR -u COMPANY_PR_BASE -u COMPANY_PR_CI \
+    HOME="$T/home" CLAUDE_PROJECT_DIR="$proj" node "$entry" $harg > "$T/h.out" 2> "$T/h.err"
+  hrc=$?
+  cat "$T/h.out" >> "$T/h.all"
+  if [ "$hrc" = 2 ]; then echo deny; return; fi
+  if [ "$hrc" != 0 ]; then echo "error(rc=$hrc)"; return; fi
+  if [ ! -s "$T/h.out" ]; then echo none; return; fi
+  if grep -q '"permissionDecision":"ask"' "$T/h.out"; then echo ask; else echo error; fi
+}
+# evj <tool> <cwd> <file_path or command> [permission_mode]
+evj() {
+  node -e 'const [tool, cwd, x, mode] = process.argv.slice(1);
+    const e = { hook_event_name: "PreToolUse", tool_name: tool, cwd, tool_input: tool === "Bash" ? { command: x } : { file_path: x } };
+    if (mode) e.permission_mode = mode;
+    process.stdout.write(JSON.stringify(e));' "$@"
+}
+case "$(uname -s)" in Darwin) PLAT=darwin;; *) PLAT=linux;; esac
+rows=0; bad=0
+node "$D" paths "$T" > "$T/paths.tsv"
+while IFS="$(printf '\t')" read -r cls plat ws p; do
+  [ "$plat" = "$PLAT" ] || continue
+  rows=$((rows+1))
+  gd=$(hook "$HC/gate.js" --host "$T/$ws" "$(evj Write "$T/$ws" "$p")")
+  bd=$(hook "$HC/guard.js" - "$T/$ws" "$(evj Bash "$T/$ws" "cp /tmp/x $p")")
+  case "$cls" in
+    hard-deny)   want="deny/ask" ;;
+    enforcement) want="ask/ask" ;;
+    free|outside) want="none/none" ;;
+    refused)     want="deny/deny" ;;
+    # a nested root without specs/ gives no opinion for code (Ruling R-3); every other unauthorised code or product-config path asks
+    *)           case "$p" in */.claude/worktrees/w1/*) want="none/none" ;; *) want="ask/ask" ;; esac ;;
+  esac
+  if [ "$gd/$bd" != "$want" ]; then bad=$((bad+1)); echo "FAIL  consistency $cls $p (expected gate/guard $want, got $gd/$bd)"; fi
+done < "$T/paths.tsv"
+t "AC-1 gate/guard consistency: every matrix path of this platform agrees ($rows rows)" 0 "$bad"
+t "AC-1 gate/guard consistency: the loop is not vacuous (50+ rows)" yes "$([ "$rows" -ge 50 ] && echo yes || echo no)"
+t "AC-10 consistency loop: no allow decision was ever printed" no "$(if grep -q '"permissionDecision":"allow"' "$T/h.all" 2>/dev/null; then echo yes; else echo no; fi)"
+
+# AC-11: a harness copy whose policy.js throws at load
+t "AC-11 broken policy.js: gate --host file write is blocked"   deny "$(hook "$HB/gate.js" --host "$W" "$(evj Write "$W" "$W/src/a.cs")")"
+t "AC-11 broken policy.js: guard asks for ls (repair ask)"      ask  "$(hook "$HB/guard.js" - "$W" "$(evj Bash "$W" 'ls')")"
+t "AC-11 broken policy.js: the dialog names policy.js"          yes  "$(if grep -qF 'policy.js' "$T/h.out"; then echo yes; else echo no; fi)"
+t "AC-11 broken policy.js: guard asks for git push origin main" ask  "$(hook "$HB/guard.js" - "$W" "$(evj Bash "$W" 'git push origin main')")"
+t "AC-11 broken policy.js: ls in acceptEdits is refused"        deny "$(hook "$HB/guard.js" - "$W" "$(evj Bash "$W" 'ls' acceptEdits)")"
+t "AC-11 broken policy.js: that refusal names the mode"         yes  "$(if grep -qF "permission mode 'acceptEdits'" "$T/h.err"; then echo yes; else echo no; fi)"
+t "AC-11 broken policy.js: that refusal is the path-less text"  yes  "$(if grep -qF 'switch to default mode or run the command in his own terminal' "$T/h.err"; then echo yes; else echo no; fi)"
+t "AC-11 broken policy.js: ls in default mode asks"             ask  "$(hook "$HB/guard.js" - "$W" "$(evj Bash "$W" 'ls' default)")"
+t "AC-11 broken policy.js: --no-verify stays a refusal"         deny "$(hook "$HB/guard.js" - "$W" "$(evj Bash "$W" 'git commit --no-verify -m x')")"
+t "AC-11 broken policy.js: garbage input blocks the gate"       deny "$(hook "$HB/gate.js" --host "$W" 'not json')"
+t "AC-11 broken policy.js: garbage input blocks the guard"      deny "$(hook "$HB/guard.js" - "$W" 'not json')"
+t "AC-11 healthy copy: garbage input blocks the gate"           deny "$(hook "$HC/gate.js" --host "$W" 'not json')"
+t "AC-11 healthy copy: garbage input blocks the guard"          deny "$(hook "$HC/guard.js" - "$W" 'not json')"
+t "AC-11 healthy copy: guard has no opinion on ls"              none "$(hook "$HC/guard.js" - "$W" "$(evj Bash "$W" 'ls')")"
+
 echo; if [ "$fail" -eq 0 ]; then echo "POLICY TESTS GREEN: $pass passed, 0 failed"; else echo "POLICY TESTS FAILED: $pass passed, $fail failed"; fi
 [ "$fail" -eq 0 ]
