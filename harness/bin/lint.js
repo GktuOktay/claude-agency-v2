@@ -5,7 +5,9 @@
 const fs = require("fs");
 const path = require("path");
 
-const ROOT = path.resolve(__dirname, "..", "..");
+const ROOT = process.env.COMPANY_LINT_ROOT ? path.resolve(process.env.COMPANY_LINT_ROOT) : path.resolve(__dirname, "..", "..");
+// A redirected lint says so on its first line (spec 0004, AC-6); harness/bin/check unsets the variable before it runs lint.
+if (process.env.COMPANY_LINT_ROOT) console.log("LINT ROOT OVERRIDDEN: " + ROOT);
 const REQUIRED_SECTIONS = ["Purpose", "Inputs", "Method", "Output template", "Checklist", "Prohibitions", "Tools and permissions", "Stop and escalate", "Examples"];
 let failures = 0, checks = 0;
 const fail = (m) => { failures++; console.log("FAIL  " + m); };
@@ -233,6 +235,108 @@ try {
 // graph output stays out of git
 const gi = fs.existsSync(path.join(ROOT, ".gitignore")) ? fs.readFileSync(path.join(ROOT, ".gitignore"), "utf8") : "";
 if (!/graphify-out/.test(gi)) fail(".gitignore: graphify-out/ must be ignored (derived output)"); else ok(".gitignore: graphify-out/ ignored");
+
+// ---- spec 0004 rules. Each prints its rule id as the first word after "FAIL  " or "WARN  " (spec §9);
+// harness/test/lint-rules.sh asserts the ids. A WARN line does not change the exit code.
+const warn = (m) => console.log("WARN  " + m);
+const q = (s) => JSON.stringify(String(s)).slice(0, 200);          // spec and glob text is chosen by an agent: always quoted
+
+// unlocks-header, unlocks-row2 (AC-6, §7.3, Ruling R-10): an active spec fails, a draft only warns.
+{
+  let policy = null;
+  try { policy = require(path.join(__dirname, "..", "policy.js")); } catch (e) { fail("unlocks-header harness/policy.js cannot be loaded: " + String(e.message).split("\n")[0]); }
+  const SAMPLES = ["CLAUDE.md", ".mcp.json", ".claude/settings.json", ".claude/settings.local.json", ".claude/commands/x.md", ".github/workflows/check.yml",
+    "harness/keys/ceo.pub.pem", "harness/container-settings.json",
+    ...["approval", "gate", "guard", "loop", "notify", "policy", "stop"].map((n) => `harness/${n}.js`), "harness/x.js",
+    ...["approve", "ceo-keygen", "company-run", "install-project", "install-global"].map((n) => `harness/bin/${n}.sh`)];
+  const walk = (dir, rel, out) => {
+    let entries = []; try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { return out; }
+    for (const e of entries) {
+      if (e.name === ".git" || e.name === "node_modules") continue;
+      const r = rel ? rel + "/" + e.name : e.name;
+      if (e.isDirectory()) walk(path.join(dir, e.name), r, out); else out.push(r);
+    }
+    return out;
+  };
+  // Every path the policy puts in row 2: the files of the tree plus the fixed sample list. Each entry carries the
+  // root-relative path and, for a nested root, the path relative to that root (globs are matched against both).
+  let row2 = null;
+  const enforcementPaths = () => {
+    if (row2) return row2;
+    row2 = [];
+    const ctx = { root: ROOT, mainRoot: ROOT, mode: "host", cfgDirs: [], home: null, platform: process.platform };
+    for (const rel of new Set([...SAMPLES, ...walk(ROOT, "", [])])) {
+      let c; try { c = policy.classify(path.join(ROOT, rel), ctx); } catch { c = { row: 2, rel }; }   // unresolvable: counted (fail closed)
+      if (c.row === 2) row2.push([...new Set([rel, c.rel])]);
+    }
+    return row2;
+  };
+  const dirs = [["active", fail], ["draft", warn]];
+  for (const [kind, report] of dirs) {
+    const dir = path.join(ROOT, "specs", kind);
+    const files = policy && fs.existsSync(dir) ? fs.readdirSync(dir).filter((f) => f.endsWith(".md")).sort() : [];
+    let badHeader = 0, badGlob = 0;
+    for (const f of files) {
+      const label = `specs/${kind}/${f}`;
+      let h; try { h = policy.parseHeader(fs.readFileSync(path.join(dir, f), "utf8")); } catch (e) { h = { unlocks: null, errors: ["not readable: " + e.message] }; }
+      if (h.errors.length || !Array.isArray(h.unlocks)) { badHeader++; report(`unlocks-header ${q(label)}: invalid 'Unlocks:' header, the whole field is ignored: ${h.errors.join("; ")}`); continue; }
+      const hits = [];
+      for (const g of h.unlocks) {
+        // Folded on every platform: a glob that reaches row 2 on darwin or win32 is refused everywhere (row 2 itself folds everywhere, R-14).
+        const hit = enforcementPaths().find((names) => names.some((n) => policy.matchGlob(g, n, true)));
+        if (hit) hits.push(`${q(g)} matches enforcement path ${q(hit[0])}`);
+      }
+      if (hits.length) { badGlob++; report(`unlocks-row2 ${q(label)}: an 'Unlocks:' glob never opens an enforcement path: ${hits.join("; ")}`); }
+    }
+    if (kind === "active" && policy) {
+      if (!badHeader) ok(`unlocks-header: ${files.length} active spec(s), 'Unlocks:' header valid or absent`);
+      if (!badGlob) ok("unlocks-row2: no 'Unlocks:' glob of an active spec reaches an enforcement path");
+    }
+  }
+}
+
+// hook-wrapper (AC-11): a gate or guard hook that crashes or is missing must block (exit 2), a stop hook must not.
+{
+  const WRAPPED = /\|\| exit 2\s*$/;
+  const commands = (file) => {
+    const s = JSON.parse(fs.readFileSync(path.join(ROOT, file), "utf8")); const out = [];
+    for (const [event, entries] of Object.entries((s && s.hooks) || {})) {
+      for (const e of Array.isArray(entries) ? entries : []) for (const h of (e && e.hooks) || []) if (h && typeof h.command === "string") out.push({ event, command: h.command });
+    }
+    return out;
+  };
+  const bad = [];
+  try {
+    for (const { event, command } of commands(path.join(".claude", "settings.json"))) {
+      if (/\b(gate|guard)\.js\b/.test(command) && !WRAPPED.test(command)) bad.push(`.claude/settings.json: ${event} command for ${/gate\.js/.test(command) ? "gate.js" : "guard.js"} lacks the '|| exit 2' suffix`);
+      if ((/\bstop\.js\b/.test(command) || /^(Stop|SubagentStop)$/.test(event)) && /\|\|\s*exit\s+2\b/.test(command)) bad.push(`.claude/settings.json: ${event} stop command carries '|| exit 2'`);
+    }
+  } catch (e) { bad.push(".claude/settings.json: " + e.message); }
+  try {
+    for (const { event, command } of commands(path.join("harness", "container-settings.json"))) {
+      if (/\bgate\.js\b/.test(command) && !WRAPPED.test(command)) bad.push(`harness/container-settings.json: ${event} command for gate.js lacks the '|| exit 2' suffix`);
+    }
+  } catch (e) { bad.push("harness/container-settings.json: " + e.message); }
+  if (bad.length) fail("hook-wrapper " + bad.join("; ")); else ok("hook-wrapper: gate and guard commands end with '|| exit 2', stop commands do not");
+}
+
+// fixture-sanitized (AC-13): the repository is public, so a recorded hook payload carries no home path and no session id.
+{
+  const dir = path.join(ROOT, "harness", "test", "fixtures");
+  const PATTERNS = [["/Users/ path", /\/Users\//], ["/home/<name> path", /\/home\/[a-z]/], ["UUID", /[0-9a-f]{8}-[0-9a-f]{4}-/i]];
+  const files = fs.existsSync(dir) ? fs.readdirSync(dir).filter((f) => f.endsWith(".json")).sort() : [];
+  const bad = [];
+  if (!files.length) bad.push("harness/test/fixtures: no fixture found");
+  for (const f of files) {
+    const t = fs.readFileSync(path.join(dir, f), "utf8");
+    try { JSON.parse(t); } catch { bad.push(`${f}: does not parse as JSON`); }
+    for (const [name, re] of PATTERNS) if (re.test(t)) bad.push(`${f}: contains a ${name}`);   // the match itself is never printed
+  }
+  for (const f of ["pretooluse-main.json", "pretooluse-subagent.json", "subagentstop.json"]) {
+    if (files.length && !files.includes(f)) warn(`fixture-sanitized harness/test/fixtures/${f} is missing (AC-13 names it; not captured in T-1)`);
+  }
+  if (bad.length) fail("fixture-sanitized " + bad.join("; ")); else ok(`fixture-sanitized: ${files.length} fixture(s) parse, no home path, no UUID`);
+}
 
 console.log(`\nLINT ${failures ? "FAILED" : "GREEN"}: ${checks} ok, ${failures} failed`);
 process.exit(failures ? 1 : 0);
