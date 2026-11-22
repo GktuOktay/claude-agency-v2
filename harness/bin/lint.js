@@ -338,5 +338,49 @@ const q = (s) => JSON.stringify(String(s)).slice(0, 200);          // spec and g
   if (bad.length) fail("fixture-sanitized " + bad.join("; ")); else ok(`fixture-sanitized: ${files.length} fixture(s) parse, no home path, no UUID`);
 }
 
+// texts-0004 (AC-14): string checks against the real files. This block holds the README and template parts (T-8).
+// The CLAUDE.md rule 1 and .claude/rules/routing.md parts of AC-14 are added by T-9, together with the wiring those
+// texts describe (REQ-32): a check for them here would fail on texts that task has not written yet.
+{
+  const bad = [];
+  const read = (rel) => { try { return fs.readFileSync(path.join(ROOT, rel), "utf8"); } catch { bad.push(`${rel}: not readable`); return null; } };
+  // The body of a level-2 section: the lines after the exact heading line, up to the next level-2 heading.
+  const section = (text, heading) => {
+    const lines = text.split("\n").map((l) => l.replace(/\r$/, ""));
+    const i = lines.indexOf(heading); if (i < 0) return null;
+    const j = lines.findIndex((l, k) => k > i && l.startsWith("## "));
+    return lines.slice(i + 1, j < 0 ? undefined : j).join("\n");
+  };
+  const README = "harness/README.md";
+  const ORDER = "hard-deny > enforcement > product-config > code > outside > free";                    // Ruling R-17
+  const RULE = "classify both the lexical and the resolved path, stronger class wins";                 // the name §7.1.1 defines
+  const readme = read(README);
+  if (readme !== null) {
+    const gaps = section(readme, "## Bilinen boşluklar");
+    if (gaps === null) bad.push(`${README}: section '## Bilinen boşluklar' missing`);
+    else {
+      const missing = [];
+      // An id counts only where it opens its own entry (a table row or a list item): a mention such as "G-1..G-22" or "see G-21" is no entry.
+      for (let n = 1; n <= 22; n++) if (!new RegExp(`^(\\| ?|[-*] )G-${n}(?![\\w-])`, "m").test(gaps)) missing.push("G-" + n);
+      if (missing.length) bad.push(`${README}: '## Bilinen boşluklar' lacks ${missing.join(", ")}`);
+    }
+    const classes = section(readme, "## Yol sınıfları");
+    if (classes === null) bad.push(`${README}: section '## Yol sınıfları' missing`);
+    else {
+      if (!classes.includes(ORDER)) bad.push(`${README}: '## Yol sınıfları' lacks the strength order '${ORDER}'`);
+      if (!classes.includes(RULE)) bad.push(`${README}: '## Yol sınıfları' lacks the rule '${RULE}'`);
+    }
+  }
+  for (const rel of ["templates/spec-tam.md", "templates/spec-hizli.md"]) {
+    const t = read(rel); if (t === null) continue;
+    const lines = t.split("\n").map((l) => l.replace(/\r$/, ""));
+    const end = lines.findIndex((l) => l.startsWith("## "));
+    const n = (end < 0 ? lines : lines.slice(0, end)).filter((l) => /^- Unlocks: /.test(l)).length;   // header as in §7.3
+    if (n !== 1) bad.push(`${rel}: the header must carry the optional '- Unlocks: ' line exactly once, found ${n}`);
+  }
+  if (bad.length) fail("texts-0004 " + bad.join("; "));
+  else ok("texts-0004: harness/README.md names G-1..G-22, the class strength order and the two-path rule; both spec templates carry '- Unlocks:' (CLAUDE.md and routing texts: T-9)");
+}
+
 console.log(`\nLINT ${failures ? "FAILED" : "GREEN"}: ${checks} ok, ${failures} failed`);
 process.exit(failures ? 1 : 0);

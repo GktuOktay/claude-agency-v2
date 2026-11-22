@@ -5,6 +5,7 @@
 - Tier: full
 - Previous spec: <!-- if any: NNNN/AC-x -->
 - Self-critique: pending | done
+- Unlocks: <!-- Optional. Delete this line if the job edits no product-config path (`.claude/agents/**`, `.claude/skills/**`, `.claude/rules/**`, `harness/**` outside the enforcement files, `evals/**`, `templates/**`). Otherwise replace this comment with a comma-separated list of root-relative globs, for example `templates/x.md`, `harness/test/**`. It never opens an enforcement file. Left as it is, the line is an invalid header: lint fails the active spec and the spec cannot be signed. -->
 
 ## 1. Intent
 <!-- Business language, 3-5 sentences: who, why, what success looks like, what is deliberately NOT done. Start with the CEO's own words, then clarify. -->
