@@ -98,12 +98,47 @@ fresh; unlocks '`templates/x.md`, `evals/**`'; lint "$C"
 t "AC-6 active spec, valid product-config globs: exit 0" 0 "$rc"
 
 # --- AC-6: row-2 overlap rule (active FAIL) --------------------------------------------------
-for v in '`harness/**`' '`.claude/**`' '`**/CLAUDE.md`' '`harness/*.js`' '`harness/bin/*.sh`' '`**`' '`.mcp.json`' '`.github/**`' '`harness/keys/*`' 'HARNESS/GATE.JS' '`templates/**`, `harness/container-settings.json`'; do
+for v in '`harness/**`' '`.claude/**`' '`**/CLAUDE.md`' '`harness/*.js`' '`harness/bin/*.sh`' '`**`' '`.github/**`' '`harness/keys/*`' 'HARNESS/GATE.JS'; do
   fresh; unlocks "$v"; neg "AC-6 active spec, glob reaches enforcement $v" unlocks-row2
 done
 # a sample-list path that is no file of the tree still counts
 fresh; unlocks '`.claude/commands/*.md`'; neg "AC-6 active spec, glob reaches a sample-list path" unlocks-row2
-fresh; unlocks '`harness/x.js`'; neg "AC-6 active spec, glob names a future harness script" unlocks-row2
+fresh; unlocks '`harness/x.js`'; lint "$C"; t "AC-17 active spec, exact path of a future harness script is valid: exit 0" 0 "$rc"
+# --- AC-17 (delta 2026-11-22): an exact path may open an enforcement file, a glob never does --
+# The three literal items that left the two lines above are valid now; each has a glob twin that still fails.
+t "AC-17 exact harness/x.js: no FAIL line" 0 "$(fails)"
+t "AC-17 exact harness/x.js: row-2 rule reports ok" yes "$(has '^ok    unlocks-row2')"
+fresh; unlocks '`.mcp.json`'; lint "$C"
+t "AC-17 exact .mcp.json: exit 0" 0 "$rc"
+t "AC-17 exact .mcp.json: no FAIL line" 0 "$(fails)"
+fresh; unlocks '`templates/**`, `harness/container-settings.json`'; lint "$C"
+t "AC-17 exact harness/container-settings.json next to a product-config glob: exit 0" 0 "$rc"
+t "AC-17 exact harness/container-settings.json: no FAIL line" 0 "$(fails)"
+fresh; unlocks '`CLAUDE.md`, `harness/gate.js`, `harness/x.js`, `.mcp.json`, `harness/container-settings.json`, `templates/**`'; lint "$C"
+t "AC-17 six entries, five exact enforcement paths: exit 0" 0 "$rc"
+t "AC-17 six entries: no FAIL line" 0 "$(fails)"
+t "AC-17 six entries: row-2 rule reports ok" yes "$(has '^ok    unlocks-row2')"
+for v in '`CLAUDE.m?`' '`harness/gate.j*`' '`harness/?.js`' '`.mcp.jso?`' '`templates/**`, `harness/container-settings.jso?`'; do
+  fresh; unlocks "$v"; neg "AC-17 active spec, glob twin reaches enforcement $v" unlocks-row2
+done
+for v in '`approvals/x.json`' '`.git/config`' '`harness/keys/ceo.pub.pem`' '`src/approvals/x.json`' '`.claude/settings.local.json`' '`harness/bin/ceo-keygen.sh`' '`CLAUDE.md`, `harness/keys/k.pem`'; do
+  fresh; unlocks "$v"; neg "AC-17 active spec, locked literal $v" unlocks-row2
+  t "AC-17 locked literal $v: the message says no header opens it" yes "$(has '^FAIL  unlocks-row2 .*no header opens signatures, keys or git metadata')"
+done
+for v in '`claude.md`' '`Harness/Gate.js`' '`.MCP.json`' '`CLAUDE.md`, `harness/GUARD.js`'; do
+  fresh; unlocks "$v"; neg "AC-17 active spec, wrongly cased literal $v" unlocks-row2
+done
+fresh; draft '`harness/keys/ceo.pub.pem`'; lint "$C"
+t "AC-17 draft, locked literal: exit 0" 0 "$rc"
+t "AC-17 draft, locked literal: WARN  unlocks-row2" yes "$(has '^WARN  unlocks-row2( |:)')"
+t "AC-17 draft, locked literal: the WARN line names the draft" yes "$(has '^WARN  unlocks-[a-z0-9]* "specs/draft/9999')"
+t "AC-17 draft, locked literal: no FAIL line" 0 "$(fails)"
+fresh; draft '`CLAUDE.md`'; lint "$C"
+t "AC-17 draft, exact CLAUDE.md: exit 0" 0 "$rc"
+t "AC-17 draft, exact CLAUDE.md: no WARN line for it" no "$(has '^WARN  unlocks-[a-z0-9]* "specs/draft/9999')"
+t "AC-17 draft, exact CLAUDE.md: no FAIL line" 0 "$(fails)"
+fresh; draft '`CLAUDE.m?`'; lint "$C"
+t "AC-17 draft, glob twin: WARN  unlocks-row2 names the draft" yes "$(has '^WARN  unlocks-row2 "specs/draft/9999')"
 # carve-outs stay unlockable: no false alarm
 fresh; unlocks '`.claude/agents/**`, `.claude/skills/**`, `.claude/rules/**`, `harness/test/**`, `harness/bin/check`, `harness/bin/lint.js`'; lint "$C"
 t "AC-6 active spec, product-config globs under .claude/ and harness/: exit 0" 0 "$rc"

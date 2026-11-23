@@ -7,6 +7,8 @@
 //   header                AC-6: parseHeader / matchGlob                        -> ok/FAIL lines
 //   decide <T>            AC-6 (signed, then edited), decision table, modes    -> ok/FAIL lines
 //   source                AC-11 source order, AC-10 "no allow" on the sources  -> ok/FAIL lines
+//   literal <T>           AC-16: literal enforcement entries, unlockKinds      -> ok/FAIL lines
+//   header-chars          §7.3 S-05: control and format characters in a glob  -> ok/FAIL lines
 // The tree layout under <T> is documented in policy.sh. Exit 1 when a case fails.
 "use strict";
 const fs = require("fs");
@@ -353,6 +355,131 @@ function source() {
   t("policy.js has no side effect at load (exports only)", true, ["context", "classify", "parseHeader", "matchGlob", "decide"].every((k) => typeof policy[k] === "function"));
 }
 
+// AC-16 (delta 2026-11-22): literal enforcement entries. Tree built by policy.sh with the throwaway key:
+//   <T>/lit1  signed, Unlocks: CLAUDE.md, harness/<NFD name>.js, .claude/settings.json, cfg/agents/x.md, templates/**
+//   <T>/lit2  signed, Unlocks: claude.md          <T>/lit3  signed like lit1, then edited (one more literal entry)
+function literal(T) {
+  const KEYPUB = path.join(T, "dkeys", "ceo.pub.pem");
+  const mk = (ws, o) => {
+    const root = path.join(T, ws);
+    const ev = { cwd: root, permission_mode: o.mode };
+    if (o.agent !== undefined) ev.agent_type = o.agent;
+    const env = Object.assign({ HOME: path.join(T, "home"), CLAUDE_PROJECT_DIR: root, PATH: process.env.PATH }, o.env || {});
+    const ctx = policy.context(ev, { mode: o.container ? "container" : "host", env: o.container ? { COMPANY_PUBKEY: KEYPUB } : env, platform: o.platform || "linux", harnessDir: HARNESS });
+    if (!o.container) Object.assign(ctx, { pubkeyPath: KEYPUB }, o.over || {});
+    return ctx;
+  };
+  const d = (ws, target, o) => {
+    o = o || {};
+    const ctx = mk(ws, o);
+    return policy.decide({ kind: o.kind || "file", target, event: { cwd: ctx.root, permission_mode: o.mode } }, ctx);
+  };
+  const dec = (ws, target, o) => d(ws, target, o).decision;
+  const NFDJS = "harness/" + NFD.replace(/\.md$/, ".js"), NFCJS = NFDJS.normalize("NFC");
+  t("unlockKinds is exported", "function", typeof policy.unlockKinds);
+  if (typeof policy.unlockKinds !== "function") return;
+
+  for (const platform of BOTH) {
+    t(`[${platform}] named CLAUDE.md -> allow`, "allow", dec("lit1", "CLAUDE.md", { platform }));
+    t(`[${platform}] claude.md against the entry CLAUDE.md -> ask`, "ask", dec("lit1", "claude.md", { platform }));
+    t(`[${platform}] CLAUDE.md against the entry claude.md -> ask`, "ask", dec("lit2", "CLAUDE.md", { platform }));
+    t(`[${platform}] claude.md against the entry claude.md -> allow (exact bytes)`, "allow", dec("lit2", "claude.md", { platform }));
+    t(`[${platform}] an NFD-encoded entry opens its NFC-encoded target`, "allow", dec("lit1", NFCJS, { platform }));
+    t(`[${platform}] the NFD-encoded target of that entry -> allow`, "allow", dec("lit1", NFDJS, { platform }));
+    t(`[${platform}] kind bash on a named path -> ask`, "ask", dec("lit1", "CLAUDE.md", { platform, kind: "bash" }));
+    t(`[${platform}] enforcement path not named -> ask`, "ask", dec("lit1", "harness/gate.js", { platform }));
+    t(`[${platform}] agentType scout -> ask`, "ask", dec("lit1", "CLAUDE.md", { platform, agent: "scout" }));
+    t(`[${platform}] agentType devops-sre -> allow`, "allow", dec("lit1", "CLAUDE.md", { platform, agent: "devops-sre" }));
+  }
+  t("NFD and NFC forms of the test name differ", true, NFDJS !== NFCJS);
+  for (const agent of ["polyglot-engineer", "dotnet-engineer", "react-engineer", "devops-sre"]) t(`agentType ${agent} -> allow`, "allow", dec("lit1", "CLAUDE.md", { agent }));
+  for (const agent of ["scout", "product-manager", "somethingNew", "", "Polyglot-Engineer", "polyglot-engineer "]) t(`agentType '${agent}' -> ask`, "ask", dec("lit1", "CLAUDE.md", { agent }));
+  t("agentType absent (main session) -> allow", "allow", dec("lit1", "CLAUDE.md"));
+  t("agentType null counts as absent -> allow", "allow", dec("lit1", "CLAUDE.md", { over: { agentType: null } }));
+  // every mode: an unlocked enforcement file is allowed like signed code, an unmet condition follows §7.7
+  for (const mode of ["default", "plan", "acceptEdits", "auto", "bypassPermissions", "somethingNew"]) {
+    t(`mode ${mode}: named CLAUDE.md -> allow`, "allow", dec("lit1", "CLAUDE.md", { mode }));
+  }
+  t("mode auto: scout on a named path -> deny", "deny", dec("lit1", "CLAUDE.md", { mode: "auto", agent: "scout" }));
+  t("mode auto: bash on a named path -> deny", "deny", dec("lit1", "CLAUDE.md", { mode: "auto", kind: "bash" }));
+  const tail = "Ask the CEO to switch to default mode or sign a spec that covers this path (code: a validly signed single active spec; product config: such a spec whose Unlocks: names the path; enforcement: such a spec whose Unlocks: names the exact path, file tools only; signatures, keys, .git: no spec covers them, default mode only).";
+  t("mode auto: the path text of 7.7 as amended", "the edit of \"harness/gate.js\" needs the CEO's dialog, but permission mode 'auto' is not proven to show it. " + tail, d("lit1", "harness/gate.js", { mode: "auto" }).reason);
+  // signature (condition 4)
+  t("spec edited after signing: named CLAUDE.md -> ask", "ask", dec("lit3", "CLAUDE.md"));
+  t("unsigned workspace (no active spec): CLAUDE.md -> ask", "ask", dec("ws1", "CLAUDE.md"));
+  t("no specs/ directory: CLAUDE.md -> ask", "ask", dec("ws3", "CLAUDE.md"));
+  t("git lookup failed: named CLAUDE.md -> ask (no authority, R-22)", "ask", dec("lit1", "CLAUDE.md", { over: { rootLookupFailed: true } }));
+  t("harness key lookup failed: named CLAUDE.md -> ask (no authority, R-22)", "ask", dec("lit1", "CLAUDE.md", { over: { pubkeyPath: null } }));
+  t("another key: named CLAUDE.md -> ask", "ask", dec("lit1", "CLAUDE.md", { over: { pubkeyPath: path.join(T, "dkeys2", "ceo.pub.pem") } }));
+  // a glob is never authority (dws: harness/**), a literal is none for another path
+  t("glob harness/** does not open harness/gate.js", "ask", dec("dws", "harness/gate.js"));
+  t("signed code is still allowed next to literal entries", "allow", dec("lit1", "src/a.cs"));
+  t("product-config glob next to literal entries still unlocks", "allow", dec("lit1", "templates/x.md"));
+  // symlinks (conditions 1 and 2): docs/l.md -> ../CLAUDE.md, src/gate-link.js -> ../harness/gate.js
+  t("named CLAUDE.md reached through docs/l.md -> ask", "ask", dec("lit1", "docs/l.md"));
+  // locked whatever the root (condition 3, D-2)
+  t("named .claude/settings.json, home elsewhere -> allow (the lock follows the <cfg> member)", "allow", dec("lit1", ".claude/settings.json"));
+  t("named .claude/settings.json, home = root -> ask", "ask", dec("lit1", ".claude/settings.json", { env: { HOME: path.join(T, "lit1") } }));
+  t("named cfg/agents/x.md, no CLAUDE_CONFIG_DIR -> allow (code)", "allow", dec("lit1", "cfg/agents/x.md"));
+  t("named cfg/agents/x.md, CLAUDE_CONFIG_DIR = <root>/cfg -> ask", "ask", dec("lit1", "cfg/agents/x.md", { env: { CLAUDE_CONFIG_DIR: path.join(T, "lit1", "cfg") } }));
+  // container: never unlocked (REQ-17)
+  t("container: named CLAUDE.md -> deny", "deny", dec("lit1", "CLAUDE.md", { container: true }));
+  t("container: named .claude/settings.json -> deny", "deny", dec("lit1", ".claude/settings.json", { container: true }));
+  // the ask reason keeps the class label and names the unmet condition (§4)
+  const why = (ws, target, o) => d(ws, target, o).reason;
+  const named = (name, re, r) => t("reason: " + name, true, r.includes("(enforcement)") && re.test(r));
+  named("not named -> Unlocks:", /Unlocks:/, why("lit1", "harness/gate.js"));
+  named("caller -> the quoted agent type", /"scout"/, why("lit1", "CLAUDE.md", { agent: "scout" }));
+  named("Bash writer -> kabuk", /kabuk/, why("lit1", "CLAUDE.md", { kind: "bash" }));
+  named("symlink -> bağ", /bağ/, why("lit1", "docs/l.md"));
+  named("locked -> kilitli", /kilitli/, why("lit1", ".claude/settings.json", { env: { HOME: path.join(T, "lit1") } }));
+  t("outside every root: CLAUDE.md of another directory -> ask", "ask", dec("lit1", path.join(T, "out", "CLAUDE.md")));
+  named("outside every root -> dışında", /dışında/, why("lit1", path.join(T, "out", "CLAUDE.md")));
+  named("no active spec -> the count 0", /bulunan: 0/, why("ws1", "CLAUDE.md"));
+  named("edited spec -> imzalı değil", /imzalı değil/, why("lit3", "CLAUDE.md"));
+  t("reason: the four differ (each names its own condition)", 4, new Set([why("lit1", "harness/gate.js"), why("lit1", "CLAUDE.md", { agent: "scout" }), why("lit1", "CLAUDE.md", { kind: "bash" }), why("lit1", "docs/l.md")].map((r) => r.replace(/"[^"]*"/, ""))).size);
+
+  // unlockKinds (§7.2, §7.3 entry kinds)
+  const root = path.join(T, "lit1");
+  const LIST = ["CLAUDE.md", "harness/x.js", ".mcp.json", "approvals/x.json", ".git/config", "harness/keys/k.pem", "src/approvals/y.json", "templates/**", "harness/**", "src/a.cs",
+    ".claude/settings.local.json", "harness/bin/ceo-keygen.sh", ".claude/settings.json", ".claude.json", ".company/x.json", "cfg/agents/x.md", "CLAUDE.m?", "harness/gate.j*"];
+  const show = (k) => ["enforcement", "locked", "other"].map((n) => n + "=" + k[n].join(",")).join(" | ");
+  for (const platform of BOTH) {
+    const k = policy.unlockKinds(LIST, root, mk("lit1", { platform }));
+    t(`[${platform}] unlockKinds, home elsewhere`, "enforcement=CLAUDE.md,harness/x.js,.mcp.json,.claude/settings.json | locked=approvals/x.json,.git/config,harness/keys/k.pem,src/approvals/y.json,.claude/settings.local.json,harness/bin/ceo-keygen.sh | other=templates/**,harness/**,src/a.cs,.claude.json,.company/x.json,cfg/agents/x.md,CLAUDE.m?,harness/gate.j*", show(k));
+    const kh = policy.unlockKinds([".claude/settings.json", ".claude.json", ".company/x.json", "CLAUDE.md", "cfg/agents/x.md"], root, mk("lit1", { platform, env: { HOME: root } }));
+    t(`[${platform}] unlockKinds, home = root`, "enforcement=CLAUDE.md | locked=.claude/settings.json,.claude.json,.company/x.json | other=cfg/agents/x.md", show(kh));
+    const kc = policy.unlockKinds(["cfg/agents/x.md", "cfg/settings.json", "cfg/notes.md", "CLAUDE.md"], root, mk("lit1", { platform, env: { CLAUDE_CONFIG_DIR: path.join(root, "cfg") } }));
+    t(`[${platform}] unlockKinds, CLAUDE_CONFIG_DIR = <root>/cfg`, "enforcement=CLAUDE.md | locked=cfg/agents/x.md,cfg/settings.json | other=cfg/notes.md", show(kc));
+  }
+  t("unlockKinds: upper-cased locked paths stay locked", "enforcement= | locked=APPROVALS/x.json,Harness/Keys/k.pem,src/Approvals/y.json,.CLAUDE/settings.local.json,HARNESS/BIN/CEO-KEYGEN.SH | other=",
+    show(policy.unlockKinds(["APPROVALS/x.json", "Harness/Keys/k.pem", "src/Approvals/y.json", ".CLAUDE/settings.local.json", "HARNESS/BIN/CEO-KEYGEN.SH"], root, mk("lit1", {}))));
+  t("unlockKinds: a literal that resolves into harness/keys is locked", "enforcement= | locked=src/lnk-keys/new.pem | other=", show(policy.unlockKinds(["src/lnk-keys/new.pem"], path.join(T, "ws1"), ctxFor(T, "ws1", "linux"))));
+  t("unlockKinds: a literal whose resolved path is enforcement is listed (R-23)", "enforcement=docs/x.md | locked= | other=", show(policy.unlockKinds(["docs/x.md"], path.join(T, "ws1"), ctxFor(T, "ws1", "linux"))));
+  t("unlockKinds: empty and null lists", "enforcement= | locked= | other=|enforcement= | locked= | other=", show(policy.unlockKinds([], root, mk("lit1", {}))) + "|" + show(policy.unlockKinds(null, root, mk("lit1", {}))));
+  t("unlockKinds: a minimal context (as lint gives)", "enforcement=CLAUDE.md | locked=harness/keys/k.pem | other=templates/**", show(policy.unlockKinds(["CLAUDE.md", "harness/keys/k.pem", "templates/**"], root, { root, mainRoot: root, mode: "host", cfgDirs: [], home: null, platform: "linux" })));
+}
+
+// §7.3 (delta 2026-11-22, S-05): characters of category Cc, Cf, Zl and Zp are invalid in a glob.
+function headerChars() {
+  const H = (v) => "# Spec\n- Unlocks: " + v + "\n\n## 1. Intent\n";
+  const BAD = [["U+202E right-to-left override (Cf)", "‮"], ["U+200B zero width space (Cf)", "​"], ["U+00AD soft hyphen (Cf)", "­"], ["U+2066 isolate (Cf)", "⁦"],
+    ["U+0085 next line (C1, Cc)", "\u0085"], ["U+009B CSI (C1, Cc)", "\u009b"], ["U+0007 bell (Cc)", "\u0007"], ["U+001B escape (Cc)", "\u001b"], ["U+007F delete (Cc)", "\u007f"],
+    ["U+2028 line separator (Zl)", " "], ["U+2029 paragraph separator (Zp)", " "], ["U+FEFF byte order mark (Cf)", "﻿"]];
+  for (const [name, ch] of BAD) {
+    for (const [where, g] of [["inside", "templates/a" + ch + "b.md"], ["in a literal enforcement entry", "CLAUDE" + ch + ".md"]]) {
+      const r = policy.parseHeader(H("`templates/**`, `" + g + "`"));
+      t(`${name} ${where}: field ignored`, "null", r.unlocks === null ? "null" : "list");
+      t(`${name} ${where}: an error is returned`, true, r.errors.length > 0);
+      t(`${name} ${where}: the error text is printable ASCII`, true, r.errors.every((e) => /^[\x20-\x7e]*$/.test(e)));
+      t(`${name} ${where}: never matches`, false, policy.matchGlob(g, g, false));
+    }
+  }
+  const okv = policy.parseHeader(H("`docs/café.md`, `docs/" + NFD + "`, `templates/中.md`, `docs/a b.md`"));
+  t("letters outside ASCII, combining marks and a space stay valid", 4, okv.unlocks === null ? -1 : okv.unlocks.length);
+  t("a tab between items is trimmed, not an error", "a|b", (policy.parseHeader(H("a,\tb")).unlocks || ["null"]).join("|"));
+}
+
 const [cmd, a, b] = process.argv.slice(2);
 if (cmd === "matrix") matrix(a);
 else if (cmd === "paths") for (const m of MATRIX) for (const pf of m[4]) console.log([m[3], pf, m[1], abs(a, m[1], m[2])].join("\t"));
@@ -360,5 +487,7 @@ else if (cmd === "superset") superset(a, b);
 else if (cmd === "header") header();
 else if (cmd === "decide") decide(a);
 else if (cmd === "source") source();
+else if (cmd === "literal") literal(a);
+else if (cmd === "header-chars") headerChars();
 else { console.error("usage: policy-driver.js matrix|paths|superset|header|decide|source"); process.exit(2); }
 process.exit(failed ? 1 : 0);

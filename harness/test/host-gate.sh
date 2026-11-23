@@ -227,7 +227,7 @@ for m in plan acceptEdits auto bypassPermissions somethingNew; do
   t "AC-10 mode $m: enforcement ask becomes a refusal"            deny "$(g "$WU" Write "$WU/CLAUDE.md" "$m")"
   t "AC-10 mode $m: unlisted product-config becomes a refusal"    deny "$(g "$W" Write "$W/evals/x.md" "$m")"
 done
-t "AC-10 mode auto: the refusal is the exact text of 7.7"         0    "$(g "$WU" Write "$WU/src/a.cs" auto >/dev/null; printf '%s\n' "BLOCKED by company gate: the edit of \"src/a.cs\" needs the CEO's dialog, but permission mode 'auto' is not proven to show it. Ask the CEO to switch to default mode or sign a spec that covers this path (code: a validly signed single active spec; product config: such a spec whose Unlocks: names the path; enforcement, signatures, .git: no spec covers them, default mode only)." | cmp -s - "$T/last.err"; echo $?)"
+t "AC-10 mode auto: the refusal is the exact text of 7.7"         0    "$(g "$WU" Write "$WU/src/a.cs" auto >/dev/null; printf '%s\n' "BLOCKED by company gate: the edit of \"src/a.cs\" needs the CEO's dialog, but permission mode 'auto' is not proven to show it. Ask the CEO to switch to default mode or sign a spec that covers this path (code: a validly signed single active spec; product config: such a spec whose Unlocks: names the path; enforcement: such a spec whose Unlocks: names the exact path, file tools only; signatures, keys, .git: no spec covers them, default mode only)." | cmp -s - "$T/last.err"; echo $?)"
 for m in default plan acceptEdits auto bypassPermissions somethingNew; do
   t "AC-10 mode $m: free path unchanged (no output)"              none "$(g "$WU" Write "$WU/docs/x.md" "$m")"
   t "AC-10 mode $m: signed code unchanged (no output)"            none "$(g "$W" Write "$W/src/a.cs" "$m")"
@@ -241,6 +241,159 @@ FX="$HERE/test/fixtures/pretooluse-subagent.json"
 t "AC-10 fixture as recorded (scratch path, outside): no output"  none "$(PROJ="$WU" call < "$FX")"
 t "AC-10 fixture aimed at a code path: refused, mode auto named"  deny "$(node -e 'const e = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")); e.cwd = process.argv[2]; e.tool_input.file_path = process.argv[2] + "/src/a.cs"; process.stdout.write(JSON.stringify(e));' "$FX" "$WU" | PROJ="$WU" call)"
 t "AC-10 fixture: the text names the mode"                        yes  "$(errhas "permission mode 'auto'")"
+
+# --- AC-16: literal enforcement entries (delta 2026-11-22; REQ-8, REQ-20, §7.3) -----------------
+# "an exact path may open an enforcement file, a glob never does". New helpers only; the ones above are not edited.
+# gx <project dir> <tool> <file_path> [mode|-] [agent_type|-]   as g, with the caller's agent_type in the event
+gx() {
+  node -e 'const [tool, fp, cwd, mode, agent] = process.argv.slice(1);
+    const e = { hook_event_name: "PreToolUse", tool_name: tool, cwd, tool_input: {} };
+    e.tool_input[tool === "NotebookEdit" ? "notebook_path" : "file_path"] = fp;
+    if (mode !== "-") e.permission_mode = mode;
+    if (agent !== "-") e.agent_type = agent;
+    process.stdout.write(JSON.stringify(e));' "$2" "$3" "$1" "${4:--}" "${5:--}" | PROJ="$1" call
+}
+# lws <dir> <Unlocks value>: a workspace with one active spec that carries that Unlocks: line (unsigned)
+lws() { mk "$1"; printf '%s\n' '# Spec 0001' '- Status: active' "- Unlocks: $2" '' '## 1' 'AC-1: hello' > "$1/specs/active/0001.md"; }
+PATHTEXT() { printf '%s\n' "BLOCKED by company gate: the edit of \"$1\" needs the CEO's dialog, but permission mode 'auto' is not proven to show it. Ask the CEO to switch to default mode or sign a spec that covers this path (code: a validly signed single active spec; product config: such a spec whose Unlocks: names the path; enforcement: such a spec whose Unlocks: names the exact path, file tools only; signatures, keys, .git: no spec covers them, default mode only)."; }
+# WL: a git repository (its nested roots w2 and w3 are linked worktrees, so their records come from WL/approvals)
+WL="$T/wl"
+lws "$WL" 'CLAUDE.md, harness/gate.js, templates/**, harness/keys/k.pem, approvals/x.json, src/approvals/y.json, .git/config'
+echo x > "$WL/CLAUDE.md"; echo x > "$WL/src/keep.cs"
+tgit -C "$WL" init -q >/dev/null 2>&1
+tgit -C "$WL" add specs src >/dev/null 2>&1
+tgit -C "$WL" -c user.name=t -c user.email=t@example.invalid -c commit.gpgsign=false commit -qm init >/dev/null 2>&1
+t "AC-16 unsigned: named CLAUDE.md asks"                           ask  "$(g "$WL" Write "$WL/CLAUDE.md")"
+t "AC-16 unsigned: the reason keeps the enforcement label"         yes  "$(has '(enforcement)')"
+t "AC-16 unsigned: named harness/gate.js asks"                     ask  "$(g "$WL" Edit "$WL/harness/gate.js")"
+sign "$WL" 0001.md
+t "AC-16 setup: WL has a record"                                   0    "$([ -f "$WL/approvals/specs__active__0001.md.sig.json" ]; echo $?)"
+for tool in Write Edit MultiEdit NotebookEdit; do
+  t "AC-16 signed: named CLAUDE.md, $tool: no output"              none "$(g "$WL" "$tool" "$WL/CLAUDE.md")"
+done
+t "AC-16 signed: named harness/gate.js: no output"                 none "$(g "$WL" Write "$WL/harness/gate.js")"
+t "AC-16 signed: named CLAUDE.md, relative path: no output"        none "$(g "$WL" Edit CLAUDE.md)"
+for m in default plan acceptEdits auto bypassPermissions somethingNew -; do
+  t "AC-16 signed: named CLAUDE.md, mode $m: no output"            none "$(g "$WL" Edit "$WL/CLAUDE.md" "$m")"
+done
+t "AC-16 signed: .claude/settings.json (not named) asks"           ask  "$(g "$WL" Edit "$WL/.claude/settings.json")"
+t "AC-16 that reason keeps the enforcement label"                  yes  "$(has '(enforcement)')"
+t "AC-16 that reason names Unlocks:"                               yes  "$(has 'Unlocks:')"
+t "AC-16 that reason quotes the path"                              yes  "$(has '".claude/settings.json"')"
+t "AC-16 not named, mode auto: refused"                            deny "$(g "$WL" Edit "$WL/.claude/settings.json" auto)"
+t "AC-16 not named, mode auto: exactly the path text of 7.7"       0    "$(PATHTEXT '.claude/settings.json' | cmp -s - "$T/last.err"; echo $?)"
+t "AC-16 signed: harness/guard.js (not named) asks"                ask  "$(g "$WL" Write "$WL/harness/guard.js")"
+# locked paths get no authority, although the signed header names them
+t "AC-16 locked: named harness/keys/k.pem asks"                    ask  "$(g "$WL" Write "$WL/harness/keys/k.pem")"
+t "AC-16 locked: the reason keeps the enforcement label"           yes  "$(has '(enforcement)')"
+t "AC-16 locked: named src/approvals/y.json asks"                  ask  "$(g "$WL" Write "$WL/src/approvals/y.json")"
+t "AC-16 locked: named approvals/x.json is refused"                deny "$(g "$WL" Write "$WL/approvals/x.json")"
+t "AC-16 locked: named .git/config is refused"                     deny "$(g "$WL" Edit "$WL/.git/config")"
+t "AC-16 locked, mode auto: harness/keys/k.pem is refused"         deny "$(g "$WL" Write "$WL/harness/keys/k.pem" auto)"
+# exact case, symlinks
+t "AC-16 exact case: claude.md asks"                               ask  "$(g "$WL" Edit "$WL/claude.md")"
+t "AC-16 exact case: HARNESS/gate.js asks"                         ask  "$(g "$WL" Edit "$WL/HARNESS/gate.js")"
+ln -s ../CLAUDE.md "$WL/docs/l.md"
+t "AC-16 symlink docs/l.md -> ../CLAUDE.md asks"                   ask  "$(g "$WL" Edit "$WL/docs/l.md")"
+t "AC-16 that reason keeps the enforcement label"                  yes  "$(has '(enforcement)')"
+rm -f "$WL/docs/l.md"
+WL2="$T/wl2"; lws "$WL2" 'CLAUDE.md, AGENTS.md, harness/gate.js, harness/guard.js'
+echo x > "$WL2/AGENTS.md"; ln -s AGENTS.md "$WL2/CLAUDE.md"; echo x > "$WL2/harness/guard.js"; ln -s guard.js "$WL2/harness/gate.js"
+sign "$WL2" 0001.md
+t "AC-16 CLAUDE.md as a symlink to AGENTS.md asks"                 ask  "$(g "$WL2" Write "$WL2/CLAUDE.md")"
+t "AC-16 harness/gate.js as a symlink to guard.js asks"            ask  "$(g "$WL2" Write "$WL2/harness/gate.js")"
+t "AC-16 harness/guard.js itself (named, no symlink): no output"   none "$(g "$WL2" Write "$WL2/harness/guard.js")"
+# caller (condition 6, S-01)
+t "AC-16 caller: agent_type absent: no output"                     none "$(gx "$WL" Edit "$WL/CLAUDE.md")"
+for a in polyglot-engineer dotnet-engineer react-engineer devops-sre; do
+  t "AC-16 caller: agent_type $a: no output"                       none "$(gx "$WL" Edit "$WL/CLAUDE.md" - "$a")"
+done
+t "AC-16 caller: agent_type scout asks"                            ask  "$(gx "$WL" Edit "$WL/CLAUDE.md" - scout)"
+t "AC-16 caller: that reason keeps the enforcement label"          yes  "$(has '(enforcement)')"
+t "AC-16 caller: that reason names the caller"                     yes  "$(has '"scout"')"
+t "AC-16 caller: scout, mode auto: refused"                        deny "$(gx "$WL" Edit "$WL/CLAUDE.md" auto scout)"
+t "AC-16 caller: scout, mode auto: exactly the path text of 7.7"   0    "$(PATHTEXT 'CLAUDE.md' | cmp -s - "$T/last.err"; echo $?)"
+t "AC-16 caller: agent_type somethingNew asks"                     ask  "$(gx "$WL" Edit "$WL/CLAUDE.md" - somethingNew)"
+t "AC-16 caller: scout still writes signed code (no output)"       none "$(gx "$WL" Write "$WL/src/a.cs" - scout)"
+# nested roots: w1 a plain directory; w2, w3 linked worktrees of WL (D-8)
+mkdir -p "$WL/.claude/worktrees/w1"
+t "AC-16 nested root w1 (no spec of its own): CLAUDE.md asks"      ask  "$(g "$WL" Write "$WL/.claude/worktrees/w1/CLAUDE.md")"
+tgit -C "$WL" worktree add -q "$WL/.claude/worktrees/w2" -b w2 >/dev/null 2>&1
+tgit -C "$WL" worktree add -q "$WL/.claude/worktrees/w3" -b w3 >/dev/null 2>&1
+t "AC-16 setup: w2 holds a byte-identical copy of the signed spec" 0    "$(cmp -s "$WL/specs/active/0001.md" "$WL/.claude/worktrees/w2/specs/active/0001.md"; echo $?)"
+t "AC-16 nested root w2, identical signed spec: no output"         none "$(g "$WL" Write "$WL/.claude/worktrees/w2/CLAUDE.md")"
+echo >> "$WL/.claude/worktrees/w3/specs/active/0001.md"
+t "AC-16 nested root w3, spec differs by one byte: asks"           ask  "$(g "$WL" Write "$WL/.claude/worktrees/w3/CLAUDE.md")"
+# signature: edited spec, two specs, wrong spec
+cp "$WL/specs/active/0001.md" "$T/wl-spec.keep"
+sed 's|^- Unlocks: \(.*\)$|- Unlocks: \1, harness/guard.js|' "$T/wl-spec.keep" > "$WL/specs/active/0001.md"
+t "AC-16 spec edited after signing (one more entry): CLAUDE.md asks" ask "$(g "$WL" Write "$WL/CLAUDE.md")"
+t "AC-16 spec edited after signing: the added entry asks too"      ask  "$(g "$WL" Write "$WL/harness/guard.js")"
+cp "$T/wl-spec.keep" "$WL/specs/active/0001.md"
+t "AC-16 spec restored: CLAUDE.md no output again"                 none "$(g "$WL" Write "$WL/CLAUDE.md")"
+cp "$WL/specs/active/0001.md" "$WL/specs/active/0002.md"
+t "AC-16 a second active spec: CLAUDE.md asks"                     ask  "$(g "$WL" Write "$WL/CLAUDE.md")"
+t "AC-16 a second active spec: the reason holds the count 2"       yes  "$(has '2')"
+t "AC-16 a second active spec: the reason keeps the label"         yes  "$(has '(enforcement)')"
+rm -f "$WL/specs/active/0002.md"
+WW="$T/ww"; lws "$WW" 'templates/**'; mkdir -p "$WW/specs/done"
+printf '%s\n' '# Spec 0000' '- Unlocks: CLAUDE.md' '' '## 1' 'x' > "$WW/specs/done/0000.md"
+sign "$WW" 0001.md; ( cd "$WW" && node "$H/approval.js" sign specs/done/0000.md approvals "$KEY" >/dev/null 2>&1 )
+t "AC-16 setup: the done spec has a record"                        0    "$([ -f "$WW/approvals/specs__done__0000.md.sig.json" ]; echo $?)"
+t "AC-16 wrong spec: only a signed specs/done names it: asks"      ask  "$(g "$WW" Write "$WW/CLAUDE.md")"
+WK1="$T/wk1"; lws "$WK1" 'CLAUDE.md'; sign "$WK1" 0001.md "$KEY2"
+t "AC-16 signed with another key: CLAUDE.md asks"                  ask  "$(g "$WK1" Write "$WK1/CLAUDE.md")"
+# a glob never unlocks
+n=0
+for v in 'CLAUDE.m?' 'harness/gate.j*' '**/CLAUDE.md'; do
+  n=$((n+1)); WG="$T/wg$n"; lws "$WG" "$v"; sign "$WG" 0001.md
+  case "$v" in harness/*) p=harness/gate.js;; *) p=CLAUDE.md;; esac
+  t "AC-16 glob $v, signed: $p asks"                               ask  "$(g "$WG" Write "$WG/$p")"
+  t "AC-16 glob $v: signed code still has no output"               none "$(g "$WG" Write "$WG/src/a.cs")"
+done
+# outside every root: the entry equals the path relative to the filesystem root
+WO="$T/wo"; mkdir -p "$T/other" "$TH/.claude"
+lws "$WO" "${TH#/}/.claude/settings.json, ${T#/}/other/CLAUDE.md"; sign "$WO" 0001.md
+t "AC-16 outside: <home>/.claude/settings.json asks"               ask  "$(g "$WO" Write "$TH/.claude/settings.json")"
+t "AC-16 outside: CLAUDE.md of another directory asks"             ask  "$(g "$WO" Write "$T/other/CLAUDE.md")"
+t "AC-16 outside: that reason keeps the enforcement label"         yes  "$(has '(enforcement)')"
+# main root (REQ-35) and same root (D-1)
+M2="$T/main2"; LW2="$T/lw2"; lws "$M2" 'CLAUDE.md'; echo x > "$M2/src/keep.cs"
+tgit -C "$M2" init -q >/dev/null 2>&1
+tgit -C "$M2" add specs src >/dev/null 2>&1
+tgit -C "$M2" -c user.name=t -c user.email=t@example.invalid -c commit.gpgsign=false commit -qm init >/dev/null 2>&1
+tgit -C "$M2" worktree add -q "$LW2" -b lw2 >/dev/null 2>&1
+t "AC-16 main root, unsigned: <main>/CLAUDE.md asks"               ask  "$(g "$LW2" Write "$M2/CLAUDE.md")"
+sign "$M2" 0001.md
+t "AC-16 main root, signed and named: <main>/CLAUDE.md no output"  none "$(g "$LW2" Write "$M2/CLAUDE.md")"
+t "AC-16 main root: <main>/harness/gate.js (not named) asks"       ask  "$(g "$LW2" Write "$M2/harness/gate.js")"
+t "AC-16 linked worktree, record in the main tree: its CLAUDE.md no output" none "$(g "$LW2" Write "$LW2/CLAUDE.md")"
+echo x > "$M2/CLAUDE.md"; ln -s "$M2/CLAUDE.md" "$LW2/CLAUDE.md"
+t "AC-16 same root: <LW>/CLAUDE.md as a symlink to <main>/CLAUDE.md asks" ask "$(g "$LW2" Write "$LW2/CLAUDE.md")"
+rm -f "$LW2/CLAUDE.md"
+t "AC-16 git fails, signed and named: CLAUDE.md asks (no authority)" ask "$(ev Write "$M2/CLAUDE.md" "$M2" | PROJ="$M2" GPATH="$SP" call)"
+t "AC-16 git fails: the reason keeps the enforcement label"        yes  "$(has '(enforcement)')"
+t "AC-16 git works again: CLAUDE.md no output"                     none "$(g "$M2" Write "$M2/CLAUDE.md")"
+t "AC-16 harness key lookup fails: named harness/guard.js asks"    ask  "$(ev Write "$WL2/harness/guard.js" "$WL2" | PROJ="$WL2" GPATH="$SP" GATE="$H2/gate.js" call)"
+mkdir -p "$T/real"; ln -s "$T/real" "$T/link"; WR="$T/real/ws"; lws "$WR" 'CLAUDE.md'; sign "$WR" 0001.md
+t "AC-16 same root: workspace behind a symlinked parent: no output" none "$(g "$T/link/ws" Write "$T/link/ws/CLAUDE.md")"
+t "AC-16 same root: that workspace by its real path: no output"    none "$(g "$WR" Write "$WR/CLAUDE.md")"
+t "AC-16 same root: project dir real, target through the link asks" ask "$(g "$WR" Write "$T/link/ws/CLAUDE.md")"
+t "AC-16 workspace without specs/: CLAUDE.md asks"                 ask  "$(g "$F" Write "$F/CLAUDE.md")"
+# locked whatever the root (D-2); the temp HOME is elsewhere unless XENV moves it
+WD="$T/wd"; lws "$WD" '.claude/settings.local.json, harness/bin/ceo-keygen.sh, .claude/settings.json, .claude.json, .company/x.json, cfg/agents/x.md, CLAUDE.md'; sign "$WD" 0001.md
+gd() { ev Write "$WD/$1" "$WD" | PROJ="$WD" XENV="${2:-}" call; }
+t "AC-16 locked: named .claude/settings.local.json asks"           ask  "$(gd .claude/settings.local.json)"
+t "AC-16 locked: named harness/bin/ceo-keygen.sh asks"             ask  "$(gd harness/bin/ceo-keygen.sh)"
+t "AC-16 HOME elsewhere: named .claude/settings.json no output"    none "$(gd .claude/settings.json)"
+t "AC-16 HOME elsewhere: named CLAUDE.md no output"                none "$(gd CLAUDE.md)"
+t "AC-16 HOME = workspace: named .claude/settings.json asks"       ask  "$(gd .claude/settings.json "HOME=$WD")"
+t "AC-16 HOME = workspace: named .claude.json asks"                ask  "$(gd .claude.json "HOME=$WD")"
+t "AC-16 HOME = workspace: named .company/x.json asks"             ask  "$(gd .company/x.json "HOME=$WD")"
+t "AC-16 HOME = workspace: named CLAUDE.md still no output"        none "$(gd CLAUDE.md "HOME=$WD")"
+t "AC-16 no CLAUDE_CONFIG_DIR: cfg/agents/x.md is code (no output)" none "$(gd cfg/agents/x.md)"
+t "AC-16 CLAUDE_CONFIG_DIR = <ws>/cfg: named cfg/agents/x.md asks" ask  "$(gd cfg/agents/x.md "CLAUDE_CONFIG_DIR=$WD/cfg")"
+t "AC-16 CLAUDE_CONFIG_DIR = <ws>/cfg: the reason keeps the label" yes  "$(has '(enforcement)')"
 
 # --- no hook ever emits an allow (AC-10) -------------------------------------------------------
 t "no case printed a permissionDecision other than ask"           0    "$(grep -o '"permissionDecision":"[a-z]*"' "$T/all.out" | grep -vc '"ask"')"

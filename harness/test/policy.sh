@@ -46,6 +46,20 @@ for w in dws dws-edited; do
 done
 printf '%s\n' '# Spec 0001' '- Status: Draft' '- Unlocks: `templates/**`, `harness/test/*.sh`, `harness/**`, `evals/**`' '' '## 1. Intent' 'x' > "$T/dws-edited/specs/active/0001.md"
 
+# lit1..lit3 (spec 0004 AC-16, delta 2026-11-22): literal enforcement entries, signed with the same throwaway key; dkeys2: another key
+#   lit1: CLAUDE.md, harness/<NFD-encoded name>.js, .claude/settings.json, cfg/agents/x.md, templates/**   (docs/l.md -> ../CLAUDE.md)
+#   lit2: claude.md (another case)        lit3: as lit1, then one more literal entry added after signing
+node "$HERE/approval.js" keygen "$T/dkeys2" --no-passphrase >/dev/null
+LITU='`CLAUDE.md`, `harness/re\314\201sume\314\201.js`, `.claude/settings.json`, `cfg/agents/x.md`, `templates/**`'
+for w in lit1 lit2 lit3; do
+  mkdir -p "$T/$w/specs/active" "$T/$w/src" "$T/$w/docs" "$T/$w/templates" "$T/$w/harness" "$T/$w/.claude" "$T/$w/cfg/agents"
+  u=$LITU; if [ "$w" = lit2 ]; then u='`claude.md`'; fi
+  printf "# Spec 0001\n- Status: Draft\n- Unlocks: $u\n\n## 1. Intent\nx\n" > "$T/$w/specs/active/0001.md"
+  ( cd "$T/$w" && node "$HERE/approval.js" sign specs/active/0001.md approvals "$T/dkeys/ceo.key.pem" </dev/null >/dev/null )
+done
+echo x > "$T/lit1/CLAUDE.md"; ln -s ../CLAUDE.md "$T/lit1/docs/l.md"
+printf "# Spec 0001\n- Status: Draft\n- Unlocks: $LITU, \`harness/gate.js\`\n\n## 1. Intent\nx\n" > "$T/lit3/specs/active/0001.md"
+
 # --- cases -----------------------------------------------------------------------------------
 # suite <name> <driver args...>: prints the driver's lines and counts them; a driver crash is one failure.
 suite() {
@@ -69,6 +83,8 @@ suite "AC-2 superset of the guard expression"  superset "$T" "$ENF"
 suite "AC-6 Unlocks: header grammar"           header
 suite "decisions, signature, permission modes" decide "$T"
 suite "AC-11 source order, no allow"           source
+suite "AC-16 literal enforcement entries"      literal "$T"
+suite "7.3 S-05 header characters"             header-chars
 
 n=$(node "$D" paths "$T" | wc -l | tr -d ' ')
 if [ "$n" -ge 100 ]; then pass=$((pass+1)); echo "ok    matrix path list for the consistency loop: $n rows"; else fail=$((fail+1)); echo "FAIL  matrix path list too short ($n rows)"; fi

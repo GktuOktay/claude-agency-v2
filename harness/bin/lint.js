@@ -280,17 +280,30 @@ const q = (s) => JSON.stringify(String(s)).slice(0, 200);          // spec and g
       const label = `specs/${kind}/${f}`;
       let h; try { h = policy.parseHeader(fs.readFileSync(path.join(dir, f), "utf8")); } catch (e) { h = { unlocks: null, errors: ["not readable: " + e.message] }; }
       if (h.errors.length || !Array.isArray(h.unlocks)) { badHeader++; report(`unlocks-header ${q(label)}: invalid 'Unlocks:' header, the whole field is ignored: ${h.errors.join("; ")}`); continue; }
+      // §7.3 as amended by the delta of 2026-11-22: an exact path may open an enforcement file, a glob never does.
+      // Entry kinds come from the policy (unlockKinds, Ruling R-23), so lint, the gate and the signing preview agree.
       const hits = [];
+      const kinds = policy.unlockKinds(h.unlocks, ROOT, { root: ROOT, mainRoot: ROOT, mode: "host", cfgDirs: [], home: null, platform: process.platform });
+      const fold = (s) => String(s).normalize("NFC").toLowerCase();
       for (const g of h.unlocks) {
-        // Folded on every platform: a glob that reaches row 2 on darwin or win32 is refused everywhere (row 2 itself folds everywhere, R-14).
-        const hit = enforcementPaths().find((names) => names.some((n) => policy.matchGlob(g, n, true)));
-        if (hit) hits.push(`${q(g)} matches enforcement path ${q(hit[0])}`);
+        if (/[*?]/.test(g)) {
+          // Folded on every platform: a glob that reaches row 2 on darwin or win32 is refused everywhere (row 2 itself folds everywhere, R-14).
+          const hit = enforcementPaths().find((names) => names.some((n) => policy.matchGlob(g, n, true)));
+          if (hit) hits.push(`glob ${q(g)} matches enforcement path ${q(hit[0])}`);
+        } else if (kinds.locked.includes(g)) {
+          hits.push(`${q(g)} is a locked path: no header opens signatures, keys or git metadata`);
+        } else if (kinds.enforcement.includes(g)) {
+          // Ruling R-27: the gate compares with exact case, so an entry that differs from a known enforcement path only in case opens nothing its author meant.
+          const known = enforcementPaths().flat();
+          const twin = known.find((n) => fold(n) === fold(g));
+          if (twin && !known.some((n) => n.normalize("NFC") === g.normalize("NFC"))) hits.push(`${q(g)} names enforcement path ${q(twin)} in another case (the exact path is required)`);
+        }
       }
-      if (hits.length) { badGlob++; report(`unlocks-row2 ${q(label)}: an 'Unlocks:' glob never opens an enforcement path: ${hits.join("; ")}`); }
+      if (hits.length) { badGlob++; report(`unlocks-row2 ${q(label)}: an exact path may open an enforcement file, a glob never does: ${hits.join("; ")}`); }
     }
     if (kind === "active" && policy) {
       if (!badHeader) ok(`unlocks-header: ${files.length} active spec(s), 'Unlocks:' header valid or absent`);
-      if (!badGlob) ok("unlocks-row2: no 'Unlocks:' glob of an active spec reaches an enforcement path");
+      if (!badGlob) ok("unlocks-row2: no glob of an active spec reaches an enforcement path, no literal entry is locked or wrongly cased");
     }
   }
 }

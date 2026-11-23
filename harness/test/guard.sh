@@ -358,7 +358,7 @@ for md in plan acceptEdits auto bypassPermissions somethingNew; do
 done
 t "AC-10 at least three modes are refused"            yes   "$([ "$denied" -ge 3 ] && echo yes || echo no)"
 t "AC-10 mode auto: the path-less refusal is the exact text of 7.7" 0 "$(gb "$WU" "$WU" './harness/bin/ceo-keygen.sh' auto >/dev/null; printf '%s\n' "BLOCKED by company guard: this command needs the CEO's dialog, but permission mode 'auto' is not proven to show it. Ask the CEO to switch to default mode or run the command in his own terminal (no hook runs there)." | cmp -s - "$TP/g.err"; echo $?)"
-t "AC-10 mode auto: the path refusal is the exact text of 7.7" 0 "$(gb "$WU" "$WU" 'echo x > src/a.cs' auto >/dev/null; printf '%s\n' "BLOCKED by company guard: the edit of \"src/a.cs\" needs the CEO's dialog, but permission mode 'auto' is not proven to show it. Ask the CEO to switch to default mode or sign a spec that covers this path (code: a validly signed single active spec; product config: such a spec whose Unlocks: names the path; enforcement, signatures, .git: no spec covers them, default mode only)." | cmp -s - "$TP/g.err"; echo $?)"
+t "AC-10 mode auto: the path refusal is the exact text of 7.7" 0 "$(gb "$WU" "$WU" 'echo x > src/a.cs' auto >/dev/null; printf '%s\n' "BLOCKED by company guard: the edit of \"src/a.cs\" needs the CEO's dialog, but permission mode 'auto' is not proven to show it. Ask the CEO to switch to default mode or sign a spec that covers this path (code: a validly signed single active spec; product config: such a spec whose Unlocks: names the path; enforcement: such a spec whose Unlocks: names the exact path, file tools only; signatures, keys, .git: no spec covers them, default mode only)." | cmp -s - "$TP/g.err"; echo $?)"
 for c in './harness/bin/approve.sh ~/proj' 'node harness/approval.js sign specs/active/0001.md approvals k.pem' './harness/bin/ceo-keygen.sh' 'cat ~/.company/keys/ceo.key.pem' 'sh harness/bin/install-global.sh'; do
   t "AC-10 mode absent: asks: $c"                     ask   "$(gb "$WU" "$WU" "$c" -)"
 done
@@ -372,6 +372,16 @@ for md in default plan acceptEdits auto bypassPermissions somethingNew; do
   t "AC-10 mode $md: git configuration ask still asks"      ask   "$(gb - "$FN" 'git -c core.hooksPath=/dev/null commit -m x' "$md")"
   t "AC-10 mode $md: --no-verify stays a refusal"           deny  "$(gb - "$FN" 'git commit --no-verify -m x' "$md")"
 done
+# --- AC-16: a Bash writer is never unlocked by a literal enforcement entry (delta 2026-11-22, REQ-22) ---
+WGL="$TP/wgl"; mkws "$WGL"; printf '%s\n' '# Spec 0001' '- Status: Draft' '- Unlocks: CLAUDE.md, harness/gate.js' '' '## 1. Intent' 'x' > "$WGL/specs/active/0001.md"; gsign "$WGL" 0001.md
+t "AC-16 setup: the spec that names CLAUDE.md is signed" allow "$(gb "$WGL" "$WGL" 'echo x > src/a.cs')"
+for c in 'echo x > CLAUDE.md' 'cp /tmp/a harness/gate.js' "sed -i '' 's/a/b/' CLAUDE.md"; do
+  t "AC-16 signed and named, Bash writer asks: $c"    ask   "$(gb "$WGL" "$WGL" "$c")"
+  t "AC-16 that reason keeps the enforcement label: $c" yes "$(has '(enforcement)')"
+  t "AC-16 in mode auto it is refused: $c"            deny  "$(gb "$WGL" "$WGL" "$c" auto)"
+  t "AC-16 that refusal names the mode: $c"           yes   "$(errhas "permission mode 'auto'")"
+done
+t "AC-16 mode auto: the enforcement refusal is the path text of 7.7" 0 "$(gb "$WGL" "$WGL" 'echo x > CLAUDE.md' auto >/dev/null; printf '%s\n' "BLOCKED by company guard: the edit of \"CLAUDE.md\" needs the CEO's dialog, but permission mode 'auto' is not proven to show it. Ask the CEO to switch to default mode or sign a spec that covers this path (code: a validly signed single active spec; product config: such a spec whose Unlocks: names the path; enforcement: such a spec whose Unlocks: names the exact path, file tools only; signatures, keys, .git: no spec covers them, default mode only)." | cmp -s - "$TP/g.err"; echo $?)"
 t "AC-10 no new case ever printed an allow decision"  no    "$(if grep -q '"permissionDecision":"allow"' "$TP/all.out" 2>/dev/null; then echo yes; else echo no; fi)"
 t "AC-10 the new cases did print ask decisions"       yes   "$(if grep -q '"permissionDecision":"ask"' "$TP/all.out" 2>/dev/null; then echo yes; else echo no; fi)"
 

@@ -145,6 +145,11 @@ t "AC-5 unsigned: STATE.md is allowed"                             0 "$(cg "$C4"
 t "AC-5 unsigned: code write is still blocked"                     2 "$(cg "$C4" "$C4/src/app.cs")"
 t "AC-5 unsigned: harness/bin/x.sh is blocked"                     2 "$(cg "$C4" "$C4/harness/bin/x.sh")"
 t "AC-5 container ignores CLAUDE_PROJECT_DIR (root is cwd)"        2 "$(printf '{"tool_name":"Write","cwd":"%s","tool_input":{"file_path":"%s"}}' "$C4" "$C4/src/app.cs" | CLAUDE_PROJECT_DIR="$C1" COMPANY_PUBKEY="$T/plain/ceo.pub.pem" node "$HERE/gate.js" >>"$T/cg.out" 2>/dev/null; echo $?)"
+# spec 0004 AC-16 (delta 2026-11-22): the container never unlocks an enforcement file (REQ-17), whatever the signed header names
+C5="$T/c5"; cws "$C5" '# Spec c5\n- Unlocks: harness/gate.js, CLAUDE.md\n\n## 1\n'; csign "$C5"
+t "AC-16 container, signed and named: code write is allowed"       0 "$(cg "$C5" "$C5/src/app.cs")"
+t "AC-16 container, signed and named: harness/gate.js is blocked"  2 "$(cg "$C5" "$C5/harness/gate.js")"
+t "AC-16 container, signed and named: CLAUDE.md is blocked"        2 "$(cg "$C5" "$C5/CLAUDE.md")"
 t "AC-5 no case prints a permissionDecision"                       0 "$(grep -c permissionDecision "$T/cg.out")"
 
 echo; if [ "$fail" -eq 0 ]; then echo "HARNESS TESTS GREEN: $pass passed, 0 failed"; else echo "HARNESS TESTS FAILED: $pass passed, $fail failed"; fi

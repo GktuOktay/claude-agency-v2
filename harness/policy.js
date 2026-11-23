@@ -5,6 +5,7 @@
 //   parseHeader(text)           the `- Unlocks:` list of a spec header (§7.3)
 //   matchGlob(glob, rel, fold)  glob match against a root-relative POSIX path (§7.3)
 //   decide(req, ctx)            allow | ask | deny | none for one write target
+//   unlockKinds(unlocks, root, ctx)  entry kinds of a parsed list: enforcement | locked | other (§7.3, delta 2026-11-22)
 // A reason is returned without the hook prefix: the hook adds "BLOCKED by company <gate|guard>: " or "CEO onayı gerekir: ".
 // No side effects at load. approval.js is loaded only when a signature has to be checked.
 "use strict";
@@ -76,6 +77,43 @@ function resolvePath(p, fsx) {
   }
 }
 
+// Row 2 by a `<cfg>` or `<home>` member of §7.1 (home and session configuration). `env` holds both forms of each directory.
+function homeMember(abs, env) {
+  for (const c of env.cfgDirs) {
+    const s = segsUnder(abs, c, true);
+    if (!s || !s.length) continue;
+    const first = s[0].toLowerCase();
+    if (s.length === 1 && (/^settings.*\.json$/.test(first) || first === ".claude.json")) return true;
+    if (CFG_TREES.has(first)) return true;
+  }
+  for (const h of env.homes) {
+    const s = segsUnder(abs, h, true);
+    if (!s || !s.length) continue;
+    const first = s[0].toLowerCase();
+    if ((s.length === 1 && first === ".claude.json") || first === ".company") return true;
+  }
+  return false;
+}
+// Home configuration is matched in both forms for both classifications: a write through an alias of ~/.claude is still row 2.
+function homeEnv(ctx, fsx) {
+  const both = (dirs) => {
+    const set = new Set();
+    for (const d of dirs || []) {
+      if (!d) continue;
+      set.add(nfc(path.resolve(d)));
+      try { set.add(resolvePath(path.resolve(d), fsx)); } catch { /* lexical form only */ }
+    }
+    return [...set];
+  };
+  return { platform: ctx.platform || process.platform, cfgDirs: both(ctx.cfgDirs), homes: both(ctx.home ? [ctx.home] : []) };
+}
+
+// Locked paths (§7.3 condition 3, Ruling R-21): no `Unlocks:` entry opens them, whatever the root. Tested on one absolute
+// path, lexical or resolved: `approvals/` and `harness/keys/` at any depth, `.claude/settings.local.json`,
+// `harness/bin/ceo-keygen.sh` (compared without case, as row 2 is), and every `<cfg>` or `<home>` member.
+const LOCKED = /(^|\/)(approvals|harness\/keys)(\/|$)|(^|\/)(\.claude\/settings\.local\.json|harness\/bin\/ceo-keygen\.sh)$/;
+const isLocked = (abs, env) => LOCKED.test(posix(abs).toLowerCase()) || homeMember(abs, env);
+
 // One classification (lexical or resolved): first matching row of the §7.1 table, top to bottom.
 // R: workspace root, M: main worktree root when the main-root rule applies (else null); both in the same form as `abs`.
 function classifyOne(abs, R, M, env) {
@@ -99,20 +137,7 @@ function classifyOne(abs, R, M, env) {
   // row 1, hard-deny
   if (root !== null && (at("approvals", lrel) || at(".git", lrel))) return out(1);
   // row 2, enforcement: anywhere on disk
-  if (ENFORCEMENT.test(absPosix) || ANYWHERE.test(absPosix.toLowerCase())) return out(2);
-  for (const c of env.cfgDirs) {
-    const s = segsUnder(abs, c, true);
-    if (!s || !s.length) continue;
-    const first = s[0].toLowerCase();
-    if (s.length === 1 && (/^settings.*\.json$/.test(first) || first === ".claude.json")) return out(2);
-    if (CFG_TREES.has(first)) return out(2);
-  }
-  for (const h of env.homes) {
-    const s = segsUnder(abs, h, true);
-    if (!s || !s.length) continue;
-    const first = s[0].toLowerCase();
-    if ((s.length === 1 && first === ".claude.json") || first === ".company") return out(2);
-  }
+  if (ENFORCEMENT.test(absPosix) || ANYWHERE.test(absPosix.toLowerCase()) || homeMember(abs, env)) return out(2);
   if (root === null) return out(7);
   // row 2, R-relative; the carve-outs to row 4 match with exact case (Ruling R-14)
   if (/^harness\/[^/]*\.js$/.test(lrel) || lrel === ".mcp.json") return out(2);
@@ -134,17 +159,7 @@ function classify(absPath, ctx) {
   const abs = path.resolve(String(absPath));
   const R = path.resolve(ctx.root);
   const M = ctx.mode !== "container" && ctx.mainRoot && path.resolve(ctx.mainRoot) !== R ? path.resolve(ctx.mainRoot) : null;
-  // Home configuration is matched in both forms for both classifications: a write through an alias of ~/.claude is still row 2.
-  const both = (dirs) => {
-    const set = new Set();
-    for (const d of dirs || []) {
-      if (!d) continue;
-      set.add(nfc(path.resolve(d)));
-      try { set.add(resolvePath(path.resolve(d), fsx)); } catch { /* lexical form only */ }
-    }
-    return [...set];
-  };
-  const env = { platform: ctx.platform || process.platform, cfgDirs: both(ctx.cfgDirs), homes: both(ctx.home ? [ctx.home] : []) };
+  const env = homeEnv(ctx, fsx);
   const lexical = classifyOne(nfc(abs), nfc(R), M && nfc(M), env);
   const resolved = classifyOne(resolvePath(abs, fsx), resolvePath(R, fsx), M && resolvePath(M, fsx), env);
   const fin = STRENGTH[lexical.row] > STRENGTH[resolved.row] ? lexical : resolved;      // tie: the resolved path is reported
@@ -152,8 +167,12 @@ function classify(absPath, ctx) {
 }
 
 // ---- `Unlocks:` header (§7.3) ---------------------------------------------------------------
+// A glob as printable ASCII: an entry that holds control, format or bidi characters must not reach a terminal or a dialog as it is.
+const ascii = (s) => { const q = JSON.stringify(String(s)).replace(/[^\x20-\x7e]/g, (ch) => "\\u" + ch.charCodeAt(0).toString(16).padStart(4, "0")); return q.length > 200 ? q.slice(0, 197) + "..." : q; };
 function globError(g) {
   if (g === "") return "empty item";
+  // Delta 2026-11-22, S-05: control, format and bidi characters, line and paragraph separators (a tightening, §7.3 change rule).
+  if (/[\p{Cc}\p{Cf}\p{Zl}\p{Zp}]/u.test(g)) return "control, format or separator character in " + ascii(g);
   if (/[{}\[\]!~$\\`]/.test(g)) return "character not allowed in " + quote(g);
   if (g.startsWith("/")) return "absolute glob " + quote(g);
   for (const seg of g.split("/")) {
@@ -195,6 +214,28 @@ function matchGlob(glob, rel, fold) {
     return j < ps.length && res[i].test(ps[j]) && go(i + 1, j + 1);
   };
   return go(0, 0);
+}
+
+// unlockKinds(unlocks, root, ctx): the entry kinds of §7.3 for a parsed `Unlocks:` list of the spec of `root`.
+// The one source for decide, the signing preview, the signing dialog and lint (Ruling R-23). A glob is always `other`.
+// A literal entry E is classified as <root>/E: `locked` (no header opens it), `enforcement` (its lexical or its resolved
+// class is row 2) or `other`. The list may hold an entry the gate will not open (a symlinked path), never the reverse.
+function unlockKinds(unlocks, root, ctx) {
+  ctx = ctx || {};
+  const out = { enforcement: [], locked: [], other: [] };
+  const base = path.resolve(String(root));
+  const sub = { mode: ctx.mode, root: base, mainRoot: base, cfgDirs: ctx.cfgDirs, home: ctx.home, platform: ctx.platform, fs: ctx.fs };
+  const env = homeEnv(sub, ctx.fs || fs);
+  for (const e of Array.isArray(unlocks) ? unlocks : []) {
+    if (/[*?]/.test(e)) { out.other.push(e); continue; }
+    let c;
+    try { c = classify(path.resolve(base, String(e)), sub); }
+    catch (err) { if (!(err instanceof ResolveError)) throw err; out.locked.push(e); continue; }   // unresolvable: never authority
+    if (c.row === 1 || [c.lexical, c.resolved].some((x) => isLocked(path.join(x.root, x.rel), env))) out.locked.push(e);
+    else if (c.lexical.row === 2 || c.resolved.row === 2) out.enforcement.push(e);
+    else out.other.push(e);
+  }
+  return out;
 }
 
 // ---- context (§7.2) -------------------------------------------------------------------------
@@ -248,7 +289,9 @@ function context(event, opts) {
 }
 
 // ---- decide (§7.1 table, §7.7) --------------------------------------------------------------
-const MODE_TAIL = "Ask the CEO to switch to default mode or sign a spec that covers this path (code: a validly signed single active spec; product config: such a spec whose Unlocks: names the path; enforcement, signatures, .git: no spec covers them, default mode only).";
+const MODE_TAIL = "Ask the CEO to switch to default mode or sign a spec that covers this path (code: a validly signed single active spec; product config: such a spec whose Unlocks: names the path; enforcement: such a spec whose Unlocks: names the exact path, file tools only; signatures, keys, .git: no spec covers them, default mode only).";
+// Callers that may use a literal enforcement entry (§7.3 condition 6, S-01); an event without agent_type is the main session.
+const UNLOCK_CALLERS = Object.freeze(["polyglot-engineer", "dotnet-engineer", "react-engineer", "devops-sre"]);
 
 // Signature state of the single active spec of `root`. Records come from `approvalsDir`, the header from the verified bytes (REQ-19).
 function authority(root, approvalsDir, ctx) {
@@ -296,6 +339,33 @@ function decide(req, ctx) {
     return res("deny", "the edit of " + q + " needs the CEO's dialog, but permission mode '" + shown + "' is not proven to show it. " + MODE_TAIL, c);
   };
   const protectedWhy = quote(posix(path.relative(ctx.root, target))) + " is protected; only the CEO changes approvals and gate configuration";
+  // The condition of §7.3 "Literal enforcement entries" that a row-2 write does not meet (dialog text), or null when all six hold.
+  const enforcementUnmet = () => {
+    if (kind === "bash") return "kabuk komutuyla yazılıyor; Unlocks: yalnız dosya araçlarının yazmasını açar";                 // REQ-22
+    const who = ctx.agentType;                                                                                               // 6. caller
+    if (who !== undefined && who !== null && !UNLOCK_CALLERS.includes(who)) return "çağıran birim " + quote(who) + " zorlama dosyası düzenleyebilenler listesinde değil; Unlocks: bu çağırana açmaz";
+    const lx = c.lexical, rs = c.resolved;
+    const env = homeEnv(ctx, ctx.fs || fs);
+    if ([lx, rs].some((x) => isLocked(path.join(x.root, x.rel), env))) return "kilitli yol (imza dizini, anahtarlar, oturum ve ev yapılandırması); hiçbir Unlocks: açamaz";   // 3. not locked
+    if (lx.row === 2 && lx.root === path.parse(lx.root).root) return "çalışma kökünün dışında; hiçbir Unlocks: açamaz";       // 1. root: outside every root
+    // 1. both row 2 against the same root (resolved.root === realpath(lexical.root), D-1); 2. the same root-relative path
+    if (lx.row !== 2 || rs.row !== 2 || rs.root !== safeReal(lx.root, ctx) || nfc(lx.rel) !== nfc(rs.rel)) return "sembolik bağ üzerinden erişiliyor; Unlocks: yalnız dosyanın kendi yolunu açar";
+    // 4. signature: the same lookup as for rows 4 and 6; a failed lookup gives no authority, not a refusal (Ruling R-22)
+    if (!isDir(path.join(c.root, "specs"))) return "imzalı tek etkin spec yok (specs/ klasörü yok)";                           // REQ-11: no git lookup
+    let approvalsDir = ctx.approvalsDir;
+    const isMain = c.root === nfc(path.resolve(ctx.mainRoot)) || c.root === safeReal(ctx.mainRoot, ctx);
+    if (isRoot || isMain) {
+      if (ctx.rootLookupFailed) return "imza doğrulanamadı (git araması başarısız)";
+    } else {
+      try { approvalsDir = path.join(mainWorktree(c.root, ctx.env), "approvals"); } catch { return "imza doğrulanamadı (git araması başarısız)"; }
+    }
+    if (!ctx.pubkeyPath) return "imza doğrulanamadı (harness anahtarı bulunamadı)";
+    const a = authority(c.root, approvalsDir, ctx);
+    if (!a.ok) return a.count === 1 ? "etkin spec imzalı değil (" + a.why + ")" : "tek etkin spec gerekir (bulunan: " + a.count + ")";
+    // 5. entry: a literal entry of kind `enforcement` equal to the root-relative path, byte for byte after NFC, exact case everywhere
+    if (!unlockKinds(a.unlocks, c.root, ctx).enforcement.some((e) => nfc(e) === nfc(rs.rel))) return "imzalı spec'in Unlocks: listesinde tam yoluyla yok (glob açmaz)";
+    return null;
+  };
 
   if (container) {
     const lex = segsUnder(nfc(target), nfc(path.resolve(ctx.root)), false);
@@ -308,7 +378,13 @@ function decide(req, ctx) {
     if (kind === "bash" && !container) return ask("imza dizini veya git verisi " + q + " (hard-deny)" + where + ": kabuk komutuyla değiştiriliyor.");
     return res("deny", container ? protectedWhy : q + " is protected (signatures and git metadata): no tool call changes it; only the CEO does, outside the session", c);
   }
-  if (c.row === 2) return ask("zorlama katmanı dosyası " + q + " (enforcement)" + where + ": her düzenleme CEO onayı ister, imza ya da Unlocks: kapsamaz.", protectedWhy.replace("approvals and gate configuration", "enforcement files"));
+  if (c.row === 2) {
+    // Literal enforcement entries (§7.3, REQ-8): a host file-tool write is allowed only when all six conditions hold;
+    // otherwise the unchanged ask (Ruling R-22), whose reason names the condition that is not met. Never in the container (REQ-17).
+    const unmet = container ? "container" : enforcementUnmet();
+    if (unmet === null) return res("allow", "", c);
+    return ask("zorlama katmanı dosyası " + q + " (enforcement)" + where + ": " + unmet + ".", protectedWhy.replace("approvals and gate configuration", "enforcement files"));
+  }
   if (c.row === 7) return container ? res("deny", "path is outside the workspace", c) : res("none", "", c);
   if (c.row === 5) return res(kind === "bash" && !container ? "none" : "allow", "", c);
 
@@ -339,4 +415,4 @@ function decide(req, ctx) {
 
 function safeReal(p, ctx) { try { return resolvePath(path.resolve(p), ctx.fs || fs); } catch { return nfc(path.resolve(p)); } }
 
-module.exports = { context, classify, parseHeader, matchGlob, decide, quote, foldGlobs, mainWorktree, ResolveError, ASK_MODES, ENFORCEMENT, LABELS };
+module.exports = { context, classify, parseHeader, matchGlob, decide, unlockKinds, UNLOCK_CALLERS, quote, foldGlobs, mainWorktree, ResolveError, ASK_MODES, ENFORCEMENT, LABELS };
