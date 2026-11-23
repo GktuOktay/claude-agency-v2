@@ -152,5 +152,95 @@ t "AC-16 container, signed and named: harness/gate.js is blocked"  2 "$(cg "$C5"
 t "AC-16 container, signed and named: CLAUDE.md is blocked"        2 "$(cg "$C5" "$C5/CLAUDE.md")"
 t "AC-5 no case prints a permissionDecision"                       0 "$(grep -c permissionDecision "$T/cg.out")"
 
+# ---- spec 0004 AC-17 (delta 2026-11-22): enforcement entries apart in the preview, locked literals, non-ASCII ----
+# Temp HOME as above; the preview reads no key. Entry kinds come from policy.unlockKinds (Ruling R-23).
+HEAD17='ENFORCEMENT FILES THIS SIGNATURE OPENS (file-tool edits pass without a dialog while this spec is signed):'
+pws() { # pws <dir> <Unlocks value>: a workspace whose single active spec carries that header line
+  mkdir -p "$1/specs/active"; printf '%s\n' '# Spec p' '- Status: draft' "- Unlocks: $2" '' '## 1' 'x' > "$1/specs/active/0001.md"
+}
+pv() { ap "$1" --preview > "$T/pv.txt" 2> "$T/pv.err"; echo $?; }          # preview of <dir>: stdout in $T/pv.txt
+BS='\'                                                                      # one backslash: the escapes asserted below are spelled with it, never stored as a decoded character
+pline() { sed -n "$1p" "$T/pv.txt"; }
+plines() { wc -l < "$T/pv.txt" | tr -d ' '; }
+pblock() { grep -c '^  ' "$T/pv.txt"; }                                     # indented block lines
+phead() { grep -c 'ENFORCEMENT FILES' "$T/pv.txt"; }
+same() { if cmp -s "$T/pwant.txt" "$T/pv.txt"; then echo 0; else echo 1; fi; }
+# three entries, two of them exact enforcement paths: exactly eight lines
+P1="$T/p1"; pws "$P1" '`templates/**`, `CLAUDE.md`, `harness/gate.js`'; S1=$(sha12 "$P1/specs/active/0001.md")
+printf 'Spec: specs/active/0001.md\nsha12: %s\nUnlocks: templates/**\n%s\n  CLAUDE.md\n  harness/gate.js\nHeader lint: ok\nSign with: harness/bin/approve.sh %s --expect %s\n' "$S1" "$HEAD17" "$P1" "$S1" > "$T/pwant.txt"
+t "AC-17 preview with enforcement entries: exit 0"             0 "$(pv "$P1")"
+t "AC-17 preview prints exactly the eight lines"               0 "$(same)"
+t "AC-17 preview with enforcement entries: nothing on stderr"  0 "$([ ! -s "$T/pv.err" ]; echo $?)"
+t "AC-17 the flat Unlocks line does not carry CLAUDE.md"       0 "$(pline 3 | grep -c 'CLAUDE.md')"
+t "AC-17 the flat Unlocks line does not carry harness/gate.js" 0 "$(pline 3 | grep -c 'gate.js')"
+t "AC-17 enforcement entries do not block signing: exit 0"     0 "$(ap "$P1" --expect "$S1" >/dev/null 2>&1; echo $?)"
+t "AC-17 that signature left a record"                         1 "$(norec "$P1")"
+# CLAUDE.md as the only entry: Unlocks: (none), then the block
+P2="$T/p2"; pws "$P2" '`CLAUDE.md`'; S2=$(sha12 "$P2/specs/active/0001.md")
+printf 'Spec: specs/active/0001.md\nsha12: %s\nUnlocks: (none)\n%s\n  CLAUDE.md\nHeader lint: ok\nSign with: harness/bin/approve.sh %s --expect %s\n' "$S2" "$HEAD17" "$P2" "$S2" > "$T/pwant.txt"
+t "AC-17 enforcement-only header: exit 0"                      0 "$(pv "$P2")"
+t "AC-17 enforcement-only header: line 3 is Unlocks: (none)"   "Unlocks: (none)" "$(pline 3)"
+t "AC-17 enforcement-only header: the block follows"           0 "$(same)"
+# a glob never goes to the block: the five lines of AC-7
+P3="$T/p3"; pws "$P3" '`harness/**`'; S3=$(sha12 "$P3/specs/active/0001.md")
+printf 'Spec: specs/active/0001.md\nsha12: %s\nUnlocks: harness/**\nHeader lint: ok\nSign with: harness/bin/approve.sh %s --expect %s\n' "$S3" "$P3" "$S3" > "$T/pwant.txt"
+t "AC-17 glob-only header harness/**: exit 0"                  0 "$(pv "$P3")"
+t "AC-17 glob-only header: the five lines, no block"           0 "$(same)"
+t "AC-17 glob-only header: no heading line"                    0 "$(phead)"
+# header order is kept inside the block; entries of the other kind keep theirs on the flat line
+P4="$T/p4"; pws "$P4" 'harness/gate.js, src/a.cs, CLAUDE.md, `evals/**`, .mcp.json'
+t "AC-17 mixed header: exit 0"                                 0 "$(pv "$P4")"
+t "AC-17 mixed header: flat line holds the other entries"      "Unlocks: src/a.cs, evals/**" "$(pline 3)"
+t "AC-17 mixed header: heading on line 4"                      "$HEAD17" "$(pline 4)"
+t "AC-17 mixed header: block in header order"                  "  harness/gate.js|  CLAUDE.md|  .mcp.json|Header lint: ok" "$(pline 5)|$(pline 6)|$(pline 7)|$(pline 8)"
+t "AC-17 mixed header: nine lines"                             9 "$(plines)"
+# locked literals: on neither the Unlocks: line nor the block; a Header lint finding; --expect refuses
+i=0
+for e in 'harness/keys/k.pem' 'approvals/x.json' '.git/config' 'src/approvals/y.json' '.claude/settings.local.json' 'harness/bin/ceo-keygen.sh'; do
+  i=$((i+1)); PL="$T/pl$i"; pws "$PL" "\`$e\`"; SL=$(sha12 "$PL/specs/active/0001.md")
+  t "AC-17 locked literal $e: preview exits 0"                 0 "$(pv "$PL")"
+  t "AC-17 locked literal $e: no block line"                   0 "$(pblock)"
+  t "AC-17 locked literal $e: no heading line"                 0 "$(phead)"
+  t "AC-17 locked literal $e: line 3 is Unlocks: (none)"       "Unlocks: (none)" "$(pline 3)"
+  t "AC-17 locked literal $e: the finding quotes the entry"    "Header lint: \"$e\" names a locked path (signatures, keys, git metadata): no header opens it" "$(pline 4)"
+  t "AC-17 locked literal $e: five lines"                      5 "$(plines)"
+  t "AC-17 locked literal $e: --expect <right> exits 2"        2 "$(ap "$PL" --expect "$SL" >/dev/null 2>&1; echo $?)"
+  t "AC-17 locked literal $e: no record"                       0 "$(norec "$PL")"
+  t "AC-17 locked literal $e: wrong sha12 still exits 5"       5 "$(ap "$PL" --expect 000000000000 >/dev/null 2>&1; echo $?)"
+done
+P5="$T/p5"; pws "$P5" '`templates/**`, `harness/keys/k.pem`'; S5=$(sha12 "$P5/specs/active/0001.md")
+t "AC-17 glob next to a locked literal: exit 0"                0 "$(pv "$P5")"
+t "AC-17 glob next to a locked literal: line 3 exact"          "Unlocks: templates/**" "$(pline 3)"
+t "AC-17 glob next to a locked literal: no block"              0 "$(phead)"
+t "AC-17 glob next to a locked literal: finding"               0 "$(pline 4 | grep -q '^Header lint: "harness/keys/k.pem" names a locked path'; echo $?)"
+t "AC-17 glob next to a locked literal: --expect exits 2"      2 "$(ap "$P5" --expect "$S5" >/dev/null 2>&1; echo $?)"
+t "AC-17 glob next to a locked literal: no record"             0 "$(norec "$P5")"
+P6="$T/p6"; pws "$P6" 'CLAUDE.md, harness/keys/k.pem, approvals/x.json'; S6=$(sha12 "$P6/specs/active/0001.md")
+t "AC-17 enforcement and two locked literals: exit 0"          0 "$(pv "$P6")"
+t "AC-17 enforcement and locked: the block holds CLAUDE.md only" "Unlocks: (none)|$HEAD17|  CLAUDE.md|1" "$(pline 3)|$(pline 4)|$(pline 5)|$(pblock)"
+t "AC-17 enforcement and locked: both findings, joined by ;"   'Header lint: "harness/keys/k.pem" names a locked path (signatures, keys, git metadata): no header opens it; "approvals/x.json" names a locked path (signatures, keys, git metadata): no header opens it' "$(pline 6)"
+t "AC-17 enforcement and locked: --expect exits 2"             2 "$(ap "$P6" --expect "$S6" >/dev/null 2>&1; echo $?)"
+t "AC-17 enforcement and locked: no record"                    0 "$(norec "$P6")"
+# the lock follows the environment (D-2): with HOME equal to the workspace, .claude/settings.json is locked; elsewhere it is an enforcement entry
+PH="$T/ph"; pws "$PH" '.claude/settings.json'; SH=$(sha12 "$PH/specs/active/0001.md")
+t "AC-17 .claude/settings.json, HOME elsewhere: in the block"  "Unlocks: (none)|$HEAD17|  .claude/settings.json|Header lint: ok" "$(pv "$PH" >/dev/null; echo "$(pline 3)|$(pline 4)|$(pline 5)|$(pline 6)")"
+HOME="$PH" sh "$AP" "$PH" --preview > "$T/pv.txt" 2>/dev/null
+t "AC-17 .claude/settings.json, HOME = workspace: locked"      'Unlocks: (none)|Header lint: ".claude/settings.json" names a locked path (signatures, keys, git metadata): no header opens it|0' "$(pline 3)|$(pline 4)|$(phead)"
+# S-05: a format character makes the header invalid; other non-ASCII is printed as \uXXXX
+P7="$T/p7"; pws "$P7" "$(printf 'docs/a\342\200\256b.md')"; S7=$(sha12 "$P7/specs/active/0001.md")
+t "AC-17 entry with U+202E: preview exits 0"                   0 "$(pv "$P7")"
+t "AC-17 entry with U+202E: line 3 starts Unlocks: INVALID:"   0 "$(pline 3 | grep -q '^Unlocks: INVALID:'; echo $?)"
+t "AC-17 entry with U+202E: no block"                          0 "$(phead)"
+t "AC-17 entry with U+202E: five lines"                        5 "$(plines)"
+t "AC-17 entry with U+202E: shown as its escape"               0 "$(grep -qF "${BS}u202e" "$T/pv.txt"; echo $?)"
+t "AC-17 entry with U+202E: the raw character is not printed"  0 "$(LC_ALL=C grep -c "$(printf '\342\200\256')" "$T/pv.txt")"
+t "AC-17 entry with U+202E: --expect <right> exits 2"          2 "$(ap "$P7" --expect "$S7" >/dev/null 2>&1; echo $?)"
+t "AC-17 entry with U+202E: no record"                         0 "$(norec "$P7")"
+P8="$T/p8"; pws "$P8" "$(printf 'docs/caf\303\251.md, harness/\303\251.js')"
+t "AC-17 entry with U+00E9: preview exits 0"                   0 "$(pv "$P8")"
+t "AC-17 entry with U+00E9 under docs/: printed as its escape" "Unlocks: docs/caf${BS}u00e9.md" "$(pline 3)"
+t "AC-17 enforcement entry with U+00E9: printed as its escape" "  harness/${BS}u00e9.js" "$(pline 5)"
+t "AC-17 entry with U+00E9: no raw non-ASCII byte in the output" 0 "$(LC_ALL=C grep -c "$(printf '\303')" "$T/pv.txt")"
+
 echo; if [ "$fail" -eq 0 ]; then echo "HARNESS TESTS GREEN: $pass passed, 0 failed"; else echo "HARNESS TESTS FAILED: $pass passed, $fail failed"; fi
 [ "$fail" -eq 0 ]

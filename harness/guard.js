@@ -222,14 +222,22 @@ function bashBranch(ev) {
     let dialog = null;
     if (policy && want && want.literal && wsArgs.length === 1 && wsArgs[0].literal && wsArgs[0].text !== "") {
       try {
-        const dir = path.join(path.resolve(cwd, expand(wsArgs[0])), "specs", "active");
+        const wsRoot = path.resolve(cwd, expand(wsArgs[0]));
+        const dir = path.join(wsRoot, "specs", "active");
         const names = fs.readdirSync(dir).filter((f) => f.endsWith(".md") && !f.startsWith("."));
         if (names.length === 1) {
           const buf = fs.readFileSync(path.join(dir, names[0]));                 // one read: sha12 and header from the same bytes
           const sha12 = require("crypto").createHash("sha256").update(buf).digest("hex").slice(0, 12);
           const h = policy.parseHeader(buf.toString("utf8"));
           if (sha12 === want.text && !h.errors.length) {
-            dialog = "CEO imzası: " + quote("specs/active/" + names[0]) + " · sha " + sha12 + " · Unlocks: " + (h.unlocks.length ? h.unlocks.map(quote).join(", ") : "yok") + ". Bu penceredeki onay, imzanın kendisidir.";
+            // Entry kinds from the policy (Ruling R-23), as the preview prints them: enforcement entries apart, a locked
+            // entry denies like an unequal sha12 (§7.5). An entry never reaches the dialog outside printable ASCII (S-05).
+            const kinds = policy.unlockKinds(h.unlocks, wsRoot, policy.context({ cwd: wsRoot }, { mode: "host", env: process.env, harnessDir: __dirname }));
+            const entry = (s) => { const q = JSON.stringify(String(s)).replace(/[^\x20-\x7e]/g, (ch) => "\\u" + ch.charCodeAt(0).toString(16).padStart(4, "0")); return q.length > 200 ? q.slice(0, 199) + "…" : q; };
+            if (!kinds.locked.length) {
+              dialog = "CEO imzası: " + quote("specs/active/" + names[0]) + " · sha " + sha12 + " · Unlocks: " + (kinds.other.length ? kinds.other.map(entry).join(", ") : "yok")
+                + (kinds.enforcement.length ? " · Zorlama dosyalarını açar: " + kinds.enforcement.map(entry).join(", ") : "") + ". Bu penceredeki onay, imzanın kendisidir.";
+            }
           }
         }
       } catch { dialog = null; }

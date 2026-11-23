@@ -367,6 +367,8 @@ const q = (s) => JSON.stringify(String(s)).slice(0, 200);          // spec and g
   const README = "harness/README.md";
   const ORDER = "hard-deny > enforcement > product-config > code > outside > free";                    // Ruling R-17
   const RULE = "classify both the lexical and the resolved path, stronger class wins";                 // the name §7.1.1 defines
+  const EXACT = "an exact path may open an enforcement file, a glob never does";                       // the rule name §7.3 defines
+  const BLOCK = "ENFORCEMENT FILES THIS SIGNATURE OPENS";                                              // the preview heading of §7.5
   const readme = read(README);
   if (readme !== null) {
     const gaps = section(readme, "## Bilinen boşluklar");
@@ -382,6 +384,16 @@ const q = (s) => JSON.stringify(String(s)).slice(0, 200);          // spec and g
     else {
       if (!classes.includes(ORDER)) bad.push(`${README}: '## Yol sınıfları' lacks the strength order '${ORDER}'`);
       if (!classes.includes(RULE)) bad.push(`${README}: '## Yol sınıfları' lacks the rule '${RULE}'`);
+      if (!classes.includes(EXACT)) bad.push(`${README}: '## Yol sınıfları' lacks the rule '${EXACT}'`);
+    }
+    // Delta 2026-11-22 (T-8b, AC-14): where and how the CEO signs, the permission-mode section, and the amended G-1 row.
+    const signing = section(readme, "## CEO nerede ve nasıl imzalar");
+    if (signing === null) bad.push(`${README}: section '## CEO nerede ve nasıl imzalar' missing`);
+    else if (!signing.includes(BLOCK)) bad.push(`${README}: '## CEO nerede ve nasıl imzalar' lacks '${BLOCK}'`);
+    if (section(readme, "## İzin kipi ve onay penceresi") === null) bad.push(`${README}: section '## İzin kipi ve onay penceresi' missing`);
+    if (gaps !== null) {
+      const g1 = gaps.split("\n").find((l) => /^\| ?G-1(?![\w-])/.test(l));
+      if (g1 !== undefined && !g1.includes("Unlocks:")) bad.push(`${README}: the G-1 row of '## Bilinen boşluklar' lacks 'Unlocks:'`);
     }
   }
   for (const rel of ["templates/spec-tam.md", "templates/spec-hizli.md"]) {

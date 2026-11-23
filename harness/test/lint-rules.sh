@@ -154,7 +154,7 @@ t "R-10 draft, glob reaches enforcement: exit 0" 0 "$rc"
 t "R-10 draft, glob reaches enforcement: WARN  unlocks-row2" yes "$(has '^WARN  unlocks-row2( |:)')"
 t "R-10 draft, glob reaches enforcement: no FAIL line" 0 "$(fails)"
 fresh; draft '`templates/x.md`'; lint "$C"
-t "R-10 draft, valid header: no WARN for it" no "$(has '^WARN  unlocks-[a-z0-9]* specs/draft/9999')"
+t "R-10 draft, valid header: no WARN for it" no "$(has '^WARN  unlocks-[a-z0-9]* "specs/draft/9999')"
 
 # --- AC-11: hook-wrapper rule ----------------------------------------------------------------
 W='|| exit 2'
@@ -195,6 +195,43 @@ fresh; rm -f "$C/$FX"/*.json
 neg "AC-13 no fixture left" fixture-sanitized
 fresh; jedit "$FX/$FIRST" 'j.cwd = "/home-dir/project"; j.note = "abcdef12-34";'; lint "$C"
 t "AC-13 sanitized placeholders pass" no "$(has '^FAIL  fixture-sanitized')"
+
+# --- AC-14: texts-0004 rule (README and template parts) --------------------------------------
+# redit <file> <js expression on the text `s`>: rewrites a text file in $C; prints yes when the text changed (a case
+# whose edit changes nothing would test nothing).
+redit() {
+  node -e 'const fs=require("fs");const f=process.argv[1];const s=fs.readFileSync(f,"utf8");const o=new Function("s","return ("+process.argv[2]+");")(s);fs.writeFileSync(f,o);process.stdout.write(o!==s?"yes":"no");' "$C/$1" "$2" 2>/dev/null || printf error
+}
+tneg() { # tneg <name> <file> <edit> <message pattern>: the edited fixture fails texts-0004 alone, with that message
+  fresh; t "$1: the edit changed the file" yes "$(redit "$2" "$3")"
+  neg "$1" texts-0004
+  t "$1: the message" yes "$(has "^FAIL  texts-0004 .*$4")"
+}
+RD="harness/README.md"; TT="templates/spec-tam.md"; TQ="templates/spec-hizli.md"
+fresh; lint "$C"
+t "AC-14 baseline fixture: texts rule reports ok" yes "$(has '^ok    texts-0004')"
+# Ruling P-5: the cases T-8 ran by hand, now permanent (checks written in T-8)
+tneg "AC-14 README without the section Bilinen boşluklar" "$RD" 's.replace("\n## Bilinen boşluklar\n", "\n## Bilinen eksikler\n")' "section '## Bilinen boşluklar' missing"
+tneg "AC-14 README gap table without the row G-7" "$RD" 's.split("\n").filter((l) => !l.startsWith("| G-7 |")).join("\n")' "lacks G-7(;|\$)"
+tneg "AC-14 README gap table without the row G-22 (the mention G-1..G-22 is no row)" "$RD" 's.split("\n").filter((l) => !l.startsWith("| G-22 |")).join("\n")' "lacks G-22(;|\$)"
+tneg "AC-14 README row G-2 moved out of the section" "$RD" '((l) => l.filter((x) => !x.startsWith("| G-2 |")).join("\n") + "\n## Ek\n\n" + l.find((x) => x.startsWith("| G-2 |")) + "\n")(s.split("\n"))' "lacks G-2(;|\$)"
+tneg "AC-14 README without the section Yol sınıfları" "$RD" 's.replace("\n## Yol sınıfları\n", "\n## Yollar\n")' "section '## Yol sınıfları' missing"
+tneg "AC-14 README without the strength order" "$RD" 's.split("hard-deny > enforcement > product-config").join("hard-deny > product-config > enforcement")' "lacks the strength order"
+tneg "AC-14 README without the two-path rule name" "$RD" 's.split("stronger class wins").join("the stronger one wins")' "lacks the rule 'classify both"
+tneg "AC-14 spec-tam template without the Unlocks: line" "$TT" 's.split("\n").filter((l) => !l.startsWith("- Unlocks: ")).join("\n")' "templates/spec-tam.md: the header must carry .* found 0"
+tneg "AC-14 spec-hizli template with the Unlocks: line twice" "$TQ" 's.replace(/^(- Unlocks: .*)$/m, "$1\n$1")' "templates/spec-hizli.md: the header must carry .* found 2"
+tneg "AC-14 spec-hizli template with the Unlocks: line below the first section" "$TQ" '((l) => l.filter((x) => !x.startsWith("- Unlocks: ")).join("\n") + "\n" + l.find((x) => x.startsWith("- Unlocks: ")) + "\n")(s.split("\n"))' "templates/spec-hizli.md: the header must carry .* found 0"
+# delta 2026-11-22 (T-8b): the three README sections of the delta and the G-1 row
+EXACT='an exact path may open an enforcement file, a glob never does'
+BLOCKHEAD='ENFORCEMENT FILES THIS SIGNATURE OPENS'
+tneg "AC-14 README Yol sınıfları without the rule name of 7.3" "$RD" 's.split("an exact path may open an enforcement file").join("an exact path opens an enforcement file")' "'## Yol sınıfları' lacks the rule '$EXACT'"
+tneg "AC-14 README rule name of 7.3 only in another section" "$RD" 's.split("an exact path may open an enforcement file").join("an exact path opens an enforcement file") + "\n## Ek\n\nan exact path may open an enforcement file, a glob never does\n"' "'## Yol sınıfları' lacks the rule '$EXACT'"
+tneg "AC-14 README without the section CEO nerede ve nasıl imzalar" "$RD" 's.replace("\n## CEO nerede ve nasıl imzalar\n", "\n## İmza\n")' "section '## CEO nerede ve nasıl imzalar' missing"
+tneg "AC-14 README signing section without the block heading" "$RD" 's.split("ENFORCEMENT FILES THIS SIGNATURE OPENS").join("ENFORCEMENT FILES")' "'## CEO nerede ve nasıl imzalar' lacks '$BLOCKHEAD'"
+tneg "AC-14 README block heading only in another section" "$RD" 's.split("ENFORCEMENT FILES THIS SIGNATURE OPENS").join("ENFORCEMENT FILES") + "\n## Ek\n\nENFORCEMENT FILES THIS SIGNATURE OPENS\n"' "'## CEO nerede ve nasıl imzalar' lacks '$BLOCKHEAD'"
+tneg "AC-14 README without the section İzin kipi ve onay penceresi" "$RD" 's.replace("\n## İzin kipi ve onay penceresi\n", "\n## Kipler\n")' "section '## İzin kipi ve onay penceresi' missing"
+tneg "AC-14 README section İzin kipi as a level-3 heading" "$RD" 's.replace("\n## İzin kipi ve onay penceresi\n", "\n### İzin kipi ve onay penceresi\n")' "section '## İzin kipi ve onay penceresi' missing"
+tneg "AC-14 README G-1 row without Unlocks:" "$RD" 's.split("\n").map((l) => (l.startsWith("| G-1 |") ? l.split("Unlocks:").join("başlık") : l)).join("\n")' "G-1 row .* lacks 'Unlocks:'"
 
 echo; if [ "$fail" -eq 0 ]; then echo "LINT RULE TESTS GREEN: $pass passed, 0 failed"; else echo "LINT RULE TESTS FAILED: $pass passed, $fail failed"; fi
 [ "$fail" -eq 0 ]

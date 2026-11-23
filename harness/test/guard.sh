@@ -382,6 +382,45 @@ for c in 'echo x > CLAUDE.md' 'cp /tmp/a harness/gate.js' "sed -i '' 's/a/b/' CL
   t "AC-16 that refusal names the mode: $c"           yes   "$(errhas "permission mode 'auto'")"
 done
 t "AC-16 mode auto: the enforcement refusal is the path text of 7.7" 0 "$(gb "$WGL" "$WGL" 'echo x > CLAUDE.md' auto >/dev/null; printf '%s\n' "BLOCKED by company guard: the edit of \"CLAUDE.md\" needs the CEO's dialog, but permission mode 'auto' is not proven to show it. Ask the CEO to switch to default mode or sign a spec that covers this path (code: a validly signed single active spec; product config: such a spec whose Unlocks: names the path; enforcement: such a spec whose Unlocks: names the exact path, file tools only; signatures, keys, .git: no spec covers them, default mode only)." | cmp -s - "$TP/g.err"; echo $?)"
+# --- AC-17 (delta 2026-11-22): the signing dialog names the enforcement entries apart (REQ-26, Ruling R-23) ---
+psha() { HOME="$TH" sh "$H/bin/approve.sh" "$1" --preview 2>/dev/null | sed -n 's/^sha12: //p'; }
+wsp() { mkws "$1"; printf '%s\n' '# Spec 0001' '- Status: Draft' "- Unlocks: $2" '' '## 1. Intent' 'x' > "$1/specs/active/0001.md"; }
+ZOR='Zorlama dosyalarını açar:'
+WE1="$TP/we1"; wsp "$WE1" '`templates/**`, `CLAUDE.md`, `harness/gate.js`'; SE1=$(psha "$WE1")
+t "AC-17 setup: preview of the first spec gives a sha12" 12 "$(printf '%s' "$SE1" | wc -c | tr -d ' ')"
+t "AC-17 --expect, header with enforcement entries: asks" ask "$(gb "$WE1" "$WE1" "harness/bin/approve.sh $WE1 --expect $SE1")"
+t "AC-17 the dialog names the other entries on Unlocks:" yes "$(has 'Unlocks: "templates/**"')"
+t "AC-17 the dialog names the enforcement entries apart" yes "$(has ' · Zorlama dosyalarını açar: "CLAUDE.md", "harness/gate.js"')"
+t "AC-17 the whole dialog text"                       yes   "$(has "CEO imzası: \"specs/active/0001.md\" · sha $SE1 · Unlocks: \"templates/**\" · Zorlama dosyalarını açar: \"CLAUDE.md\", \"harness/gate.js\". Bu penceredeki onay, imzanın kendisidir.")"
+t "AC-17 the flat list does not carry CLAUDE.md"      no    "$(has 'Unlocks: "templates/**", "CLAUDE.md"')"
+t "AC-17 in mode auto that signing is refused"        deny  "$(gb "$WE1" "$WE1" "harness/bin/approve.sh $WE1 --expect $SE1" auto)"
+t "AC-17 that refusal names the mode"                 yes   "$(errhas "permission mode 'auto'")"
+t "AC-17 a wrong sha12 is still refused"              deny  "$(gb "$WE1" "$WE1" "harness/bin/approve.sh $WE1 --expect 000000000000")"
+for e in 'harness/keys/k.pem' 'approvals/x.json' '`templates/**`, `harness/keys/k.pem`' 'CLAUDE.md, src/approvals/y.json' '.claude/settings.local.json' 'harness/bin/ceo-keygen.sh'; do
+  WE2="$TP/we2"; rm -rf "$WE2"; wsp "$WE2" "$e"; SE2=$(psha "$WE2")
+  t "AC-17 setup: preview gives a sha12: $e"          12    "$(printf '%s' "$SE2" | wc -c | tr -d ' ')"
+  t "AC-17 --expect, header with a locked literal, is refused: $e" deny "$(gb "$WE2" "$WE2" "harness/bin/approve.sh $WE2 --expect $SE2")"
+  t "AC-17 that refusal names --preview: $e"          yes   "$(errhas '--preview first')"
+  t "AC-17 no dialog for a locked literal: $e"        0     "$(wc -c < "$TP/g.out" | tr -d ' ')"
+done
+WE3="$TP/we3"; wsp "$WE3" '`CLAUDE.md`'; SE3=$(psha "$WE3")
+t "AC-17 --expect, enforcement-only header: asks"     ask   "$(gb "$WE3" "$WE3" "harness/bin/approve.sh $WE3 --expect $SE3")"
+t "AC-17 enforcement-only header: Unlocks: yok, then the segment" yes "$(has ' · Unlocks: yok · Zorlama dosyalarını açar: "CLAUDE.md". ')"
+t "AC-17 a header with globs only has no segment"     ask   "$(a "harness/bin/approve.sh $WA --expect $SHA")"
+t "AC-17 globs only: the dialog does not say $ZOR"    no    "$(has "$ZOR")"
+t "AC-17 globs only: the dialog is the text of AC-8"  yes   "$(has "CEO imzası: \"specs/active/0001.md\" · sha $SHA · Unlocks: \"templates/**\", \"harness/test/*.sh\". Bu penceredeki onay, imzanın kendisidir.")"
+WE4="$TP/we4"; wsp "$WE4" 'harness/**'; SE4=$(psha "$WE4")
+t "AC-17 a glob that covers enforcement files is no enforcement entry" ask "$(gb "$WE4" "$WE4" "harness/bin/approve.sh $WE4 --expect $SE4")"
+t "AC-17 that dialog has no segment"                  no    "$(has "$ZOR")"
+# S-05: non-ASCII in an entry is shown as \uXXXX in the dialog, never as a glyph
+BS='\'                                                # one backslash: the escapes asserted below are spelled with it
+WE5="$TP/we5"; wsp "$WE5" "$(printf 'docs/caf\303\251.md, harness/\303\251.js')"; SE5=$(psha "$WE5")
+t "AC-17 --expect, entries with U+00E9: asks"         ask   "$(gb "$WE5" "$WE5" "harness/bin/approve.sh $WE5 --expect $SE5")"
+t "AC-17 U+00E9 on the Unlocks list is an escape"     yes   "$(has "Unlocks: \"docs/caf${BS}u00e9.md\" · ")"
+t "AC-17 U+00E9 in the segment is an escape"          yes   "$(has "$ZOR \"harness/${BS}u00e9.js\". ")"
+t "AC-17 no raw U+00E9 in that dialog"                no    "$(has "$(printf '\303\251')")"
+WE6="$TP/we6"; wsp "$WE6" "$(printf 'docs/a\342\200\256b.md')"; SE6=$(psha "$WE6")
+t "AC-17 --expect, entry with U+202E (invalid header) is refused" deny "$(gb "$WE6" "$WE6" "harness/bin/approve.sh $WE6 --expect $SE6")"
 t "AC-10 no new case ever printed an allow decision"  no    "$(if grep -q '"permissionDecision":"allow"' "$TP/all.out" 2>/dev/null; then echo yes; else echo no; fi)"
 t "AC-10 the new cases did print ask decisions"       yes   "$(if grep -q '"permissionDecision":"ask"' "$TP/all.out" 2>/dev/null; then echo yes; else echo no; fi)"
 
