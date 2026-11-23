@@ -239,6 +239,11 @@ try {
       if (!entries.some((e) => covers(e && e.matcher, tool, false) && commandsOf(e).some(isHostGate))) bad.push(`the host gate (gate.js --host) is not wired for ${tool}`);
       const others = entries.filter((e) => covers(e && e.matcher, tool, true)).flatMap(commandsOf).filter((c) => /\b(gate|guard)\.js\b/.test(c) && !isHostGate(c));
       if (others.length) bad.push(`${tool} also runs ${[...new Set(others.map((c) => (/\bguard\.js\b/.test(c) ? "guard.js" : "gate.js without --host")))].join(" and ")} (one owner: only gate.js --host decides a file-tool write)`);
+      // One owner also means one run (AC-12, QA D-1): the host gate command twice for a tool is two answers for one edit.
+      // Counted among the commands that carry the '|| exit 2' suffix: one without it already fails hook-wrapper (every
+      // gate.js command does), so no duplicate passes lint, and that finding keeps its own rule id alone (T-7 case of AC-11).
+      const owners = entries.filter((e) => covers(e && e.matcher, tool, true)).flatMap(commandsOf).filter((c) => isHostGate(c) && /\|\| exit 2\s*$/.test(c)).length;
+      if (owners > 1) bad.push(`${tool} runs the host gate (gate.js --host) ${owners} times (one owner: one entry, one command per file tool)`);
     }
     if (!entries.some((e) => covers(e && e.matcher, "Bash", false) && commandsOf(e).some((c) => /\bguard\.js\b/.test(c)))) bad.push("the guard (guard.js) is not wired for Bash");
     if (bad.length) fail("host-gate-owner .claude/settings.json: " + bad.join("; "));

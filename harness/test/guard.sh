@@ -421,6 +421,56 @@ t "AC-17 U+00E9 in the segment is an escape"          yes   "$(has "$ZOR \"harne
 t "AC-17 no raw U+00E9 in that dialog"                no    "$(has "$(printf '\303\251')")"
 WE6="$TP/we6"; wsp "$WE6" "$(printf 'docs/a\342\200\256b.md')"; SE6=$(psha "$WE6")
 t "AC-17 --expect, entry with U+202E (invalid header) is refused" deny "$(gb "$WE6" "$WE6" "harness/bin/approve.sh $WE6 --expect $SE6")"
+# --- §7.1.1: path aliases of macOS in writer targets (appsec finding of 2026-11-23) ---------------
+# The firmlink form of a writer target gets the decision of the direct path; a volfs target is refused. Scratch HOME ($TH).
+if [ "$(uname -s)" = Darwin ]; then
+  FL=/System/Volumes/Data
+  gid() { stat -f '%d/%i' "$1"; }
+  held() { case "$1" in ask|deny) echo yes;; *) echo "no: $1";; esac; }   # the direct path got an ask or a refusal
+  echo x > "$WU/src/a.cs"
+  t "alias setup: the firmlink form reaches the same file" "$(gid "$WU/src/a.cs")" "$(gid "$FL$WU/src/a.cs")"
+  t "alias setup: the volfs form reaches the same file"  "$(gid "$WU/src/a.cs")" "$(gid "/.vol/$(gid "$WU")/src/a.cs")"
+  for md in - auto; do
+    for c in 'cp x %s/harness/stop.js' 'echo x > %s/src/a.cs' 'cp x %s/src/new.cs' 'cp x %s/.mcp.json' 'touch %s/.git/hooks/pre-commit' 'tee %s/harness/new-hook.js' "sed -i '' 's/a/b/' %s/.claude/agents/x.md"; do
+      # shellcheck disable=SC2059
+      d=$(gb "$WU" "$WU" "$(printf "$c" "$WU")" "$md")
+      t "alias mode $md: direct is not waved through: $c" yes "$(held "$d")"
+      # shellcheck disable=SC2059
+      t "alias mode $md: firmlink target decides as the direct path: $c" "$d" "$(gb "$WU" "$WU" "$(printf "$c" "$FL$WU")" "$md")"
+    done
+    for p in .claude.json .company/x.json .company/keys/ceo.pub.pem; do
+      d=$(gb "$WU" "$WU" "echo x > $TH/$p" "$md")
+      t "alias mode $md: direct <HOME>/$p is not waved through" yes "$(held "$d")"
+      t "alias mode $md: firmlink <HOME>/$p decides as the direct path" "$d" "$(gb "$WU" "$WU" "echo x > $FL$TH/$p" "$md")"
+    done
+    t "alias mode $md: volfs writer target is refused"    deny  "$(gb "$WU" "$WU" "echo x > /.vol/$(gid "$WU")/src/a.cs" "$md")"
+    t "alias mode $md: volfs cp target is refused"        deny  "$(gb "$WU" "$WU" "cp x /.vol/$(gid "$WU")/.mcp.json" "$md")"
+  done
+  t "alias signed: direct code target has no opinion"     allow "$(gb "$WS" "$WS" "echo x > $WS/src/a.cs")"
+  t "alias signed: firmlink code target has no opinion either" allow "$(gb "$WS" "$WS" "echo x > $FL$WS/src/a.cs")"
+  t "alias signed: firmlink harness/stop.js still asks"   ask   "$(gb "$WS" "$WS" "cp x $FL$WS/harness/stop.js")"
+  # any other operand of a writer (Ruling R-7): an alias that names no location is refused there too, not waved through
+  for md in - auto; do
+    t "alias mode $md: direct enforcement file as a non-target operand is not waved through" yes "$(held "$(gb "$WU" "$WU" "cp $WU/.mcp.json $TP/elsewhere" "$md")")"
+    t "alias mode $md: firmlink enforcement file as a non-target operand decides as the direct path" "$(gb "$WU" "$WU" "cp $WU/.mcp.json $TP/elsewhere" "$md")" "$(gb "$WU" "$WU" "cp $FL$WU/.mcp.json $TP/elsewhere" "$md")"
+    t "alias mode $md: volfs path as a non-target operand is refused" deny "$(gb "$WU" "$WU" "cp /.vol/$(gid "$WU")/.mcp.json $TP/elsewhere" "$md")"
+    t "alias mode $md: that refusal says the path cannot be resolved" yes "$(errhas 'cannot be resolved (EALIAS, fail closed)')"
+    t "alias mode $md: /.nofollow path as a non-target operand is refused" deny "$(gb "$WU" "$WU" "cp /.nofollow$WU/.mcp.json $TP/elsewhere" "$md")"
+    t "alias mode $md: /.resolve path as a non-target operand is refused" deny "$(gb "$WU" "$WU" "mv /.resolve/1$WU/harness/stop.js $TP/elsewhere" "$md")"
+    t "alias mode $md: /.nofollow writer target is refused" deny "$(gb "$WU" "$WU" "echo x > /.nofollow$WU/src/a.cs" "$md")"
+    t "alias mode $md: /.resolve writer target is refused" deny "$(gb "$WU" "$WU" "tee /.resolve/1$WU/src/a.cs" "$md")"
+  done
+  t "alias signed: volfs path as a non-target operand is refused" deny "$(gb "$WS" "$WS" "cp /.vol/$(gid "$WS")/src/a.cs $TP/elsewhere")"
+  t "alias: a plain outside path as a non-target operand keeps no opinion" allow "$(gb "$WS" "$WS" "cp $TP/elsewhere-src $TP/elsewhere")"
+else
+  echo "skip (not darwin): 7.1.1 path alias cases (firmlink, volfs)"
+fi
+# --- §7.1 (REQ-33, Ruling R-16): several rules, one decision, reasons joined by " · " (QA T-11, D-2) ---
+t "REQ-33 two ask reasons are joined by ' · '"        yes   "$(gb "$WU" "$WU" 'git push origin main; rm -rf build' >/dev/null; has 'korumalı dala (main) push. · özyinelemeli silme.')"
+t "REQ-33 no ' | ' between the reasons of an ask"     no    "$(has '. | ')"
+t "REQ-33 two refusal reasons are joined by ' · '"    yes   "$(gb "$WU" "$WU" 'echo x > src/a.cs; echo y > src/b.cs' auto >/dev/null; errhas 'only). · the edit of "src/b.cs"')"
+t "REQ-33 QA repro qa-0004-reason-separator.js: exit 0" 0   "$(node "$HERE/test/qa-0004-reason-separator.js" > "$TP/qa-sep.out" 2>&1; echo $?)"
+t "REQ-33 QA repro: 4 cases ran, none failed"         4,0   "$(grep -c '^ok    ' "$TP/qa-sep.out"),$(grep -c '^FAIL  ' "$TP/qa-sep.out")"
 t "AC-10 no new case ever printed an allow decision"  no    "$(if grep -q '"permissionDecision":"allow"' "$TP/all.out" 2>/dev/null; then echo yes; else echo no; fi)"
 t "AC-10 the new cases did print ask decisions"       yes   "$(if grep -q '"permissionDecision":"ask"' "$TP/all.out" 2>/dev/null; then echo yes; else echo no; fi)"
 

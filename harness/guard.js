@@ -279,7 +279,8 @@ function bashBranch(ev) {
       const abs = path.resolve(cwd, expand(o));
       if (isTarget && o.literal) return record(abs);
       let c;
-      try { c = policy.classify(abs, context()); } catch (e) { if (e instanceof policy.ResolveError) return; throw e; }
+      // A path alias that names no location (EALIAS: volfs, /.nofollow, /.resolve) could be any file, rows 1-2 included: refused, as a target is.
+      try { c = policy.classify(abs, context()); } catch (e) { if (e instanceof policy.ResolveError) return e.code === "EALIAS" ? record(abs) : undefined; throw e; }
       if (c.row === 1 || c.row === 2) record(abs);
     };
     for (const sg of segs) {
@@ -394,8 +395,8 @@ function bashBranch(ev) {
 
   // --- one decision: deny > ask > none; the reason names every rule that produced it (REQ-33) -----
   const whys = (d) => found.filter((x) => x.d === d).map((x) => x.why);
-  if (whys("deny").length) deny(whys("deny").join(" | "));
-  if (whys("ask").length) ask(whys("ask").join(" | "));
+  if (whys("deny").length) deny(whys("deny").join(" · "));
+  if (whys("ask").length) ask(whys("ask").join(" · "));
   process.exit(0);
 }
 

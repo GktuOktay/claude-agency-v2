@@ -85,6 +85,8 @@ suite "decisions, signature, permission modes" decide "$T"
 suite "AC-11 source order, no allow"           source
 suite "AC-16 literal enforcement entries"      literal "$T"
 suite "7.3 S-05 header characters"             header-chars
+# §7.1.1: path aliases of macOS (data-volume firmlink prefix, volfs); elsewhere the skip is said aloud
+if [ "$(uname -s)" = Darwin ]; then suite "7.1.1 path aliases (firmlink, volfs)" alias "$T"; else echo "skip (not darwin): 7.1.1 path aliases (firmlink, volfs)"; fi
 
 n=$(node "$D" paths "$T" | wc -l | tr -d ' ')
 if [ "$n" -ge 100 ]; then pass=$((pass+1)); echo "ok    matrix path list for the consistency loop: $n rows"; else fail=$((fail+1)); echo "FAIL  matrix path list too short ($n rows)"; fi

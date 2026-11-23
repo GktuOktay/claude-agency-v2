@@ -473,6 +473,55 @@ t "AC-12 output: nothing else was created in that project"          no   "$(if [
 sh "$INST" > "$T/inst3.out" 2>&1; irc=$?
 t "AC-12 install without a project dir: exit 2 (usage)"             2    "$irc"
 
+# --- §7.1.1: path aliases of macOS (appsec finding of 2026-11-23) --------------------------------
+# The data-volume firmlink prefix and volfs name a file that realpath does not lead back to its place. Through the wired
+# command form (`gate.js --host`): the firmlink form gets the decision of the direct path; a volfs path is refused.
+# WA: one active spec, never signed      WAS: the same, signed      home members sit under the scratch HOME ($TH)
+if [ "$(uname -s)" = Darwin ]; then
+  FL=/System/Volumes/Data
+  WA="$T/wa"; WAS="$T/was"; mk "$WA"; mk "$WAS"; echo x > "$WA/src/a.cs"; echo x > "$WAS/src/a.cs"
+  printf '# Spec 0001\n\n## 1\nAC-1: hello\n' > "$WA/specs/active/0001.md"
+  printf '# Spec 0001\n\n## 1\nAC-1: hello\n' > "$WAS/specs/active/0001.md"; sign "$WAS" 0001.md
+  fid() { stat -f '%d/%i' "$1"; }
+  held() { case "$1" in ask|deny) echo yes;; *) echo "no: $1";; esac; }   # the direct path got an ask or a refusal
+  VW="/.vol/$(fid "$WA")"; VH="/.vol/$(fid "$TH")"
+  t "alias setup: the firmlink form reaches the same file"        "$(fid "$WA/src/a.cs")" "$(fid "$FL$WA/src/a.cs")"
+  t "alias setup: the volfs form reaches the same file"           "$(fid "$WA/src/a.cs")" "$(fid "$VW/src/a.cs")"
+  for md in - default auto; do
+    for p in src/a.cs src/new.cs .git/hooks/pre-commit .mcp.json .claude/agents/x.md harness/x.js; do
+      d=$(g "$WA" Write "$WA/$p" "$md")
+      t "alias mode $md: direct $p is not waved through"          yes  "$(held "$d")"
+      t "alias mode $md: firmlink $p decides as the direct path"  "$d" "$(g "$WA" Write "$FL$WA/$p" "$md")"
+      t "alias mode $md: volfs $p is refused"                     deny "$(g "$WA" Write "$VW/$p" "$md")"
+    done
+    for p in .claude.json .company/keys/ceo.key.pem .company/x.json .claude/settings.json; do
+      d=$(g "$WA" Write "$TH/$p" "$md")
+      t "alias mode $md: direct <HOME>/$p is not waved through"   yes  "$(held "$d")"
+      t "alias mode $md: firmlink <HOME>/$p decides as the direct path" "$d" "$(g "$WA" Write "$FL$TH/$p" "$md")"
+      t "alias mode $md: volfs <HOME>/$p is refused"              deny "$(g "$WA" Write "$VH/$p" "$md")"
+    done
+  done
+  t "alias mode auto: direct code write, unsigned, exit 2"        deny "$(g "$WA" Write "$WA/src/a.cs" auto)"
+  t "alias mode auto: firmlink code write, unsigned, exit 2"      deny "$(g "$WA" Write "$FL$WA/src/a.cs" auto)"
+  t "alias mode auto: that refusal names the path"                yes  "$(errhas 'the edit of "src/a.cs"')"
+  t "alias firmlink in another case: code write asks"             ask  "$(g "$WA" Write "/system/volumes/DATA$WA/src/a.cs")"
+  t "alias firmlink: the dialog quotes the relative path"         yes  "$(has '"src/a.cs"')"
+  t "alias firmlink, Edit / MultiEdit / NotebookEdit ask"         ask,ask,ask "$(g "$WA" Edit "$FL$WA/src/a.cs"),$(g "$WA" MultiEdit "$FL$WA/src/a.cs"),$(g "$WA" NotebookEdit "$FL$WA/src/n.ipynb")"
+  t "alias volfs: the refusal says the path cannot be resolved"   yes  "$(g "$WA" Write "$VW/src/a.cs" >/dev/null; errhas 'cannot be resolved')"
+  t "alias volfs of the file itself is refused"                   deny "$(g "$WA" Write "/.vol/$(fid "$WA/src/a.cs")")"
+  t "alias /.nofollow form is refused"                            deny "$(g "$WA" Write "/.nofollow$WA/src/a.cs")"
+  t "alias /.resolve form is refused"                             deny "$(g "$WA" Write "/.resolve/1$WA/src/a.cs")"
+  t "alias project dir in the firmlink form: direct code write asks" ask "$(g "$FL$WA" Write "$WA/src/a.cs")"
+  t "alias signed: direct code write has no output"               none "$(g "$WAS" Write "$WAS/src/a.cs")"
+  t "alias signed: firmlink code write has no output either"      none "$(g "$WAS" Write "$FL$WAS/src/a.cs")"
+  t "alias signed: firmlink .mcp.json still asks"                 ask  "$(g "$WAS" Write "$FL$WAS/.mcp.json")"
+  t "alias signed: firmlink .git/config is refused"               deny "$(g "$WAS" Write "$FL$WAS/.git/config")"
+  t "alias signed: volfs code write is refused"                   deny "$(g "$WAS" Write "/.vol/$(fid "$WAS")/src/a.cs")"
+  t "alias: a firmlink path outside every root gets no opinion"   none "$(g "$WA" Write "$FL$T/elsewhere/x.txt")"
+else
+  echo "skip (not darwin): 7.1.1 path alias cases (firmlink, volfs)"
+fi
+
 # --- no hook ever emits an allow (AC-10) -------------------------------------------------------
 t "no case printed a permissionDecision other than ask"           0    "$(grep -o '"permissionDecision":"[a-z]*"' "$T/all.out" | grep -vc '"ask"')"
 t "no case printed an allow"                                      0    "$(grep -c 'allow' "$T/all.out")"

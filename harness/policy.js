@@ -57,10 +57,13 @@ function segsUnder(p, root, fold) {
 
 // realpath(nearest existing ancestor) + remaining segments. A dangling symlink is followed to its target.
 // Only "does not exist" (ENOENT) lets the walk go on; any other error refuses the write (REQ-4).
+// The resolved form is the file's true location (§7.1.1): a macOS alias that realpath leaves in place is undone or refused.
 function resolvePath(p, fsx) {
   let cur = p; const rest = []; let hops = 0;
+  if (ALIASES && NAMESPACE.test(posix(String(p)))) throw new ResolveError(p, { code: "EALIAS" });
   for (;;) {
-    try { return nfc(path.join(fsx.realpathSync(cur), ...rest)); }
+    let real = null;
+    try { real = nfc(path.join(fsx.realpathSync(cur), ...rest)); }
     catch (e) {
       if (!e || e.code !== "ENOENT") throw new ResolveError(p, e);
       let st = null;
@@ -71,10 +74,50 @@ function resolvePath(p, fsx) {
         continue;
       }
       const parent = path.dirname(cur);
-      if (parent === cur) return nfc(path.join(cur, ...rest));
+      if (parent === cur) return unalias(nfc(path.join(cur, ...rest)), p, fsx);
       rest.unshift(path.basename(cur)); cur = parent;
     }
+    if (real !== null) return unalias(real, p, fsx);
   }
+}
+
+// macOS path aliases that realpath does not undo (appsec finding of 2026-11-23). Class membership follows the file, not
+// the text of its path. Asked of the running system (process.platform), not of ctx.platform: it is a fact of this disk.
+//   `/.vol/<dev>/<ino>/…` (volfs), `/.nofollow/…`, `/.resolve/<n>/…`: the text does not say where the file is, so the
+//   path is refused as unresolvable (code EALIAS, the fail-closed path of REQ-4). Matched without case: never narrower.
+//   `/System/Volumes/Data/<path>` (data-volume firmlink, any case): dropped when `/<path>` is the same file, that is the
+//   same device and inode at the nearest existing ancestor of both; otherwise the text is no alias and stays as it is.
+const ALIASES = process.platform === "darwin";
+const DATA_VOLUME = "/system/volumes/data/";
+const NAMESPACE = /^\/\.(vol|nofollow|resolve)(\/|$)/i;
+function unalias(abs, p, fsx) {
+  if (!ALIASES) return abs;
+  const stat = (x) => {
+    try { return ((fsx && fsx.statSync) || fs.statSync)(x, { bigint: true }); }
+    catch (e) { if (e && (e.code === "ENOENT" || e.code === "ENOTDIR")) return null; throw new ResolveError(p, e); }
+  };
+  let out = abs;
+  for (;;) {
+    if (NAMESPACE.test(out)) throw new ResolveError(p, { code: "EALIAS" });
+    if (out.slice(0, DATA_VOLUME.length).toLowerCase() !== DATA_VOLUME) return out;
+    const direct = out.slice(DATA_VOLUME.length - 1);
+    let a = out, b = direct, same = false;
+    for (;;) {
+      const sa = stat(a);
+      if (sa) { const sb = stat(b); same = !!sb && sa.dev === sb.dev && sa.ino === sb.ino; break; }
+      if (path.dirname(b) === b) break;
+      a = path.dirname(a); b = path.dirname(b);
+    }
+    if (!same) return out;
+    out = direct;
+  }
+}
+// The forms a root can take in a classification: as written without its firmlink prefix (lexical), and resolved.
+function rootForms(p, ctx) {
+  const abs = nfc(path.resolve(p));
+  let lexical = abs;
+  try { lexical = unalias(abs, p, ctx.fs || fs); } catch { /* as written */ }
+  return [lexical, safeReal(p, ctx)];
 }
 
 // Row 2 by a `<cfg>` or `<home>` member of §7.1 (home and session configuration). `env` holds both forms of each directory.
@@ -101,6 +144,7 @@ function homeEnv(ctx, fsx) {
     for (const d of dirs || []) {
       if (!d) continue;
       set.add(nfc(path.resolve(d)));
+      try { set.add(unalias(nfc(path.resolve(d)), d, fsx)); } catch { /* as written only */ }
       try { set.add(resolvePath(path.resolve(d), fsx)); } catch { /* lexical form only */ }
     }
     return [...set];
@@ -160,7 +204,10 @@ function classify(absPath, ctx) {
   const R = path.resolve(ctx.root);
   const M = ctx.mode !== "container" && ctx.mainRoot && path.resolve(ctx.mainRoot) !== R ? path.resolve(ctx.mainRoot) : null;
   const env = homeEnv(ctx, fsx);
-  const lexical = classifyOne(nfc(abs), nfc(R), M && nfc(M), env);
+  // The lexical form keeps its symlinks but not a firmlink prefix: an alias of a path is classified as that path, in both
+  // forms, so it gets exactly the decision of the direct path (never a weaker one: `lex(alias)` is the direct path's text).
+  const lex = (x) => unalias(nfc(x), x, fsx);
+  const lexical = classifyOne(lex(abs), lex(R), M && lex(M), env);
   const resolved = classifyOne(resolvePath(abs, fsx), resolvePath(R, fsx), M && resolvePath(M, fsx), env);
   const fin = STRENGTH[lexical.row] > STRENGTH[resolved.row] ? lexical : resolved;      // tie: the resolved path is reported
   return { row: fin.row, root: fin.root, rel: fin.rel, label: LABELS[fin.row], lexical, resolved };
@@ -327,7 +374,7 @@ function decide(req, ctx) {
   }
   const q = quote(c.rel);
   const realRoot = safeReal(ctx.root, ctx);
-  const isRoot = c.root === nfc(path.resolve(ctx.root)) || c.root === realRoot;
+  const isRoot = rootForms(ctx.root, ctx).includes(c.root);
   // A root other than the workspace root (nested root, main root, or none) is named in the dialog.
   const where = isRoot ? "" : ", kök " + quote(c.root);
   // An ask reaches the CEO only in a mode proven to show the dialog (§7.7); the container has nobody to ask.
@@ -353,7 +400,7 @@ function decide(req, ctx) {
     // 4. signature: the same lookup as for rows 4 and 6; a failed lookup gives no authority, not a refusal (Ruling R-22)
     if (!isDir(path.join(c.root, "specs"))) return "imzalı tek etkin spec yok (specs/ klasörü yok)";                           // REQ-11: no git lookup
     let approvalsDir = ctx.approvalsDir;
-    const isMain = c.root === nfc(path.resolve(ctx.mainRoot)) || c.root === safeReal(ctx.mainRoot, ctx);
+    const isMain = rootForms(ctx.mainRoot, ctx).includes(c.root);
     if (isRoot || isMain) {
       if (ctx.rootLookupFailed) return "imza doğrulanamadı (git araması başarısız)";
     } else {
@@ -392,7 +439,7 @@ function decide(req, ctx) {
   let approvalsDir = ctx.approvalsDir;
   if (!container) {
     if (!isDir(path.join(c.root, "specs"))) return res("none", "", c);                    // Ruling R-3, before any git lookup (REQ-11)
-    const isMain = c.root === nfc(path.resolve(ctx.mainRoot)) || c.root === safeReal(ctx.mainRoot, ctx);
+    const isMain = rootForms(ctx.mainRoot, ctx).includes(c.root);
     if (isRoot || isMain) {
       if (ctx.rootLookupFailed) return res("deny", "git lookup failed (fail closed): the main worktree of the workspace is unknown, so the signature of " + q + " cannot be checked", c);
     } else {                                                                              // nested root: the main worktree's approvals/

@@ -9,6 +9,7 @@
 //   source                AC-11 source order, AC-10 "no allow" on the sources  -> ok/FAIL lines
 //   literal <T>           AC-16: literal enforcement entries, unlockKinds      -> ok/FAIL lines
 //   header-chars          §7.3 S-05: control and format characters in a glob  -> ok/FAIL lines
+//   alias <T>             §7.1.1: macOS path aliases (firmlink prefix, volfs)   -> ok/FAIL lines (darwin only)
 // The tree layout under <T> is documented in policy.sh. Exit 1 when a case fails.
 "use strict";
 const fs = require("fs");
@@ -69,6 +70,16 @@ const MATRIX = [
   [".claude/worktrees/w1/harness/gate.js",                "ws1", ".claude/worktrees/w1/harness/gate.js", "enforcement", BOTH],
   [".claude/Worktrees/w1/src/a.cs (exact case, not re-rooted)", "ws1", ".claude/Worktrees/w1/src/a.cs", "enforcement", BOTH],
   [".claude/AGENTS/x.md (exact-case carve-out)",          "ws1", ".claude/AGENTS/x.md",           "enforcement",    BOTH],
+  // row 2 members that hold anywhere on disk and that no other row-2 rule catches (QA T-11: four surviving mutants):
+  // outside every root only the anywhere list names notify.js and policy.js; inside a root only it lifts the two scripts out of row 4
+  ["harness/notify.js outside every root",                "ws1", "@T/out/harness/notify.js",      "enforcement",    BOTH],
+  ["harness/policy.js outside every root",                "ws1", "@T/out/harness/policy.js",      "enforcement",    BOTH],
+  ["harness/bin/company-run.sh",                          "ws1", "harness/bin/company-run.sh",    "enforcement",    BOTH],
+  ["harness/bin/install-global.sh",                       "ws1", "harness/bin/install-global.sh", "enforcement",    BOTH],
+  ["harness/bin/company-run.sh outside every root",       "ws1", "@T/out/harness/bin/company-run.sh", "enforcement", BOTH],
+  ["harness/bin/install-global.sh outside every root",    "ws1", "@T/out/harness/bin/install-global.sh", "enforcement", BOTH],
+  ["HARNESS/Notify.js outside every root (case folded)",  "ws1", "@T/out/HARNESS/Notify.js",      "enforcement",    BOTH],
+  ["harness/bin/other.sh outside every root (not a member)", "ws1", "@T/out/harness/bin/other.sh", "outside",       BOTH],
   // row 4, product-config
   [".claude/agents/x.md",                                 "ws1", ".claude/agents/x.md",           "product-config", BOTH],
   [".claude/skills/s/SKILL.md",                           "ws1", ".claude/skills/s/SKILL.md",     "product-config", BOTH],
@@ -480,8 +491,86 @@ function headerChars() {
   t("a tab between items is trimmed, not an error", "a|b", (policy.parseHeader(H("a,\tb")).unlocks || ["null"]).join("|"));
 }
 
+// Path aliases of macOS that realpath leaves in place (spec 0004 §7.1.1, appsec finding of 2026-11-23): the data-volume
+// firmlink prefix names the same file, so it gets the class of the direct path; the `/.vol`, `/.nofollow` and `/.resolve`
+// name spaces are refused. Runs on darwin only (policy.sh prints the skip line elsewhere); the temp tree and its HOME are scratch.
+function alias(T) {
+  if (process.platform !== "darwin") { console.log("skip (not darwin): path alias cases"); return; }
+  const FL = "/System/Volumes/Data";
+  const RT = fs.realpathSync(T);                                   // the firmlink form is built on the physical path
+  const id = (p) => { const s = fs.statSync(p, { bigint: true }); return s.dev + "/" + s.ino; };
+  const direct = (ws, p) => abs(RT, ws, p);
+  const decision = (p, ctx) => policy.decide({ kind: "file", target: p, event: {} }, ctx).decision;
+  t("setup: the firmlink form reaches the same file", id(direct("ws1", "src/a.cs")), id(FL + direct("ws1", "src/a.cs")));
+  t("setup: the volfs form reaches the same file", id(direct("ws1", "src/a.cs")), id("/.vol/" + id(path.join(RT, "ws1")) + "/src/a.cs"));
+  // [workspace, path, class of the direct path]; a `.company` member and `.claude.json` sit under the scratch HOME of the tree
+  const CASES = [
+    ["ws1", "src/a.cs", "code"], ["ws1", "src/new.cs", "code"], ["ws1", "newdir/sub/a.cs", "code"],
+    ["ws1", ".git/config", "hard-deny"], ["ws1", ".git/hooks/pre-commit", "hard-deny"], ["ws1", "approvals/x.json", "hard-deny"],
+    ["ws1", ".mcp.json", "enforcement"], ["ws1", "harness/new-hook.js", "enforcement"], ["ws1", ".claude/commands/x.md", "enforcement"],
+    ["ws1", "CLAUDE.md", "enforcement"], ["ws1", ".claude/agents/x.md", "product-config"], ["ws1", "templates/x.md", "product-config"],
+    ["ws1", "docs/real.md", "free"], ["ws1", ".claude/worktrees/w1/src/a.cs", "code"],
+    ["ws1", "@H/.claude.json", "enforcement"], ["ws1", "@H/.company/keys/ceo.key.pem", "enforcement"], ["ws1", "@H/.company/x.json", "enforcement"],
+    ["ws1", "@H/.claude/agents/x.md", "enforcement"], ["ws1", "@H/.claude/settings.json", "enforcement"],
+    ["ws1", "@T/out/plain.txt", "outside"], ["ws1", "@T/ws3/src/b.cs", "outside"],
+  ];
+  const forms = [["firmlink", FL], ["firmlink in another case", "/system/volumes/DATA"]];
+  for (const pf of BOTH) for (const [ws, p, want] of CASES) {
+    const ctx = ctxFor(RT, ws, pf);
+    t(`[${pf}] direct ${p} -> ${want}`, want, label(direct(ws, p), ctx));
+    for (const [fname, pre] of forms) t(`[${pf}] ${fname} ${p} -> ${want}, as the direct path`, want, label(pre + direct(ws, p), ctx));
+  }
+  // decisions through the firmlink form equal the direct ones (ws1 has no active spec; no permission mode is reported)
+  for (const [ws, p] of [["ws1", "src/a.cs"], ["ws1", ".git/config"], ["ws1", ".mcp.json"], ["ws1", ".claude/agents/x.md"], ["ws1", "@H/.claude.json"], ["ws1", "@H/.company/x.json"], ["ws1", "docs/real.md"], ["dws", "src/a.cs"], ["dws", "templates/x.md"]]) {
+    const ctx = ctxFor(RT, ws, "darwin"); if (ws === "dws") ctx.pubkeyPath = path.join(RT, "dkeys", "ceo.pub.pem");
+    const d = decision(direct(ws, p), ctx);
+    t(`decide ${ws} ${p}: firmlink form decides as the direct path (${d})`, d, decision(FL + direct(ws, p), ctx));
+    if (ws === "ws1" && p !== "docs/real.md") t(`decide ${ws} ${p}: the direct path is not waved through`, true, d === "ask" || d === "deny");
+  }
+  t("decide dws src/a.cs (signed): the direct path is allowed, so the firmlink case above is no over-block", "allow", (() => { const c = ctxFor(RT, "dws", "darwin"); c.pubkeyPath = path.join(RT, "dkeys", "ceo.pub.pem"); return decision(direct("dws", "src/a.cs"), c); })());
+  // the root, the main root and the home themselves given in the firmlink form
+  for (const pf of BOTH) {
+    t(`[${pf}] root in the firmlink form, direct path -> code`, "code", label(direct("ws1", "src/a.cs"), ctxFor(RT, "ws1", pf, { root: FL + path.join(RT, "ws1"), mainRoot: FL + path.join(RT, "ws1") })));
+    t(`[${pf}] main root (REQ-35): firmlink form of a main-tree file -> code`, "code", label(FL + direct("dws", "src/a.cs"), ctxFor(RT, "ws1", pf, { mainRoot: path.join(RT, "dws") })));
+    t(`[${pf}] main root (REQ-35): firmlink form of the main tree's .mcp.json -> enforcement`, "enforcement", label(FL + direct("dws", ".mcp.json"), ctxFor(RT, "ws1", pf, { mainRoot: path.join(RT, "dws") })));
+    t(`[${pf}] CLAUDE_CONFIG_DIR member in the firmlink form -> enforcement`, "enforcement", label(FL + path.join(RT, "cfg", "agents", "x.md"), ctxFor(RT, "ws1", pf, null, { CLAUDE_CONFIG_DIR: path.join(RT, "cfg") })));
+    t(`[${pf}] home given in the firmlink form, direct .company member -> enforcement`, "enforcement", label(path.join(RT, "home", ".company", "x.json"), ctxFor(RT, "ws1", pf, { home: FL + path.join(RT, "home") })));
+  }
+  // a symlink inside the workspace that points at the firmlink form of an enforcement member
+  const lk = path.join(RT, "ws1", "docs", "fl-mcp.md");
+  try { fs.unlinkSync(lk); } catch { /* first run */ }
+  fs.symlinkSync(FL + path.join(RT, "ws1", ".mcp.json"), lk);
+  t("symlink in docs/ to the firmlink form of .mcp.json -> enforcement", "enforcement", label(lk, ctxFor(RT, "ws1", "darwin")));
+  // name spaces that reach a file without naming where it is: refused (fail closed), whatever the class of the file
+  const ws1 = path.join(RT, "ws1");
+  const magic = [
+    ["volfs of the workspace root + src/a.cs", "/.vol/" + id(ws1) + "/src/a.cs"],
+    ["volfs of the file itself", "/.vol/" + id(path.join(ws1, "src", "a.cs"))],
+    ["volfs of src + a new file name", "/.vol/" + id(path.join(ws1, "src")) + "/new.cs"],
+    ["volfs of the workspace root + .git/config", "/.vol/" + id(ws1) + "/.git/config"],
+    ["volfs of the workspace root + .mcp.json", "/.vol/" + id(ws1) + "/.mcp.json"],
+    ["volfs of the workspace root + .claude/agents/x.md", "/.vol/" + id(ws1) + "/.claude/agents/x.md"],
+    ["volfs of the scratch home + .claude.json", "/.vol/" + id(path.join(RT, "home")) + "/.claude.json"],
+    ["volfs of the scratch home + .company/x.json", "/.vol/" + id(path.join(RT, "home")) + "/.company/x.json"],
+    ["volfs of a file outside every root", "/.vol/" + id(path.join(RT, "out")) + "/plain.txt"],
+    ["volfs of nothing", "/.vol/1/1/x"],
+    ["/.nofollow + src/a.cs", "/.nofollow" + path.join(ws1, "src", "a.cs")],
+    ["/.nofollow + firmlink + src/a.cs", "/.nofollow" + FL + path.join(ws1, "src", "a.cs")],
+    ["/.resolve/1 + src/a.cs", "/.resolve/1" + path.join(ws1, "src", "a.cs")],
+    ["/.resolve/1 + a new file name", "/.resolve/1" + path.join(ws1, "src", "new.cs")],
+  ];
+  for (const pf of BOTH) for (const [name, p] of magic) t(`[${pf}] ${name} -> refused`, "refused", label(p, ctxFor(RT, "ws1", pf)));
+  for (const [name, p] of magic) t(`decide ${name} -> deny`, "deny", decision(p, ctxFor(RT, "ws1", "darwin")));
+  const vl = path.join(ws1, "docs", "vol-link");
+  try { fs.unlinkSync(vl); } catch { /* first run */ }
+  fs.symlinkSync("/.vol/" + id(path.join(ws1, "src")), vl);
+  t("symlink in docs/ to the volfs form of src, then a.cs -> refused", "refused", label(path.join(vl, "a.cs"), ctxFor(RT, "ws1", "darwin")));
+  t("a root given in the volfs form -> refused", "refused", label(direct("ws1", "src/a.cs"), ctxFor(RT, "ws1", "darwin", { root: "/.vol/" + id(ws1), mainRoot: "/.vol/" + id(ws1) })));
+}
+
 const [cmd, a, b] = process.argv.slice(2);
 if (cmd === "matrix") matrix(a);
+else if (cmd === "alias") alias(a);
 else if (cmd === "paths") for (const m of MATRIX) for (const pf of m[4]) console.log([m[3], pf, m[1], abs(a, m[1], m[2])].join("\t"));
 else if (cmd === "superset") superset(a, b);
 else if (cmd === "header") header();

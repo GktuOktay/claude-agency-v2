@@ -296,7 +296,25 @@ wired "j.hooks.PreToolUse.pop(); for (const m of [\"Write\", \"Edit\", \"MultiEd
 t "AC-12 host gate as one entry per file tool: exit 0" 0 "$rc"
 t "AC-12 host gate as one entry per file tool: owner rule reports ok" yes "$(has '^ok    host-gate-owner')"
 wired "j.hooks.PreToolUse.push({ matcher: \"NotebookEdit\", hooks: [$GATEC] });"; lint "$C"
-t "AC-12 the host gate command twice for one tool is no second owner" no "$(has '^FAIL  host-gate-owner')"
+t "AC-12 the host gate command twice for one tool is a second owner (QA D-1)" yes "$(has '^FAIL  host-gate-owner')"
+t "AC-12 the host gate command twice for one tool: exit 1" 1 "$rc"
+t "AC-12 the host gate command twice for one tool: no other rule fails" 0 "$(others host-gate-owner)"
+t "AC-12 the host gate command twice for one tool: the line names the tool and the count" yes "$(has 'NotebookEdit runs the host gate \(gate\.js --host\) 2 times')"
+for m in "$FT" 'Write' '*' 'Edit.*'; do
+  wired "j.hooks.PreToolUse.push({ matcher: \"$m\", hooks: [$GATEC] });"
+  neg "AC-12 a second entry runs the host gate for matcher $m" host-gate-owner
+done
+wired "j.hooks.PreToolUse.push({ hooks: [$GATEC] });"
+neg "AC-12 a second entry runs the host gate with no matcher (all tools)" host-gate-owner
+wired "j.hooks.PreToolUse[2].hooks.push($GATEC);"
+neg "AC-12 the host gate command twice in the gate's own entry" host-gate-owner
+# a duplicate without the wrapper fails lint too, under hook-wrapper's id (the T-7 case of AC-11 above pins that id alone)
+wired 'j.hooks.PreToolUse.push({ matcher: "Write", hooks: [{ type: "command", command: "node \"$CLAUDE_PROJECT_DIR/harness/gate.js\" --host" }] });'; lint "$C"
+t "AC-12 a second host gate entry without the wrapper: exit 1 (no duplicate passes lint)" 1 "$rc"
+t "AC-12 a second host gate entry without the wrapper: FAIL  hook-wrapper" yes "$(has '^FAIL  hook-wrapper( |:|$)')"
+# QA's reproduction (spec 0004 T-11, D-1) on a copy of the tracked tree: green once a duplicate fails the rule
+t "AC-12 QA repro qa-0004-owner-duplicate.js: exit 0" 0 "$(node "$HERE/test/qa-0004-owner-duplicate.js" > "$T/qa-owner.out" 2>&1; echo $?)"
+t "AC-12 QA repro qa-0004-owner-duplicate.js: 4 cases ran, none failed" 4,0 "$(grep -c '^ok    ' "$T/qa-owner.out"),$(grep -c '^FAIL  ' "$T/qa-owner.out")"
 # the tracked settings are the wiring of AC-12, entry by entry
 fresh; lint "$C"
 t "AC-12 baseline fixture: owner rule reports ok" yes "$(has '^ok    host-gate-owner')"
