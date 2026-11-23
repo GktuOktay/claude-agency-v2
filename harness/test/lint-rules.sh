@@ -233,5 +233,104 @@ tneg "AC-14 README without the section İzin kipi ve onay penceresi" "$RD" 's.re
 tneg "AC-14 README section İzin kipi as a level-3 heading" "$RD" 's.replace("\n## İzin kipi ve onay penceresi\n", "\n### İzin kipi ve onay penceresi\n")' "section '## İzin kipi ve onay penceresi' missing"
 tneg "AC-14 README G-1 row without Unlocks:" "$RD" 's.split("\n").map((l) => (l.startsWith("| G-1 |") ? l.split("Unlocks:").join("başlık") : l)).join("\n")' "G-1 row .* lacks 'Unlocks:'"
 
+# --- AC-12 (T-9): host-gate-owner rule -------------------------------------------------------
+# WIRE writes the hook set of AC-12 into the fixture, so each case below starts from the target wiring whatever the
+# tracked settings hold; the tracked settings themselves are asserted at the end of this block.
+LOOPC='{ type: "command", command: "node \"$CLAUDE_PROJECT_DIR/harness/loop.js\"" }'
+GUARDC='{ type: "command", command: "node \"$CLAUDE_PROJECT_DIR/harness/guard.js\" || exit 2" }'
+GATEC='{ type: "command", command: "node \"$CLAUDE_PROJECT_DIR/harness/gate.js\" --host || exit 2" }'
+FT='Write|Edit|MultiEdit|NotebookEdit'
+WIRE="j.hooks.PreToolUse = [{ hooks: [$LOOPC] }, { matcher: \"Bash\", hooks: [$GUARDC] }, { matcher: \"$FT\", hooks: [$GATEC] }];"
+wired() { fresh; jedit "$HOSTSET" "$WIRE $1"; } # wired <js statements on `j`>: the target wiring plus one change
+wired ''; lint "$C"
+t "AC-12 target wiring: exit 0" 0 "$rc"
+t "AC-12 target wiring: no FAIL line" 0 "$(fails)"
+t "AC-12 target wiring: owner rule reports ok" yes "$(has '^ok    host-gate-owner')"
+t "AC-12 target wiring: wrapper rule reports ok" yes "$(has '^ok    hook-wrapper')"
+# the wiring before T-9: the guard on the file tools, no host gate
+wired "j.hooks.PreToolUse[2].hooks = [$GUARDC];"
+neg "AC-12 guard on the file tools and no host gate (the wiring before T-9)" host-gate-owner
+# the host gate is missing for one of the four tools, or for all
+for m in 'Edit|MultiEdit|NotebookEdit' 'Write|MultiEdit|NotebookEdit' 'Write|Edit|NotebookEdit' 'Write|Edit|MultiEdit'; do
+  wired "j.hooks.PreToolUse[2].matcher = \"$m\";"
+  neg "AC-12 host gate wired for $m only" host-gate-owner
+done
+wired 'j.hooks.PreToolUse.pop();'
+neg "AC-12 no host gate entry" host-gate-owner
+wired 'j.hooks.PreToolUse[2].matcher = "Bash";'
+neg "AC-12 host gate wired for Bash instead of the file tools" host-gate-owner
+wired 'j.hooks.PreToolUse[2].hooks[0].command = j.hooks.PreToolUse[2].hooks[0].command.replace(" --host", "");'
+neg "AC-12 gate.js on the file tools without --host" host-gate-owner
+wired 'j.hooks.PreToolUse[2].hooks[0].command = j.hooks.PreToolUse[2].hooks[0].command.replace("gate.js", "gate2.js");'
+neg "AC-12 another script in place of gate.js" host-gate-owner
+# one owner: no other file-tool entry runs the guard, or the gate in another form
+for m in "$FT" 'Write' 'Edit' 'MultiEdit' 'NotebookEdit' 'Write|Edit' '*' 'Edit.*'; do
+  wired "j.hooks.PreToolUse.push({ matcher: \"$m\", hooks: [$GUARDC] });"
+  neg "AC-12 guard also wired for matcher $m" host-gate-owner
+done
+wired "j.hooks.PreToolUse.push({ hooks: [$GUARDC] });"
+neg "AC-12 guard also wired with no matcher (all tools)" host-gate-owner
+wired "j.hooks.PreToolUse[2].hooks.push($GUARDC);"
+neg "AC-12 guard as a second hook of the gate's entry" host-gate-owner
+wired "j.hooks.PreToolUse[1].matcher = \"Bash|Edit\";"
+neg "AC-12 the Bash entry of the guard also matches Edit" host-gate-owner
+wired 'j.hooks.PreToolUse.push({ matcher: "Write", hooks: [{ type: "command", command: "node \"$CLAUDE_PROJECT_DIR/harness/gate.js\" || exit 2" }] });'
+neg "AC-12 a second file-tool entry runs gate.js without --host" host-gate-owner
+# the guard is not wired for Bash
+wired 'j.hooks.PreToolUse[1].matcher = "Read";'
+neg "AC-12 guard wired for Read, not for Bash" host-gate-owner
+wired 'j.hooks.PreToolUse.splice(1, 1);'; lint "$C"
+t "AC-12 no guard entry: exit 1" 1 "$rc"
+t "AC-12 no guard entry: FAIL  host-gate-owner" yes "$(has '^FAIL  host-gate-owner( |:|$)')"
+wired 'j.hooks.PreToolUse[1].hooks[0].command = j.hooks.PreToolUse[1].hooks[0].command.replace("guard.js", "gate.js");'; lint "$C"
+t "AC-12 gate.js in place of the guard on Bash: exit 1" 1 "$rc"
+t "AC-12 gate.js in place of the guard on Bash: FAIL  host-gate-owner" yes "$(has '^FAIL  host-gate-owner( |:|$)')"
+wired 'delete j.hooks.PreToolUse;'; lint "$C"
+t "AC-12 no PreToolUse hooks: exit 1" 1 "$rc"
+t "AC-12 no PreToolUse hooks: FAIL  host-gate-owner" yes "$(has '^FAIL  host-gate-owner( |:|$)')"
+# the wrapper stays the business of hook-wrapper: the owner rule reads which script runs, not how the command ends
+wired 'j.hooks.PreToolUse[2].hooks[0].command = j.hooks.PreToolUse[2].hooks[0].command.replace(" || exit 2", "");'
+neg "AC-12 host gate without the wrapper fails the wrapper rule alone" hook-wrapper
+# the same owner written in another shape is still one owner (Ruling in the T-9 report)
+wired "j.hooks.PreToolUse.pop(); for (const m of [\"Write\", \"Edit\", \"MultiEdit\", \"NotebookEdit\"]) j.hooks.PreToolUse.push({ matcher: m, hooks: [$GATEC] });"; lint "$C"
+t "AC-12 host gate as one entry per file tool: exit 0" 0 "$rc"
+t "AC-12 host gate as one entry per file tool: owner rule reports ok" yes "$(has '^ok    host-gate-owner')"
+wired "j.hooks.PreToolUse.push({ matcher: \"NotebookEdit\", hooks: [$GATEC] });"; lint "$C"
+t "AC-12 the host gate command twice for one tool is no second owner" no "$(has '^FAIL  host-gate-owner')"
+# the tracked settings are the wiring of AC-12, entry by entry
+fresh; lint "$C"
+t "AC-12 baseline fixture: owner rule reports ok" yes "$(has '^ok    host-gate-owner')"
+wiring() { # wiring <js expression on the hooks object `h`, with cmds(entries) = their command strings>: yes | no
+  node -e 'const h = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")).hooks || {};
+    const cmds = (entries) => (entries || []).flatMap((e) => (e.hooks || []).map((x) => x.command));
+    process.stdout.write(new Function("h", "cmds", "return (" + process.argv[2] + ");")(h, cmds) ? "yes" : "no");' "$BASE/$HOSTSET" "$1" 2>/dev/null || printf error
+}
+t "AC-12 tracked settings: one entry for the four file tools, and it runs the host gate command alone" yes \
+  "$(wiring '((f) => f.length === 1 && f[0].hooks.length === 1 && f[0].hooks[0].type === "command" && f[0].hooks[0].command === "node \"$CLAUDE_PROJECT_DIR/harness/gate.js\" --host || exit 2")(h.PreToolUse.filter((e) => e.matcher === "Write|Edit|MultiEdit|NotebookEdit"))')"
+t "AC-12 tracked settings: the guard runs for Bash only, with the wrapper" yes \
+  "$(wiring '((g) => g.length === 1 && g[0].matcher === "Bash" && g[0].hooks.length === 1 && g[0].hooks[0].command === "node \"$CLAUDE_PROJECT_DIR/harness/guard.js\" || exit 2")(h.PreToolUse.filter((e) => /guard\.js/.test(JSON.stringify(e))))')"
+t "AC-12 tracked settings: gate.js runs in no other entry" 1 "$(grep -c 'gate\.js' "$BASE/$HOSTSET")"
+t "AC-12 tracked settings: three PreToolUse entries (loop, guard, gate)" yes "$(wiring 'h.PreToolUse.length === 3')"
+t "AC-12 tracked settings: loop for all tools as today" yes \
+  "$(wiring '((l) => l.length === 1 && l[0].matcher === undefined && cmds(l).join() === "node \"$CLAUDE_PROJECT_DIR/harness/loop.js\"")(h.PreToolUse.filter((e) => /loop\.js/.test(JSON.stringify(e))))')"
+t "AC-12 tracked settings: notify as today" yes "$(wiring 'cmds(h.Notification).join() === "node \"$CLAUDE_PROJECT_DIR/harness/notify.js\""')"
+t "AC-12 tracked settings: stop as today" yes "$(wiring 'cmds(h.Stop).join() === "node \"$CLAUDE_PROJECT_DIR/harness/stop.js\""')"
+
+# --- AC-14 (T-9): texts-0004 rule, CLAUDE.md rule 1 and the two routing lines (spec 7.6) ------
+CM="CLAUDE.md"; RT=".claude/rules/routing.md"
+t "AC-14 CLAUDE.md rule 1 carries the amended words of 7.6" 1 "$(grep -c '^1\. \*\*No signature, no code\.\*\* .*(`harness/`), in his own terminal; an agent does not sign .*sessions run in `auto` mode, where it is refused' "$BASE/$CM")"
+t "AC-14 routing lane-0 line carries the amended words of 7.6" 1 "$(grep -c '^- \*\*0\*\* .*an unsigned code edit on the host is refused in `auto` mode' "$BASE/$RT")"
+tneg "AC-14 CLAUDE.md rule 1 without the words of the delta" "$CM" 's.replace("(`harness/`), in his own terminal; an agent", "(`harness/`); an agent")' "CLAUDE.md: rule 1 is not the exact text of spec 0004"
+tneg "AC-14 CLAUDE.md rule 1 with a sentence added" "$CM" 's.replace(/^(1\. \*\*No signature, no code\.\*\* .*)$/m, "$1 Except on Fridays.")' "CLAUDE.md: rule 1 is not the exact text of spec 0004"
+tneg "AC-14 CLAUDE.md rule 1 with an absolute claim" "$CM" 's.replace("do not let an unsigned edit to code or product config through silently", "block every unsigned edit")' "CLAUDE.md: rule 1 is not the exact text of spec 0004"
+tneg "AC-14 CLAUDE.md without rule 1" "$CM" 's.split("\n").filter((l) => !l.startsWith("1. ")).join("\n")' "CLAUDE.md: rule 1 is not the exact text of spec 0004"
+tneg "AC-14 CLAUDE.md rule 1 text kept, but not as rule 1" "$CM" 's.replace(/^1\. (\*\*No signature, no code\.\*\*)/m, "- $1")' "CLAUDE.md: rule 1 is not the exact text of spec 0004"
+tneg "AC-14 routing lane-0 line without the host sentence" "$RT" 's.replace(/^(- \*\*0\*\* .*No spec, no units\.) .*$/m, "$1")' "routing.md: the lane-0 line is not the exact text of spec 0004"
+tneg "AC-14 routing lane-0 line with other words" "$RT" 's.replace("is refused in `auto` mode, in which sessions run,", "is always blocked")' "routing.md: the lane-0 line is not the exact text of spec 0004"
+tneg "AC-14 routing without the lane-0 line" "$RT" 's.split("\n").filter((l) => !l.startsWith("- **0** ")).join("\n")' "routing.md: the lane-0 line is not the exact text of spec 0004"
+tneg "AC-14 routing last line as before T-9" "$RT" 's.replace(/\n[^\n]+\n*$/, "\nDefault stack .NET + React, a preference not a restriction. The signature gate and guard are enforced only where `harness/bin/install-project.sh` ran; elsewhere follow the pipeline by instruction and get spec approval in chat.\n")' "routing.md: the last line is not the exact text of spec 0004"
+tneg "AC-14 routing last line without the known-gaps clause" "$RT" 's.replace(" and have known gaps (`harness/README.md`, Bilinen boşluklar)", "")' "routing.md: the last line is not the exact text of spec 0004"
+tneg "AC-14 routing exact last line followed by another line" "$RT" 's.replace(/\n*$/, "\n\nThe hooks cannot be bypassed.\n")' "routing.md: the last line is not the exact text of spec 0004"
+
 echo; if [ "$fail" -eq 0 ]; then echo "LINT RULE TESTS GREEN: $pass passed, 0 failed"; else echo "LINT RULE TESTS FAILED: $pass passed, $fail failed"; fi
 [ "$fail" -eq 0 ]

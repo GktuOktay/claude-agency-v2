@@ -395,6 +395,84 @@ t "AC-16 no CLAUDE_CONFIG_DIR: cfg/agents/x.md is code (no output)" none "$(gd c
 t "AC-16 CLAUDE_CONFIG_DIR = <ws>/cfg: named cfg/agents/x.md asks" ask  "$(gd cfg/agents/x.md "CLAUDE_CONFIG_DIR=$WD/cfg")"
 t "AC-16 CLAUDE_CONFIG_DIR = <ws>/cfg: the reason keeps the label" yes  "$(has '(enforcement)')"
 
+# --- AC-11 (T-9): the wired gate commands block when the gate cannot run -------------------------
+# The command strings are read from the tracked settings files and run as the app runs them: sh -c '<command>'.
+REPO=$(dirname "$HERE")
+gatecmds() { # gatecmds <settings file>: the hook commands of that file that run gate.js, one per line
+  node -e 'const s = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")); const out = [];
+    for (const entries of Object.values(s.hooks || {})) for (const e of entries || []) for (const h of e.hooks || []) if (/gate\.js/.test(h.command || "")) out.push(h.command);
+    process.stdout.write(out.join("\n"));' "$1" 2>/dev/null
+}
+# shc <command string> <CLAUDE_PROJECT_DIR> <event file>: exit code of sh -c; stdout in $T/sh.out, stderr in $T/sh.err
+shc() {
+  env -u COMPANY_PUBKEY -u COMPANY_SPEC -u COMPANY_HARNESS_DIR CLAUDE_PROJECT_DIR="$2" HOME="$TH" sh -c "$1" <"$3" >"$T/sh.out" 2>"$T/sh.err"
+  echo $?
+}
+HG=$(gatecmds "$REPO/.claude/settings.json"); CG=$(gatecmds "$REPO/harness/container-settings.json")
+t "AC-11 .claude/settings.json holds one gate command"              1    "$(printf '%s\n' "$HG" | grep -c .)"
+t "AC-11 it is the host gate command of 7.8, wrapper included"      'node "$CLAUDE_PROJECT_DIR/harness/gate.js" --host || exit 2' "$HG"
+NG="$T/nogate"; mkdir -p "$NG/harness" "$NG/src"
+ev Write "$NG/src/a.cs" "$NG" > "$T/ng.json"
+t "AC-11 the tree of the next case has no harness/gate.js"          no   "$(if [ -e "$NG/harness/gate.js" ]; then echo yes; else echo no; fi)"
+t "AC-11 sh -c host gate command, no harness/gate.js: exit 2"       2    "$(shc "$HG" "$NG" "$T/ng.json")"
+t "AC-11 that run printed no decision"                              0    "$(wc -c < "$T/sh.out" | tr -d ' ')"
+t "AC-11 the same command without the wrapper would exit 1"         1    "$(shc "${HG% || exit 2}" "$NG" "$T/ng.json")"
+# the same string does reach a gate that exists: the temp harness copy, a workspace without specs/, CLAUDE.md
+ev Write "$T/h/CLAUDE.md" "$T/h" > "$T/hg.json"
+t "AC-11 sh -c host gate command, gate present: exit 0"             0    "$(shc "$HG" "$T/h" "$T/hg.json")"
+t "AC-11 that run asked (the gate itself answered)"                 1    "$(grep -c '"permissionDecision":"ask"' "$T/sh.out")"
+t "AC-11 container-settings.json holds one gate command"            1    "$(printf '%s\n' "$CG" | grep -c .)"
+t "AC-11 it is the container gate command of 7.8, wrapper included" 'COMPANY_PUBKEY=/harness/keys/ceo.pub.pem node /harness/gate.js || exit 2' "$CG"
+# On the host there is no /harness: the container command must block. If /harness/gate.js exists here, this case fails loudly.
+t "AC-11 /harness/gate.js does not exist on this machine"           no   "$(if [ -e /harness/gate.js ]; then echo yes; else echo no; fi)"
+if [ ! -e /harness/gate.js ]; then
+  t "AC-11 sh -c container gate command on the host: exit 2"        2    "$(shc "$CG" "$NG" "$T/ng.json")"
+else
+  t "AC-11 sh -c container gate command on the host: exit 2"        2    "not run: /harness/gate.js exists"
+fi
+
+# --- AC-12 (T-9): the installer writes the same wiring into another project ---------------------
+INST="$HERE/bin/install-project.sh"
+# entry <settings file> <event> <matcher|-> <command>: yes when hooks.<event> has an entry with exactly that matcher
+# ("-": no matcher) and a hook of type command with exactly that command
+entry() {
+  node -e 'const [f, ev, m, c] = process.argv.slice(1); const s = JSON.parse(require("fs").readFileSync(f, "utf8"));
+    const hit = ((s.hooks || {})[ev] || []).some((e) => (m === "-" ? e.matcher === undefined : e.matcher === m) && (e.hooks || []).some((h) => h.type === "command" && h.command === c));
+    process.stdout.write(hit ? "yes" : "no");' "$1" "$2" "$3" "$4" 2>/dev/null || printf error
+}
+FTOOLS='Write|Edit|MultiEdit|NotebookEdit'
+IGATE="node \"$REPO/harness/gate.js\" --host || exit 2"; IGUARD="node \"$REPO/harness/guard.js\" || exit 2"
+IP="$T/inst/new"; mkdir -p "$IP"; IS="$IP/.claude/settings.json"
+sh "$INST" "$IP" > "$T/inst.out" 2>&1; irc=$?
+t "AC-12 install into an empty project: exit 0"                     0    "$irc"
+t "AC-12 install: the settings file exists and parses"              yes  "$(node -e 'JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")); process.stdout.write("yes")' "$IS" 2>/dev/null || echo no)"
+t "AC-12 install: host gate for the four file tools, with wrapper"  yes  "$(entry "$IS" PreToolUse "$FTOOLS" "$IGATE")"
+t "AC-12 install: guard for Bash, with wrapper"                     yes  "$(entry "$IS" PreToolUse Bash "$IGUARD")"
+t "AC-12 install: loop for all tools"                               yes  "$(entry "$IS" PreToolUse - "node \"$REPO/harness/loop.js\"")"
+t "AC-12 install: notify"                                           yes  "$(entry "$IS" Notification - "node \"$REPO/harness/notify.js\"")"
+t "AC-12 install: stop, without the wrapper"                        yes  "$(entry "$IS" Stop - "node \"$REPO/harness/stop.js\"")"
+t "AC-12 install: harness paths are absolute"                       /    "$(printf '%s' "$REPO" | cut -c1)"
+t "AC-12 install: no \$CLAUDE_PROJECT_DIR left in the file"         0    "$(grep -c 'CLAUDE_PROJECT_DIR' "$IS")"
+t "AC-12 install: the guard runs in one entry only (Bash)"          1    "$(grep -c 'guard\.js' "$IS")"
+t "AC-12 install: the gate runs in one entry only (file tools)"     1    "$(grep -c 'gate\.js' "$IS")"
+t "AC-12 install: every gate and guard command ends with the wrapper" 0  "$(grep -E '(gate|guard)\.js' "$IS" | grep -vc '|| exit 2"$')"
+t "AC-12 install: the key folder stays denied, as before"           3    "$(grep -c '(~/.company/\*\*)' "$IS")"
+t "AC-12 install: the project has specs/active and approvals"       yes  "$(if [ -d "$IP/specs/active" ] && [ -d "$IP/approvals" ]; then echo yes; else echo no; fi)"
+# the installed gate command blocks when its harness is gone (the command string, with the path cut short)
+IGC=$(gatecmds "$IS")
+t "AC-12 install: the gate command with a missing harness: exit 2"  2    "$(shc "$(printf '%s' "$IGC" | sed 's|/harness/gate\.js|/harness/absent/gate.js|')" "$IP" "$T/ng.json")"
+# an existing settings file is never rewritten: exit 1 and the entries to merge by hand
+IP2="$T/inst/old"; mkdir -p "$IP2/.claude"; printf '%s\n' '{ "hooks": {} }' > "$IP2/.claude/settings.json"
+sh "$INST" "$IP2" > "$T/inst2.out" 2>&1; irc=$?
+t "AC-12 install over an existing settings file: exit 1"            1    "$irc"
+t "AC-12 the existing settings file is not changed"                 '{ "hooks": {} }' "$(cat "$IP2/.claude/settings.json")"
+t "AC-12 output: gate --host entry with wrapper and its matcher"    1    "$(grep -F -- "$IGATE" "$T/inst2.out" | grep -F -c -- "$FTOOLS")"
+t "AC-12 output: guard entry with wrapper for Bash"                 1    "$(grep -F -- "$IGUARD" "$T/inst2.out" | grep -c 'Bash')"
+t "AC-12 output: removal of the guard's file-tool entry"            1    "$(grep -i 'remove' "$T/inst2.out" | grep -F -- "$FTOOLS" | grep -c 'guard\.js')"
+t "AC-12 output: nothing else was created in that project"          no   "$(if [ -e "$IP2/specs" ] || [ -e "$IP2/approvals" ]; then echo yes; else echo no; fi)"
+sh "$INST" > "$T/inst3.out" 2>&1; irc=$?
+t "AC-12 install without a project dir: exit 2 (usage)"             2    "$irc"
+
 # --- no hook ever emits an allow (AC-10) -------------------------------------------------------
 t "no case printed a permissionDecision other than ask"           0    "$(grep -o '"permissionDecision":"[a-z]*"' "$T/all.out" | grep -vc '"ask"')"
 t "no case printed an allow"                                      0    "$(grep -c 'allow' "$T/all.out")"

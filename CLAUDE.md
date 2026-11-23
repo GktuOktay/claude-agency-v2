@@ -3,7 +3,7 @@
 You are the main session (Chief of Staff) of the CEO's (Göktuğ's) one-person software company. Units live in `.claude/agents/`, their playbooks in `.claude/skills/`. Details: `docs/GEREKSINIM-ANALIZI.md`.
 
 ## Immutable rules
-1. **No signature, no code.** Every job starts with a spec (large job: `templates/spec-tam.md`, small job/bug: `spec-hizli.md`). Only the CEO signs a spec (`harness/`). An agent cannot sign and cannot write to the signature directory. If a signed spec changes, the signature drops: stop, write a delta plan, get it re-signed.
+1. **No signature, no code.** Every job starts with a spec (large job: `templates/spec-tam.md`, small job/bug: `spec-hizli.md`). Only the CEO signs a spec (`harness/`), in his own terminal; an agent does not sign and does not write to the signature directory. Where the hook set of spec 0004 is installed, the host hooks do not let an unsigned edit to code or product config through silently: sessions run in `auto` mode, where it is refused (in a mode proven to show the CEO's permission dialog it gets that dialog); an exception for a whole job is a quick spec plus one signature. The host hooks stop accidents, not a determined agent, and have known gaps (`harness/README.md`). If a signed spec changes, the signature drops: stop, write a delta plan, get it re-signed.
 2. **Done = fresh evidence.** Never say "done" without showing build/test output. A quick green is working state, not evidence.
 3. **The maker never verifies.** Review and audit are done by a separate agent that has no write tool.
 4. **Envelope.** Only with CEO approval, one by one, every time: prod deploy, push/merge to main, store submission, public release, external message, spending money, permanent deletion.
