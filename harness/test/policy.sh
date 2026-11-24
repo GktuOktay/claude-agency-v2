@@ -60,6 +60,19 @@ done
 echo x > "$T/lit1/CLAUDE.md"; ln -s ../CLAUDE.md "$T/lit1/docs/l.md"
 printf "# Spec 0001\n- Status: Draft\n- Unlocks: $LITU, \`harness/gate.js\`\n\n## 1. Intent\nx\n" > "$T/lit3/specs/active/0001.md"
 
+# sfiss (spec 0004 §7.1.1, appsec recheck of 2026-11-23): trees for the case-fold spellings. The name holds "s", "ss" and "fi",
+# so U+017F (long s), U+00DF (sharp s) and U+FB01 (fi ligature) can each respell the root prefix; home and cfg are scratch.
+#   fw: specs/active without a spec file   fg: .git, no specs/   fsig: signed, Unlocks: harness/stop.js, .mcp.json, templates/**
+X="$T/sfiss"
+mkdir -p "$X/fw/src" "$X/fw/docs" "$X/fw/templates" "$X/fw/specs/active" "$X/fw/approvals" "$X/fw/harness/keys" "$X/fw/.claude" \
+  "$X/fg/.git" "$X/fg/src" "$X/home/.claude/agents" "$X/home/.company/keys" "$X/cfg/agents" \
+  "$X/fsig/specs/active" "$X/fsig/src" "$X/fsig/harness" "$X/fsig/templates"
+for f in fw/src/sfiss.cs fw/docs/sfiss.md fw/templates/sfiss.md fw/approvals/x.json fw/harness/keys/x.pem fw/harness/stop.js fw/.claude/settings.json \
+  fw/.mcp.json fg/.git/config home/.claude.json home/.claude/settings.json home/.claude/agents/x.md home/.company/keys/x.pem cfg/agents/sfiss.md \
+  cfg/settings.json fsig/harness/stop.js fsig/.mcp.json fsig/src/sfiss.cs; do echo x > "$X/$f"; done
+printf '%s\n' '# Spec 0001' '- Status: Draft' '- Unlocks: `harness/stop.js`, `.mcp.json`, `templates/**`' '' '## 1. Intent' 'x' > "$X/fsig/specs/active/0001.md"
+( cd "$X/fsig" && node "$HERE/approval.js" sign specs/active/0001.md approvals "$T/dkeys/ceo.key.pem" </dev/null >/dev/null )
+
 # --- cases -----------------------------------------------------------------------------------
 # suite <name> <driver args...>: prints the driver's lines and counts them; a driver crash is one failure.
 suite() {
@@ -87,6 +100,8 @@ suite "AC-16 literal enforcement entries"      literal "$T"
 suite "7.3 S-05 header characters"             header-chars
 # §7.1.1: path aliases of macOS (data-volume firmlink prefix, volfs); elsewhere the skip is said aloud
 if [ "$(uname -s)" = Darwin ]; then suite "7.1.1 path aliases (firmlink, volfs)" alias "$T"; else echo "skip (not darwin): 7.1.1 path aliases (firmlink, volfs)"; fi
+# §7.1.1: spellings that name a file only through the full case folding of the volume (U+017F, U+00DF, U+FB01)
+if [ "$(uname -s)" = Darwin ]; then suite "7.1.1 case-fold spellings (U+017F, U+00DF, U+FB01)" fold "$T"; else echo "skip (not darwin): 7.1.1 case-fold spellings (U+017F, U+00DF, U+FB01)"; fi
 
 n=$(node "$D" paths "$T" | wc -l | tr -d ' ')
 if [ "$n" -ge 100 ]; then pass=$((pass+1)); echo "ok    matrix path list for the consistency loop: $n rows"; else fail=$((fail+1)); echo "FAIL  matrix path list too short ($n rows)"; fi

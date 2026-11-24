@@ -19,9 +19,10 @@ const { execFileSync } = require("child_process");
 // Any other reported mode turns an ask into a refusal; no reported mode asks (§7.7).
 const ASK_MODES = Object.freeze(["default", "plan", "acceptEdits"]);
 
-// Today's guard expression (guard.js ENFORCEMENT), compared case-insensitively (REQ-3). policy.sh asserts the two sources are equal.
+// Today's guard expression (guard.js ENFORCEMENT), compared case-insensitively (REQ-3): on the path as written and on its
+// full case fold (`foldCase`). policy.sh asserts the two sources are equal.
 const ENFORCEMENT = /(^|\/)(harness\/(guard|gate|stop|approval|loop)\.js|harness\/keys\/|harness\/container-settings\.json|\.claude\/settings(\.local)?\.json|approvals\/|\.github\/workflows\/|CLAUDE\.md$)/i;
-// Row 2 members that hold anywhere on disk, tested on the lower-cased absolute POSIX path.
+// Row 2 members that hold anywhere on disk, tested on the case-folded (`foldCase`) absolute POSIX path.
 const ANYWHERE = /(^|\/)(claude\.md|approvals(\/.*)?|harness\/keys(\/.*)?|\.github\/workflows(\/.*)?|harness\/(approval|gate|guard|loop|notify|policy|stop)\.js|harness\/container-settings\.json|harness\/bin\/(approve|ceo-keygen|company-run|install-project|install-global)\.sh|\.claude\/settings\.json|\.claude\/settings\.local\.json)$/;
 const CFG_TREES = new Set(["agents", "skills", "rules", "commands", "hooks", "plugins"]);
 
@@ -39,6 +40,13 @@ class ResolveError extends Error {
 const nfc = (s) => String(s).normalize("NFC");
 const posix = (p) => (path.sep === "/" ? p : p.split(path.sep).join("/"));
 const foldFs = (platform) => platform === "darwin" || platform === "win32";
+// Full case fold (appsec recheck of 2026-11-23). A case-insensitive volume (APFS) matches names by Unicode full case
+// folding, not by `toLowerCase`: U+017F long s = s, U+00DF sharp s = ss, U+FB01 fi ligature = fi. Every "without case"
+// comparison of this file goes through this one function. lower -> upper -> lower reaches the full fold without a table:
+// `toUpperCase` applies the multi-character mappings (sharp s -> SS, ligatures), the first `toLowerCase` brings U+1E9E to
+// U+00DF before that. It is never narrower than the full fold (checked code point by code point against CaseFolding 15.1);
+// it is wider for U+0131 dotless i (= i) and the Cherokee small letters, which can only add matches.
+const foldCase = (s) => nfc(nfc(s).toLowerCase().toUpperCase().toLowerCase());
 const foldGlobs = foldFs;
 // Every path, glob or mode text taken from an event or a spec appears in a reason as a JSON string literal, cut to 200 characters (§7.8).
 function quote(s) {
@@ -51,34 +59,43 @@ function segsUnder(p, root, fold) {
   const split = (x) => posix(x).split("/").filter(Boolean);
   const a = split(p), b = split(root);
   if (path.parse(p).root.toLowerCase() !== path.parse(root).root.toLowerCase() || a.length < b.length) return null;
-  for (let i = 0; i < b.length; i++) if (fold ? a[i].toLowerCase() !== b[i].toLowerCase() : a[i] !== b[i]) return null;
+  for (let i = 0; i < b.length; i++) if (fold ? foldCase(a[i]) !== foldCase(b[i]) : a[i] !== b[i]) return null;
   return a.slice(b.length);
 }
 
 // realpath(nearest existing ancestor) + remaining segments. A dangling symlink is followed to its target.
 // Only "does not exist" (ENOENT) lets the walk go on; any other error refuses the write (REQ-4).
 // The resolved form is the file's true location (§7.1.1): a macOS alias that realpath leaves in place is undone or refused.
-function resolvePath(p, fsx) {
+function resolvePath(p, fsx) { return unalias(walk(p, fsx, (x) => fsx.realpathSync(x)), p, fsx); }
+// The walk of resolvePath before `unalias`, with the realpath function `rp`: the JS one keeps each name as it was written,
+// the native one (`diskRealpath`) returns the spelling the volume stores for every segment that exists.
+function walk(p, fsx, rp) {
   let cur = p; const rest = []; let hops = 0;
-  if (ALIASES && NAMESPACE.test(posix(String(p)))) throw new ResolveError(p, { code: "EALIAS" });
+  if (ALIASES && isNamespace(p)) throw new ResolveError(p, { code: "EALIAS" });
   for (;;) {
     let real = null;
-    try { real = nfc(path.join(fsx.realpathSync(cur), ...rest)); }
+    try { real = nfc(path.join(rp(cur), ...rest)); }
     catch (e) {
       if (!e || e.code !== "ENOENT") throw new ResolveError(p, e);
       let st = null;
       try { st = fsx.lstatSync(cur); } catch (e2) { if (!e2 || e2.code !== "ENOENT") throw new ResolveError(p, e2); }
       if (st && st.isSymbolicLink()) {
         if (++hops > 40) throw new ResolveError(p, { code: "ELOOP" });
-        try { cur = path.resolve(fsx.realpathSync(path.dirname(cur)), fsx.readlinkSync(cur)); } catch (e3) { throw new ResolveError(p, e3); }
+        try { cur = path.resolve(rp(path.dirname(cur)), fsx.readlinkSync(cur)); } catch (e3) { throw new ResolveError(p, e3); }
         continue;
       }
       const parent = path.dirname(cur);
-      if (parent === cur) return unalias(nfc(path.join(cur, ...rest)), p, fsx);
+      if (parent === cur) return nfc(path.join(cur, ...rest));
       rest.unshift(path.basename(cur)); cur = parent;
     }
-    if (real !== null) return unalias(real, p, fsx);
+    if (real !== null) return real;
   }
+}
+// The native realpath where the running system and the context's platform both fold names (darwin), else null. It
+// answers with the on-disk spelling of each existing segment (`ws/src/a.js` for `WS/SRC/a.js`) and keeps a firmlink prefix.
+function diskRealpath(fsx, platform) {
+  const nat = ALIASES && foldFs(platform || process.platform) && fsx.realpathSync && fsx.realpathSync.native;
+  return typeof nat === "function" ? (x) => nat(x) : null;
 }
 
 // macOS path aliases that realpath does not undo (appsec finding of 2026-11-23). Class membership follows the file, not
@@ -88,8 +105,9 @@ function resolvePath(p, fsx) {
 //   `/System/Volumes/Data/<path>` (data-volume firmlink, any case): dropped when `/<path>` is the same file, that is the
 //   same device and inode at the nearest existing ancestor of both; otherwise the text is no alias and stays as it is.
 const ALIASES = process.platform === "darwin";
-const DATA_VOLUME = "/system/volumes/data/";
+const DATA_VOLUME = "/System/Volumes/Data";
 const NAMESPACE = /^\/\.(vol|nofollow|resolve)(\/|$)/i;
+const isNamespace = (x) => { const s = posix(String(x)); return NAMESPACE.test(s) || NAMESPACE.test(foldCase(s)); };
 function unalias(abs, p, fsx) {
   if (!ALIASES) return abs;
   const stat = (x) => {
@@ -98,9 +116,10 @@ function unalias(abs, p, fsx) {
   };
   let out = abs;
   for (;;) {
-    if (NAMESPACE.test(out)) throw new ResolveError(p, { code: "EALIAS" });
-    if (out.slice(0, DATA_VOLUME.length).toLowerCase() !== DATA_VOLUME) return out;
-    const direct = out.slice(DATA_VOLUME.length - 1);
+    if (isNamespace(out)) throw new ResolveError(p, { code: "EALIAS" });
+    const below = segsUnder(out, DATA_VOLUME, true);        // per segment: a folded spelling of the prefix can differ in length
+    if (!below || !below.length) return out;
+    const direct = "/" + below.join("/");
     let a = out, b = direct, same = false;
     for (;;) {
       const sa = stat(a);
@@ -125,20 +144,21 @@ function homeMember(abs, env) {
   for (const c of env.cfgDirs) {
     const s = segsUnder(abs, c, true);
     if (!s || !s.length) continue;
-    const first = s[0].toLowerCase();
+    const first = foldCase(s[0]);
     if (s.length === 1 && (/^settings.*\.json$/.test(first) || first === ".claude.json")) return true;
     if (CFG_TREES.has(first)) return true;
   }
   for (const h of env.homes) {
     const s = segsUnder(abs, h, true);
     if (!s || !s.length) continue;
-    const first = s[0].toLowerCase();
+    const first = foldCase(s[0]);
     if ((s.length === 1 && first === ".claude.json") || first === ".company") return true;
   }
   return false;
 }
 // Home configuration is matched in both forms for both classifications: a write through an alias of ~/.claude is still row 2.
 function homeEnv(ctx, fsx) {
+  const disk = diskRealpath(fsx, ctx.platform);
   const both = (dirs) => {
     const set = new Set();
     for (const d of dirs || []) {
@@ -146,6 +166,7 @@ function homeEnv(ctx, fsx) {
       set.add(nfc(path.resolve(d)));
       try { set.add(unalias(nfc(path.resolve(d)), d, fsx)); } catch { /* as written only */ }
       try { set.add(resolvePath(path.resolve(d), fsx)); } catch { /* lexical form only */ }
+      if (disk) try { set.add(unalias(walk(path.resolve(d), fsx, disk), d, fsx)); } catch { /* the forms above */ }
     }
     return [...set];
   };
@@ -156,7 +177,7 @@ function homeEnv(ctx, fsx) {
 // path, lexical or resolved: `approvals/` and `harness/keys/` at any depth, `.claude/settings.local.json`,
 // `harness/bin/ceo-keygen.sh` (compared without case, as row 2 is), and every `<cfg>` or `<home>` member.
 const LOCKED = /(^|\/)(approvals|harness\/keys)(\/|$)|(^|\/)(\.claude\/settings\.local\.json|harness\/bin\/ceo-keygen\.sh)$/;
-const isLocked = (abs, env) => LOCKED.test(posix(abs).toLowerCase()) || homeMember(abs, env);
+const isLocked = (abs, env) => LOCKED.test(foldCase(posix(abs))) || homeMember(abs, env);
 
 // One classification (lexical or resolved): first matching row of the §7.1 table, top to bottom.
 // R: workspace root, M: main worktree root when the main-root rule applies (else null); both in the same form as `abs`.
@@ -175,13 +196,14 @@ function classifyOne(abs, R, M, env) {
     ? { row, root, rel: segs.join("/") }
     : { row, root: path.parse(abs).root, rel: posix(path.relative(path.parse(abs).root, abs)) });
   const rel = root !== null ? segs.join("/") : null;
-  const lrel = rel !== null ? rel.toLowerCase() : null;
+  const lrel = rel !== null ? foldCase(rel) : null;
+  const fabs = foldCase(absPosix);
   const at = (dir, s) => s === dir || s.startsWith(dir + "/");
 
   // row 1, hard-deny
   if (root !== null && (at("approvals", lrel) || at(".git", lrel))) return out(1);
   // row 2, enforcement: anywhere on disk
-  if (ENFORCEMENT.test(absPosix) || ANYWHERE.test(absPosix.toLowerCase()) || homeMember(abs, env)) return out(2);
+  if (ENFORCEMENT.test(absPosix) || ENFORCEMENT.test(fabs) || ANYWHERE.test(fabs) || homeMember(abs, env)) return out(2);
   if (root === null) return out(7);
   // row 2, R-relative; the carve-outs to row 4 match with exact case (Ruling R-14)
   if (/^harness\/[^/]*\.js$/.test(lrel) || lrel === ".mcp.json") return out(2);
@@ -209,8 +231,24 @@ function classify(absPath, ctx) {
   const lex = (x) => unalias(nfc(x), x, fsx);
   const lexical = classifyOne(lex(abs), lex(R), M && lex(M), env);
   const resolved = classifyOne(resolvePath(abs, fsx), resolvePath(R, fsx), M && resolvePath(M, fsx), env);
-  const fin = STRENGTH[lexical.row] > STRENGTH[resolved.row] ? lexical : resolved;      // tie: the resolved path is reported
-  return { row: fin.row, root: fin.root, rel: fin.rel, label: LABELS[fin.row], lexical, resolved };
+  let fin = STRENGTH[lexical.row] > STRENGTH[resolved.row] ? lexical : resolved;        // tie: the resolved path is reported
+  // On-disk spelling (appsec recheck of 2026-11-23), where the volume folds names. `plain`: the path as written differs
+  // from the spelling the volume stores by plain letter case at most; false for a spelling that reaches its file only
+  // through the full fold (U+017F, U+00DF, a ligature), which a literal enforcement entry never opens (decide). And a
+  // spelling that `foldCase` does not explain is classified by its on-disk name as well, the stronger class wins.
+  let plain = true;
+  const disk = diskRealpath(fsx, env.platform);
+  if (disk) {
+    const js = (x) => fsx.realpathSync(x);
+    const pairs = [abs, R, M].filter(Boolean).map((x) => [walk(x, fsx, js), walk(x, fsx, disk)]);
+    plain = pairs[0][0].toLowerCase() === pairs[0][1].toLowerCase();
+    if (pairs.some(([a, b]) => foldCase(a) !== foldCase(b))) {
+      const d = (x) => unalias(walk(x, fsx, disk), x, fsx);
+      const onDisk = classifyOne(d(abs), d(R), M && d(M), env);
+      if (STRENGTH[onDisk.row] > STRENGTH[fin.row]) fin = onDisk;
+    }
+  }
+  return { row: fin.row, root: fin.root, rel: fin.rel, label: LABELS[fin.row], lexical, resolved, plain };
 }
 
 // ---- `Unlocks:` header (§7.3) ---------------------------------------------------------------
@@ -394,6 +432,8 @@ function decide(req, ctx) {
     const lx = c.lexical, rs = c.resolved;
     const env = homeEnv(ctx, ctx.fs || fs);
     if ([lx, rs].some((x) => isLocked(path.join(x.root, x.rel), env))) return "kilitli yol (imza dizini, anahtarlar, oturum ve ev yapılandırması); hiçbir Unlocks: açamaz";   // 3. not locked
+    // Spelled apart from the on-disk name by more than plain letter case: the entry opens the file's own spelling only (R-20).
+    if (!c.plain) return "yol diskteki yazımından harf katlamasıyla ayrılıyor (U+017F, U+00DF, bitişik harf gibi); Unlocks: yalnız dosyanın kendi yazımını açar";
     if (lx.row === 2 && lx.root === path.parse(lx.root).root) return "çalışma kökünün dışında; hiçbir Unlocks: açamaz";       // 1. root: outside every root
     // 1. both row 2 against the same root (resolved.root === realpath(lexical.root), D-1); 2. the same root-relative path
     if (lx.row !== 2 || rs.row !== 2 || rs.root !== safeReal(lx.root, ctx) || nfc(lx.rel) !== nfc(rs.rel)) return "sembolik bağ üzerinden erişiliyor; Unlocks: yalnız dosyanın kendi yolunu açar";

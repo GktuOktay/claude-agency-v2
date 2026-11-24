@@ -465,6 +465,72 @@ if [ "$(uname -s)" = Darwin ]; then
 else
   echo "skip (not darwin): 7.1.1 path alias cases (firmlink, volfs)"
 fi
+# --- §7.1.1: spellings by the full case folding of the volume in writer targets (appsec recheck of 2026-11-23) ---
+# U+017F (long s) = s, U+00DF (sharp s) = ss, U+FB01 (fi ligature) = fi on a case-insensitive volume. A writer target (tee, cp,
+# a redirect) spelled that way gets the decision of the direct path. The tree name "sfiss" lets each character respell the
+# root prefix. Scratch HOME ($TH) and a scratch CLAUDE_CONFIG_DIR.
+#   GF: signed, no Unlocks: (code is open)   GFU: specs/, no active spec   GG: a git repository, no specs/   GFS: signed, Unlocks: harness/stop.js, .mcp.json
+if [ "$(uname -s)" = Darwin ]; then
+  LS=$(printf '\305\277'); SZ=$(printf '\303\237'); FI=$(printf '\357\254\201')
+  XG="$TP/sfiss"; GF="$XG/gf"; GFU="$XG/gfu"; GG="$XG/gg"; GFS="$XG/gfs"; GC="$XG/cfg"
+  mkws "$GF"; mkws "$GFU"; mkdir -p "$GF/harness/keys" "$GF/approvals" "$GF/.claude" "$GG/src" "$GC/agents" "$TH/.claude" "$TH/.company/keys"
+  ( cd "$GG" && git init -q -b feat/0007-x . )
+  for f in "$GF/src/sfiss.cs" "$GF/harness/stop.js" "$GF/harness/keys/x.pem" "$GF/approvals/x.json" "$GF/.claude/settings.json" "$GF/.mcp.json" "$GFU/src/sfiss.cs" \
+    "$GC/agents/sfiss.md" "$GC/settings.json" "$TH/.claude/settings.json" "$TH/.company/keys/x.pem"; do echo x > "$f"; done
+  printf '%s\n' '# Spec 0001' '- Status: Draft' '' '## 1. Intent' 'x' > "$GF/specs/active/0001.md"; gsign "$GF" 0001.md
+  wsp "$GFS" '`harness/stop.js`, `.mcp.json`'; gsign "$GFS" 0001.md
+  echo x > "$GFS/harness/stop.js"; echo x > "$GFS/.mcp.json"; echo x > "$GFS/src/sfiss.cs"
+  fgid() { stat -f '%d/%i' "$1" 2>/dev/null || echo none; }
+  fheld() { case "$1" in ask|deny) echo yes;; *) echo "no: $1";; esac; }
+  # gq <command> [mode]: in GF, with the scratch CLAUDE_CONFIG_DIR
+  gq() { gb "$GF" "$GF" "$1" "${2:--}" "CLAUDE_CONFIG_DIR=$GC"; }
+  # <direct>|<spelling>: absolute paths, the member or the root prefix respelled
+  GFOLDS="$GF/approvals/x.json|$GF/approval${LS}/x.json $GF/harness/keys/x.pem|$GF/harne${LS}s/key${LS}/x.pem $GF/harness/keys/x.pem|$GF/harne${SZ}/keys/x.pem
+    $GF/harness/stop.js|$GF/harne${LS}s/stop.js $GF/harness/stop.js|$GF/harne${SZ}/stop.js $GF/.claude/settings.json|$GF/.claude/${LS}ettings.json $GF/.mcp.json|$GF/.mcp.j${LS}on
+    $GF/harness/new.js|$GF/harne${LS}s/new.js $GF/harness/new.js|$GF/harne${SZ}/new.js
+    $GF/harness/stop.js|$TP/${LS}fiss/gf/harness/stop.js $GF/harness/stop.js|$TP/sfi${SZ}/gf/harness/stop.js $GF/harness/stop.js|$TP/s${FI}ss/gf/harness/stop.js
+    $GF/.mcp.json|$TP/${LS}fiss/gf/.mcp.json $GF/.claude/settings.json|$TP/sfi${SZ}/gf/.claude/settings.json $GF/approvals/x.json|$TP/s${FI}ss/gf/approvals/x.json
+    $GF/harness/keys/x.pem|$TP/s${FI}ss/gf/harness/keys/x.pem $GF/harness/stop.js|/Sy${LS}tem/Volumes/Data$GF/harness/stop.js
+    $GC/settings.json|$GC/${LS}ettings.json $GC/agents/sfiss.md|$GC/agent${LS}/sfiss.md $GC/agents/sfiss.md|$TP/${LS}fiss/cfg/agents/sfiss.md $GC/agents/sfiss.md|$TP/s${FI}ss/cfg/agents/sfiss.md
+    $TH/.claude/settings.json|$TH/.claude/${LS}ettings.json $TH/.company/keys/x.pem|$TH/.company/key${LS}/x.pem"
+  for md in - auto; do
+    for pair in $GFOLDS; do
+      dp=${pair%%|*}; sp=${pair#*|}
+      case "$dp" in */new.js) ;; *) t "fold setup: ${sp#"$TP"/} names the same file" "$(fgid "$dp")" "$(fgid "$sp")";; esac
+      for c in 'tee %s' 'cp x %s' 'echo x > %s'; do
+        # shellcheck disable=SC2059
+        d=$(gq "$(printf "$c" "$dp")" "$md")
+        t "fold mode $md: direct is not waved through: $c ${dp#"$TP"/}" yes "$(fheld "$d")"
+        # shellcheck disable=SC2059
+        t "fold mode $md: decides as the direct path: $c ${sp#"$TP"/}" "$d" "$(gq "$(printf "$c" "$sp")" "$md")"
+      done
+    done
+    # a non-target operand (Ruling R-7) and the .git tree of a repository without specs/
+    d=$(gq "cp $GF/harness/stop.js $TP/elsewhere" "$md")
+    t "fold mode $md: direct enforcement file as a non-target operand is not waved through" yes "$(fheld "$d")"
+    t "fold mode $md: U+017F and U+00DF spellings as a non-target operand decide as the direct path" "$d,$d" "$(gq "cp $GF/harne${LS}s/stop.js $TP/elsewhere" "$md"),$(gq "cp $GF/harne${SZ}/stop.js $TP/elsewhere" "$md")"
+    d=$(gb "$GG" "$GG" "tee $GG/.git/config" "$md")
+    t "fold mode $md: direct .git/config is not waved through" yes "$(fheld "$d")"
+    t "fold mode $md: .git/config through the U+017F, U+00DF, U+FB01 root prefixes decides as the direct path" "$d,$d,$d" "$(gb "$GG" "$GG" "tee $TP/${LS}fiss/gg/.git/config" "$md"),$(gb "$GG" "$GG" "tee $TP/sfi${SZ}/gg/.git/config" "$md"),$(gb "$GG" "$GG" "tee $TP/s${FI}ss/gg/.git/config" "$md")"
+    t "fold mode $md: .git/con<U+FB01>g decides as the direct path" "$d" "$(gb "$GG" "$GG" "cp x $GG/.git/con${FI}g" "$md")"
+    # an unsigned code path
+    d=$(gb "$GFU" "$GFU" "tee $GFU/src/sfiss.cs" "$md")
+    t "fold mode $md: direct unsigned code target is not waved through" yes "$(fheld "$d")"
+    t "fold mode $md: unsigned code through the three root prefixes decides as the direct path" "$d,$d,$d" "$(gb "$GFU" "$GFU" "tee $TP/${LS}fiss/gfu/src/sfiss.cs" "$md"),$(gb "$GFU" "$GFU" "cp x $TP/sfi${SZ}/gfu/src/sfiss.cs" "$md"),$(gb "$GFU" "$GFU" "echo x > $TP/s${FI}ss/gfu/src/sfiss.cs" "$md")"
+    t "fold mode $md: unsigned code through member spellings decides as the direct path" "$d,$d,$d" "$(gb "$GFU" "$GFU" "tee $GFU/${LS}rc/sfiss.cs" "$md"),$(gb "$GFU" "$GFU" "tee $GFU/src/sfi${SZ}.cs" "$md"),$(gb "$GFU" "$GFU" "tee $GFU/src/s${FI}ss.cs" "$md")"
+  done
+  t "fold: the U+017F harness/stop.js dialog keeps the class label" ask,yes "$(gq "tee $GF/harne${LS}s/stop.js"),$(has '(enforcement)')"
+  t "fold signed: direct code target has no opinion"       allow "$(gq "tee $GF/src/sfiss.cs")"
+  t "fold signed: code through the three root prefixes has no opinion either" allow,allow,allow "$(gq "tee $TP/${LS}fiss/gf/src/sfiss.cs"),$(gq "cp x $TP/sfi${SZ}/gf/src/sfiss.cs"),$(gq "echo x > $TP/s${FI}ss/gf/src/sfiss.cs")"
+  # a named enforcement file: a Bash writer never opens it, whatever the spelling (REQ-22)
+  t "fold signed: named harness/stop.js, direct, asks"     ask   "$(gb "$GFS" "$GFS" "cp x $GFS/harness/stop.js")"
+  for sp in "$GFS/harne${LS}s/stop.js" "$GFS/harne${SZ}/stop.js" "$GFS/.mcp.j${LS}on" "$TP/${LS}fiss/gfs/harness/stop.js" "$TP/sfi${SZ}/gfs/harness/stop.js" "$TP/s${FI}ss/gfs/.mcp.json"; do
+    t "fold signed: named file as ${sp#"$TP"/}: tee asks"  ask   "$(gb "$GFS" "$GFS" "tee $sp")"
+    t "fold signed: named file as ${sp#"$TP"/}: cp is refused in mode auto" deny "$(gb "$GFS" "$GFS" "cp x $sp" auto)"
+  done
+else
+  echo "skip (not darwin): 7.1.1 case-fold spelling cases (U+017F, U+00DF, U+FB01)"
+fi
 # --- §7.1 (REQ-33, Ruling R-16): several rules, one decision, reasons joined by " · " (QA T-11, D-2) ---
 t "REQ-33 two ask reasons are joined by ' · '"        yes   "$(gb "$WU" "$WU" 'git push origin main; rm -rf build' >/dev/null; has 'korumalı dala (main) push. · özyinelemeli silme.')"
 t "REQ-33 no ' | ' between the reasons of an ask"     no    "$(has '. | ')"

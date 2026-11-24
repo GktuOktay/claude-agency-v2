@@ -10,6 +10,7 @@
 //   literal <T>           AC-16: literal enforcement entries, unlockKinds      -> ok/FAIL lines
 //   header-chars          §7.3 S-05: control and format characters in a glob  -> ok/FAIL lines
 //   alias <T>             §7.1.1: macOS path aliases (firmlink prefix, volfs)   -> ok/FAIL lines (darwin only)
+//   fold <T>              §7.1.1: spellings by full case folding (U+017F, U+00DF, U+FB01)  -> ok/FAIL lines (darwin only)
 // The tree layout under <T> is documented in policy.sh. Exit 1 when a case fails.
 "use strict";
 const fs = require("fs");
@@ -568,9 +569,104 @@ function alias(T) {
   t("a root given in the volfs form -> refused", "refused", label(direct("ws1", "src/a.cs"), ctxFor(RT, "ws1", "darwin", { root: "/.vol/" + id(ws1), mainRoot: "/.vol/" + id(ws1) })));
 }
 
+// Spellings that reach a file only through the full case folding of a case-insensitive volume (spec 0004 §7.1.1, REQ-3,
+// Ruling R-14; appsec recheck of 2026-11-23): U+017F long s = s, U+00DF sharp s = ss, U+FB01 fi ligature = fi. Each gets
+// the class and the decision of the direct path; a named enforcement file is never opened through such a spelling.
+// Runs on darwin only (policy.sh prints the skip line elsewhere). Tree <T>/sfiss, built by policy.sh; HOME and cfg are scratch.
+function foldCases(T) {
+  if (process.platform !== "darwin") { console.log("skip (not darwin): case-fold spelling cases"); return; }
+  const RT = fs.realpathSync(T), X = path.join(RT, "sfiss"), FL = "/System/Volumes/Data";
+  const id = (p) => { try { const s = fs.statSync(p, { bigint: true }); return s.dev + "/" + s.ino; } catch (e) { return "none:" + e.code; } };
+  const SPELL = [["U+017F", (s) => s.replace(/s/g, "ſ")], ["U+00DF", (s) => s.replace(/ss/g, "ß")], ["U+FB01", (s) => s.replace(/fi/g, "ﬁ")]];
+  const ctx = (ws, pf) => Object.assign(ctxFor(RT, path.join("sfiss", ws), pf, null, { HOME: path.join(X, "home"), CLAUDE_CONFIG_DIR: path.join(X, "cfg") }), { pubkeyPath: path.join(RT, "dkeys", "ceo.pub.pem") });
+  const decision = (p, c, kind) => policy.decide({ kind: kind || "file", target: p, event: {} }, c).decision;
+  const show = (s) => JSON.stringify(s).replace(/[^\x20-\x7e]/g, (ch) => "\\u" + ch.charCodeAt(0).toString(16).padStart(4, "0"));
+  // [workspace, path below <T>/sfiss, class of the direct path, the file exists]
+  const CASES = [
+    ["fg", "fg/.git/config", "hard-deny", true], ["fw", "fw/approvals/x.json", "hard-deny", true], ["fw", "fw/approvals/sfiss/new.json", "hard-deny", false],
+    ["fw", "fw/harness/keys/x.pem", "enforcement", true], ["fw", "fw/harness/stop.js", "enforcement", true], ["fw", "fw/.claude/settings.json", "enforcement", true],
+    ["fw", "fw/.mcp.json", "enforcement", true], ["fw", "fw/harness/new.js", "enforcement", false], ["fw", "fw/newdir/harness/keys/sfiss.pem", "enforcement", false],
+    ["fw", "home/.claude.json", "enforcement", true], ["fw", "home/.company/keys/x.pem", "enforcement", true], ["fw", "home/.claude/settings.json", "enforcement", true],
+    ["fw", "home/.claude/agents/x.md", "enforcement", true], ["fw", "cfg/agents/sfiss.md", "enforcement", true], ["fw", "cfg/settings.json", "enforcement", true],
+    ["fw", "fw/templates/sfiss.md", "product-config", true], ["fw", "fw/src/sfiss.cs", "code", true], ["fw", "fw/src/new-sfiss.cs", "code", false], ["fw", "fw/docs/sfiss.md", "free", true],
+  ];
+  let spelled = 0;
+  for (const [ws, rel, want, exists] of CASES) {
+    const direct = path.join(X, rel), c = ctx(ws, "darwin"), d = decision(direct, c);
+    t(`[darwin] direct ${rel} -> ${want}`, want, label(direct, c));
+    if (want !== "free") t(`decide direct ${rel}: not waved through`, true, d === "ask" || d === "deny");
+    for (const [uname, sp] of SPELL) {
+      // the root prefix respelled, the member respelled, and the data-volume firmlink prefix respelled (U+017F only: no "ss", no "fi" in it)
+      const forms = [["root prefix", path.join(RT, sp("sfiss"), rel)], ["member", path.join(X, sp(rel))], ["firmlink prefix", sp("/System") + "/Volumes/Data" + direct]];
+      for (const [fname, p] of forms) {
+        if (p === direct || p === FL + direct) continue;
+        spelled++;
+        const name = `${uname} ${fname} ${show(path.relative(RT, p.startsWith(RT) ? p : p.slice(FL.length)))}`;
+        if (exists) t(`setup ${name}: names the same file`, id(direct), id(p));
+        t(`[darwin] ${name} -> ${want}, as the direct path`, want, label(p, c));
+        t(`decide ${name}: as the direct path (${d})`, d, decision(p, c));
+        // rows 1, 2 and 4 fold on every platform (Ruling R-14); a root is folded on darwin and win32 only
+        if (fname === "member" && want !== "code" && want !== "free") t(`[linux] ${name} -> ${want}`, want, label(p, ctx(ws, "linux")));
+      }
+    }
+  }
+  t("the spelling loop is not vacuous (100+ spellings)", true, spelled >= 100);
+  t("[linux] U+017F docs/ is not free (row 5 folds on darwin and win32 only)", "code", label(path.join(X, "fw", "docſ", "sfiss.md"), ctx("fw", "linux")));
+  // other characters of the same kind: U+1E9E capital sharp s, U+FB06 st ligature, U+212A kelvin sign
+  for (const [uname, p, plain] of [["U+1E9E", "fw/harneẞ/stop.js", "fw/harness/stop.js"], ["U+FB06", "fw/harness/ﬆop.js", "fw/harness/stop.js"],
+    ["U+212A", "fw/harness/Keys/x.pem", "fw/harness/keys/x.pem"], ["U+FB06 firmlink prefix", null, "fw/harness/stop.js"]]) {
+    const direct = path.join(X, plain);
+    const sp = p === null ? "/Syﬆem/Volumes/Data" + direct : path.join(X, p);
+    t(`setup ${uname}: names the same file`, id(direct), id(sp));
+    t(`[darwin] ${uname} -> enforcement`, "enforcement", label(sp, ctx("fw", "darwin")));
+    t(`decide ${uname}: as the direct path`, decision(direct, ctx("fw", "darwin")), decision(sp, ctx("fw", "darwin")));
+  }
+  // a spelling that existed before this fix keeps its class: plain upper case
+  t("[darwin] upper-cased root prefix -> code (unchanged)", "code", label(path.join(RT, "SFISS", "fw/src/sfiss.cs"), ctx("fw", "darwin")));
+  t("[linux] upper-cased root prefix -> outside (unchanged)", "outside", label(path.join(RT, "SFISS", "fw/src/sfiss.cs"), ctx("fw", "linux")));
+
+  // a named enforcement file under a signed spec (fsig: harness/stop.js, .mcp.json): only its own spelling is opened (R-20)
+  const sc = ctx("fsig", "darwin"), S = path.join(X, "fsig");
+  t("signed: named harness/stop.js, direct -> allow", "allow", decision(path.join(S, "harness/stop.js"), sc));
+  t("signed: named .mcp.json, direct -> allow", "allow", decision(path.join(S, ".mcp.json"), sc));
+  t("signed: code, direct -> allow", "allow", decision(path.join(S, "src/sfiss.cs"), sc));
+  const NOT = [["U+017F in harness", "harneſs/stop.js"], ["U+017F twice in harness", "harneſſ/stop.js"], ["U+00DF in harness", "harneß/stop.js"], ["U+1E9E in harness", "harneẞ/stop.js"],
+    ["U+017F in stop.js", "harness/ſtop.js"], ["U+FB06 in stop.js", "harness/ﬆop.js"], ["U+017F in .js", "harness/stop.jſ"], ["U+017F in .mcp.json", ".mcp.jſon"],
+    ["U+017F root prefix", "../../" + "ſfiss/fsig/harness/stop.js"], ["U+00DF root prefix", "../../sfiß/fsig/harness/stop.js"], ["U+FB01 root prefix", "../../sﬁss/fsig/harness/stop.js"],
+    ["U+FB01 root prefix, .mcp.json", "../../sﬁss/fsig/.mcp.json"]];
+  for (const [name, rel] of NOT) {
+    const p = path.join(S, rel);
+    t(`setup signed ${name}: names the named file`, id(path.join(S, rel.includes(".mcp") ? ".mcp.json" : "harness/stop.js")), id(p));
+    t(`signed ${name}: enforcement`, "enforcement", label(p, sc));
+    t(`signed ${name}: not opened by the entry -> ask`, "ask", decision(p, sc));
+    t(`signed ${name}: Bash writer -> ask`, "ask", decision(p, sc, "bash"));
+  }
+  for (const pre of ["/Syſtem/Volumes/Data", "/Syﬆem/Volumes/Data"]) {
+    t(`setup signed ${show(pre)}: names the named file`, id(path.join(S, "harness/stop.js")), id(pre + path.join(S, "harness/stop.js")));
+    t(`signed ${show(pre)} + named harness/stop.js: not opened -> ask`, "ask", decision(pre + path.join(S, "harness/stop.js"), sc));
+    t(`signed ${show(pre)} + code -> allow, as the direct path`, "allow", decision(pre + path.join(S, "src/sfiss.cs"), sc));
+  }
+  t("signed: the firmlink prefix in plain upper case still opens the named file (unchanged)", "allow", decision("/SYSTEM/VOLUMES/DATA" + path.join(S, "harness/stop.js"), sc));
+  t("signed: the root prefix in plain upper case still opens the named file (unchanged)", "allow", decision(path.join(RT, "SFISS", "fsig/harness/stop.js"), sc));
+  t("signed: HARNESS/stop.js against the entry harness/stop.js -> ask (unchanged)", "ask", decision(path.join(S, "HARNESS/stop.js"), sc));
+  for (const [uname, sp] of SPELL) {
+    t(`signed ${uname} code root prefix -> allow, as the direct path`, "allow", decision(path.join(RT, sp("sfiss"), "fsig/src/sfiss.cs"), sc));
+    t(`signed ${uname} code member -> allow, as the direct path`, "allow", decision(path.join(S, sp("src/sfiss.cs")), sc));
+    t(`signed ${uname} approvals/ member -> deny`, "deny", decision(path.join(S, sp("approvals/sfiss.json")), sc));
+  }
+  // an on-disk spelling that the fold does not explain (injected): the class of the on-disk name still holds, and nothing is opened
+  const odd = (p) => p.split("zzz-unexplained").join("harness");
+  const oddFs = Object.assign({}, fs, { realpathSync: Object.assign((p) => fs.realpathSync(p), { native: (p) => fs.realpathSync.native(odd(String(p))) }) });
+  const oc = Object.assign(ctx("fsig", "darwin"), { fs: oddFs });
+  t("injected on-disk spelling: zzz-unexplained/stop.js is harness/stop.js on disk -> enforcement", "enforcement", label(path.join(S, "zzz-unexplained/stop.js"), oc));
+  t("injected on-disk spelling: not opened by the entry -> ask", "ask", decision(path.join(S, "zzz-unexplained/stop.js"), oc));
+  t("without the injection the same text is code", "code", label(path.join(S, "zzz-unexplained/stop.js"), sc));
+}
+
 const [cmd, a, b] = process.argv.slice(2);
 if (cmd === "matrix") matrix(a);
 else if (cmd === "alias") alias(a);
+else if (cmd === "fold") foldCases(a);
 else if (cmd === "paths") for (const m of MATRIX) for (const pf of m[4]) console.log([m[3], pf, m[1], abs(a, m[1], m[2])].join("\t"));
 else if (cmd === "superset") superset(a, b);
 else if (cmd === "header") header();

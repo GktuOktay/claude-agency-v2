@@ -522,6 +522,85 @@ else
   echo "skip (not darwin): 7.1.1 path alias cases (firmlink, volfs)"
 fi
 
+# --- §7.1.1: spellings by the full case folding of the volume (appsec recheck of 2026-11-23) -----
+# U+017F (long s) = s, U+00DF (sharp s) = ss, U+FB01 (fi ligature) = fi on a case-insensitive volume: such a spelling names
+# the same file, so through the wired command form it gets the decision of the direct path, and never opens a named
+# enforcement file. The tree name "sfiss" lets each character respell the root prefix. HOME and cfg are scratch.
+#   WF: signed, no Unlocks: (code is open, as in a working repository)   WFU: one active spec, never signed
+#   WG: .git, no specs/                 WFS: signed, Unlocks: harness/stop.js, .mcp.json
+if [ "$(uname -s)" = Darwin ]; then
+  LS=$(printf '\305\277'); SZ=$(printf '\303\237'); FI=$(printf '\357\254\201')
+  FL=/System/Volumes/Data
+  XF="$T/sfiss"; WF="$XF/wf"; WG="$XF/wg"; WFS="$XF/wfs"; FH="$XF/home"; FC="$XF/cfg"
+  mk "$WF"; mkdir -p "$WF/harness/keys" "$WG/.git" "$WG/src" "$FH/.claude" "$FH/.company/keys" "$FC/agents"
+  for f in wf/src/sfiss.cs wf/harness/stop.js wf/harness/keys/x.pem wf/approvals/x.json wf/.claude/settings.json wf/.mcp.json wf/docs/sfiss.md \
+    wg/.git/config home/.claude.json home/.claude/settings.json home/.company/keys/x.pem cfg/agents/sfiss.md cfg/settings.json; do echo x > "$XF/$f"; done
+  printf '# Spec 0001\n\n## 1\nAC-1: hello\n' > "$WF/specs/active/0001.md"; sign "$WF" 0001.md
+  WFU="$XF/wfu"; mk "$WFU"; echo x > "$WFU/src/sfiss.cs"; printf '# Spec 0001\n\n## 1\nAC-1: hello\n' > "$WFU/specs/active/0001.md"
+  lws "$WFS" 'harness/stop.js, .mcp.json'; sign "$WFS" 0001.md
+  echo x > "$WFS/harness/stop.js"; echo x > "$WFS/.mcp.json"; echo x > "$WFS/src/sfiss.cs"
+  ffid() { stat -f '%d/%i' "$1" 2>/dev/null || echo none; }
+  fheld() { case "$1" in ask|deny) echo yes;; *) echo "no: $1";; esac; }
+  # gf <path below $XF> [mode] [base]: a Write of <base, default $XF>/<path> in its workspace (wg/* in WG, wfu/* in WFU, the rest in WF), scratch HOME and cfg
+  gf() { case "$1" in wg/*) fproj=$WG;; wfu/*) fproj=$WFU;; *) fproj=$WF;; esac; ( XENV="HOME=$FH CLAUDE_CONFIG_DIR=$FC"; ev Write "${3:-$XF}/$1" "$fproj" "${2:--}" | PROJ="$fproj" call ); }
+  # <direct>|<spelling>, both below $XF: the member respelled
+  FOLDS="wf/approvals/x.json|wf/approval${LS}/x.json wf/harness/keys/x.pem|wf/harne${LS}s/key${LS}/x.pem wf/harness/keys/x.pem|wf/harne${SZ}/keys/x.pem
+    wf/harness/stop.js|wf/harne${LS}s/stop.js wf/harness/stop.js|wf/harne${SZ}/stop.js wf/.claude/settings.json|wf/.claude/${LS}ettings.json wf/.mcp.json|wf/.mcp.j${LS}on
+    wg/.git/config|wg/.git/con${FI}g wf/src/sfiss.cs|wf/${LS}rc/sfiss.cs wf/src/sfiss.cs|wf/src/sfi${SZ}.cs wf/src/sfiss.cs|wf/src/s${FI}ss.cs
+    wf/harness/new.js|wf/harne${LS}s/new.js wf/harness/new.js|wf/harne${SZ}/new.js wf/approvals/sfiss/new.json|wf/approval${LS}/s${FI}ss/new.json
+    home/.claude/settings.json|home/.claude/${LS}ettings.json home/.company/keys/x.pem|home/.company/key${LS}/x.pem cfg/settings.json|cfg/${LS}ettings.json cfg/agents/sfiss.md|cfg/agent${LS}/sfiss.md"
+  # paths below $XF for the root prefix respelled (three characters) and for the firmlink prefix respelled
+  FROOT="wg/.git/config wf/approvals/x.json wf/harness/keys/x.pem wf/harness/stop.js wf/.claude/settings.json wf/.mcp.json wf/src/sfiss.cs wf/harness/new.js home/.claude.json home/.claude/settings.json home/.company/keys/x.pem cfg/agents/sfiss.md cfg/settings.json"
+  for md in - auto; do
+    for pair in $FOLDS; do
+      dp=${pair%%|*}; sp=${pair#*|}; d=$(gf "$dp" "$md")
+      case "$dp" in */new.js|*/new.json) ;; *) t "fold setup: $sp names the same file as $dp" "$(ffid "$XF/$dp")" "$(ffid "$XF/$sp")";; esac
+      case "$dp" in wf/src/*) t "fold mode $md: direct $dp (signed code) has no output" none "$d";; *) t "fold mode $md: direct $dp is not waved through" yes "$(fheld "$d")";; esac
+      t "fold mode $md: $sp decides as the direct path"           "$d" "$(gf "$sp" "$md")"
+    done
+    for p in $FROOT; do
+      d=$(gf "$p" "$md")
+      case "$p" in wf/src/*) ;; *) t "fold mode $md: direct $p is not waved through (root cases)" yes "$(fheld "$d")";; esac
+      for pre in "${LS}fiss" "sfi${SZ}" "s${FI}ss"; do
+        t "fold mode $md: root prefix $pre, $p decides as the direct path" "$d" "$(gf "$p" "$md" "$T/$pre")"
+      done
+      t "fold mode $md: firmlink prefix with U+017F, $p decides as the direct path" "$d" "$(gf "$p" "$md" "/Sy${LS}tem/Volumes/Data$XF")"
+    done
+  done
+  t "fold setup: the root prefix spellings name the same file"       "$(ffid "$WF/harness/stop.js"),$(ffid "$WF/harness/stop.js"),$(ffid "$WF/harness/stop.js")" "$(ffid "$T/${LS}fiss/wf/harness/stop.js"),$(ffid "$T/sfi${SZ}/wf/harness/stop.js"),$(ffid "$T/s${FI}ss/wf/harness/stop.js")"
+  t "fold setup: the firmlink prefix with U+017F names the same file" "$(ffid "$WF/harness/stop.js")" "$(ffid "/Sy${LS}tem/Volumes/Data$WF/harness/stop.js")"
+  # an unsigned code path: every spelling asks as the direct path does, and is refused in mode auto
+  for md in - auto; do
+    d=$(gf wfu/src/sfiss.cs "$md")
+    t "fold mode $md: direct unsigned code is not waved through"     yes  "$(fheld "$d")"
+    t "fold mode $md: unsigned code through U+017F, U+00DF, U+FB01 root prefixes decides as the direct path" "$d,$d,$d" "$(gf wfu/src/sfiss.cs "$md" "$T/${LS}fiss"),$(gf wfu/src/sfiss.cs "$md" "$T/sfi${SZ}"),$(gf wfu/src/sfiss.cs "$md" "$T/s${FI}ss")"
+    t "fold mode $md: unsigned code through member spellings decides as the direct path" "$d,$d,$d" "$(gf "wfu/${LS}rc/sfiss.cs" "$md"),$(gf "wfu/src/sfi${SZ}.cs" "$md"),$(gf "wfu/src/s${FI}ss.cs" "$md")"
+    t "fold mode $md: unsigned code through the firmlink prefix with U+017F decides as the direct path" "$d" "$(gf wfu/src/sfiss.cs "$md" "/Sy${LS}tem/Volumes/Data$XF")"
+  done
+  t "fold: free docs/ file, direct, has no output"                   none "$(gf wf/docs/sfiss.md)"
+  t "fold: U+017F spelling of docs/ has no output either"            none "$(gf "wf/doc${LS}/sfiss.md")"
+  t "fold mode auto: U+017F harness/stop.js exits 2"                 deny "$(gf "wf/harne${LS}s/stop.js" auto)"
+  t "fold mode auto: that refusal names the path as written"         yes  "$(errhas "the edit of \"harne${LS}s/stop.js\"")"
+  t "fold: the U+017F harness/stop.js dialog keeps the class label"  ask,yes "$(gf "wf/harne${LS}s/stop.js"),$(has '(enforcement)')"
+  # signed: only the entry's own spelling is opened (Ruling R-20); code keeps the direct decision
+  t "fold signed: named harness/stop.js, direct, no output"          none "$(g "$WFS" Write "$WFS/harness/stop.js")"
+  t "fold signed: named .mcp.json, direct, no output"                none "$(g "$WFS" Write "$WFS/.mcp.json")"
+  for sp in "harne${LS}s/stop.js" "harne${SZ}/stop.js" "harness/${LS}top.js" ".mcp.j${LS}on" "../../${LS}fiss/wfs/harness/stop.js" "../../sfi${SZ}/wfs/harness/stop.js" "../../s${FI}ss/wfs/harness/stop.js" "../../s${FI}ss/wfs/.mcp.json"; do
+    case "$sp" in *mcp*) named=.mcp.json;; *) named=harness/stop.js;; esac
+    t "fold signed setup: $sp names the named file"                  "$(ffid "$WFS/$named")" "$(ffid "$WFS/$sp")"
+    t "fold signed: $sp is not opened (asks)"                        ask  "$(g "$WFS" Write "$WFS/$sp")"
+    t "fold signed: $sp in mode auto exits 2"                        deny "$(g "$WFS" Write "$WFS/$sp" auto)"
+    t "fold signed: $sp by polyglot-engineer is not opened"          ask  "$(gx "$WFS" Edit "$WFS/$sp" - polyglot-engineer)"
+  done
+  t "fold signed: firmlink prefix with U+017F + named file asks"     ask  "$(g "$WFS" Write "/Sy${LS}tem/Volumes/Data$WFS/harness/stop.js")"
+  t "fold signed: firmlink prefix in plain upper case still opens it (unchanged)" none "$(g "$WFS" Write "/SYSTEM/VOLUMES/DATA$WFS/harness/stop.js")"
+  t "fold signed: code, direct, no output"                           none "$(g "$WFS" Write "$WFS/src/sfiss.cs")"
+  t "fold signed: code through each root prefix spelling, no output" none,none,none "$(g "$WFS" Write "$T/${LS}fiss/wfs/src/sfiss.cs"),$(g "$WFS" Write "$T/sfi${SZ}/wfs/src/sfiss.cs"),$(g "$WFS" Write "$T/s${FI}ss/wfs/src/sfiss.cs")"
+  t "fold signed: U+017F approvals/ is refused"                      deny "$(g "$WFS" Write "$WFS/approval${LS}/x.json")"
+else
+  echo "skip (not darwin): 7.1.1 case-fold spelling cases (U+017F, U+00DF, U+FB01)"
+fi
+
 # --- no hook ever emits an allow (AC-10) -------------------------------------------------------
 t "no case printed a permissionDecision other than ask"           0    "$(grep -o '"permissionDecision":"[a-z]*"' "$T/all.out" | grep -vc '"ask"')"
 t "no case printed an allow"                                      0    "$(grep -c 'allow' "$T/all.out")"
