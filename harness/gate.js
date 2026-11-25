@@ -1,44 +1,39 @@
 #!/usr/bin/env node
-// PreToolUse gate. Reads the tool call JSON from stdin.
-// exit 2 + stderr  => the call is blocked and the reason is fed back to Claude.
-// Rules: (1) approvals/, .claude/ and the harness are never writable by the agent;
-//        (2) specs/ and docs/ are always writable (drafting);
-//        (3) anything else is "code" and needs a valid CEO approval for the active spec.
+// PreToolUse gate for the file tools (Write, Edit, MultiEdit, NotebookEdit). Reads the tool call JSON from stdin.
+// Every decision comes from the shared path policy (policy.js, spec 0004 §7.1); this file only does the hook I/O (§7.8):
+//   deny       => exit 2 + stderr "BLOCKED by company gate: ..." (the call is blocked, the reason is fed back to Claude)
+//   ask        => exit 0 + the ask JSON on stdout (host only: the CEO's permission dialog)
+//   allow/none => exit 0, no output
+// Modes: `gate.js --host` on the CEO's machine (root from CLAUDE_PROJECT_DIR, COMPANY_* test variables ignored);
+//        `gate.js` in the container (root is the call's cwd, nobody to ask: every ask is a refusal).
 "use strict";
 process.on("uncaughtException", (e) => { process.stderr.write("BLOCKED by company gate: internal error (fail closed): " + e.message + "\n"); process.exit(2); });
-const fs = require("fs");
-const path = require("path");
-const { verify } = require("./approval.js");
+const policy = require("./policy.js");
 
-const HARNESS = process.env.COMPANY_HARNESS_DIR || __dirname;
-const PUB = process.env.COMPANY_PUBKEY || path.join(HARNESS, "keys", "ceo.pub.pem");
+const HOST = process.argv.slice(2).includes("--host");
+const FILE_TOOLS = ["Write", "Edit", "MultiEdit", "NotebookEdit"];
+const block = (msg) => { process.stderr.write("BLOCKED by company gate: " + msg + "\n"); process.exit(2); };
 
 let raw = "";
 process.stdin.on("data", (d) => (raw += d));
 process.stdin.on("end", () => {
   let ev;
-  try { ev = JSON.parse(raw); } catch { process.stderr.write("BLOCKED by company gate: unreadable hook input (fail closed)\n"); process.exit(2); }
-  const tool = ev.tool_name || "";
-  const root = path.resolve(ev.cwd || process.cwd());
+  try { ev = JSON.parse(raw); } catch { block("unreadable hook input (fail closed)"); }
+  if (ev === null || typeof ev !== "object" || Array.isArray(ev)) block("unreadable hook input (fail closed)");
+  if (!FILE_TOOLS.includes(ev.tool_name || "")) process.exit(0);
+
   const input = ev.tool_input || {};
-  const block = (msg) => { process.stderr.write("BLOCKED by company gate: " + msg + "\n"); process.exit(2); };
+  let target = input.file_path || input.notebook_path || "";
+  if (typeof target !== "string") block("the write target is not a path (fail closed)");
+  // Host: a file-tool call without a target cannot be classified. Container: as before, an empty target is the workspace root itself.
+  if (HOST && target === "") block("the tool call names no file_path (fail closed)");
 
-  if (!["Write", "Edit", "MultiEdit", "NotebookEdit"].includes(tool)) process.exit(0);
-  const target = path.resolve(root, input.file_path || input.notebook_path || "");
-  const rel = path.relative(root, target);
-  const within = (dir) => rel === dir || rel.startsWith(dir + path.sep);
-
-  if (rel.startsWith("..")) block("path is outside the workspace");
-  if (within("approvals") || within(".claude") || within(".git")) block(rel + " is protected; only the CEO changes approvals and gate configuration");
-  if (within("specs") || within("docs")) process.exit(0);
-
-  const dir = path.join(root, "specs", "active");
-  let specs = [];
-  try { specs = fs.readdirSync(dir).filter((f) => f.endsWith(".md")); } catch {}
-  const wanted = process.env.COMPANY_SPEC ? [process.env.COMPANY_SPEC] : specs;
-  if (wanted.length !== 1) block("exactly one active spec is required (found " + wanted.length + ")");
-  const spec = path.join(dir, wanted[0]);
-  const [ok, why] = verify(spec, path.join(root, "approvals"), PUB, root);
-  if (!ok) block("no code before the CEO signs the spec (" + why + "). Ask the CEO to run the approve command.");
-  process.exit(0);
+  const ctx = policy.context(ev, { mode: HOST ? "host" : "container", env: process.env, harnessDir: __dirname });
+  const r = policy.decide({ kind: "file", target, event: ev }, ctx);
+  if (r.decision === "allow" || r.decision === "none") process.exit(0);
+  if (r.decision === "ask" && HOST) {
+    process.stdout.write(JSON.stringify({ hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "ask", permissionDecisionReason: "CEO onayı gerekir: " + r.reason } }));
+    process.exit(0);
+  }
+  block(r.reason || "no decision for this path (fail closed)");
 });

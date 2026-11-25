@@ -1,0 +1,105 @@
+# STATE — harness enforcement gaps and consistency cleanup
+
+Spec: `specs/active/0004-harness-enforcement-gaps.md` (sha12 `bd8e0c01ddf8`, delta of 2026-11-22 "always-auto", committed in `8183bea`; **SIGNED: re-signed by the CEO in his own terminal, verify -> `APPROVED`**, run 2026-11-23 @ 8617067; earlier signed text `9f1371e1ae39…`, re-signed 2026-11-21; branch `harness/0004-host-enforcement`, draft PR 35 to `main`)   Plan: `plans/0004-plan.md` (approved by the CEO 2026-11-21 for T-0..T-11; amended 2026-11-22 to spec §12 of the delta: T-8a, T-8b, T-12 added, T-9..T-11 amended)
+Queue (drafts, unsigned): 0006 -> 0005 -> 0007 in `specs/draft/`
+Last updated: 2026-11-23   Tokens used:
+
+## Tasks (spec 0004, from `plans/0004-plan.md`; strictly sequential, `check` green after each; sessions always run in `auto`, no CEO dialog, the CEO only signs, in his own terminal)
+| ID | Task | Status (waiting / in progress / done / PARK) | Commit | Note |
+|---|---|---|---|---|
+| T-0 | Prerequisites: findings folded, ADR synced, spec active and signed | done | 6951d7b | verify -> APPROVED. ADR 0001 names the active spec path; `Status: Proposed` until the re-signature. ADR gate-round sync (condition 6, AC-18/AC-19) committed in `e5c2e14`. Branch is on the remote (draft PR 35) |
+| T-1 | Host verification with the CEO; `docs/kanit/0004-t1.md`, 3 sanitized fixtures | done | d0c2070 | proven modes: `default`, `acceptEdits`; finding B-1 (`auto` swallows ask); `pretooluse-main.json` not captured |
+| T-2 | `\|\| exit 2` wrapper: `.claude/settings.json` (2 guard commands), `harness/container-settings.json` | done | 20f0385 | 2026-11-22: diff = 3 lines; verify APPROVED, CHECK GREEN (full); CEO confirmed in chat he saw both dialogs. Note: session mode read `auto` again after the run (since 2026-11-22 sessions always run in `auto` by CEO decision) |
+| T-3 | `harness/policy.js`, `policy-driver.js`, `policy.sh`, `check` lists | done | ecd3592 | 2026-11-22: `policy.sh` 494 passed, CHECK GREEN (full), verify APPROVED. Engineer stalled 9h after writing files and was stopped: no report, so its Rulings are unrecorded; T-11 must read `policy.js` cold. ASK_MODES = default, acceptEdits. Not loaded by any hook |
+| T-4 | `approval.js` (`verifyBuffer`, `--expect`), `approve.sh` (`--preview`, `--expect`), `run.sh` additions | done | 8090cf5 | 2026-11-22: `run.sh` 59 passed (+37, additions only), CHECK GREEN (full), verify APPROVED. Live: `approve.sh` refuses without `--expect`. Rulings and Type-3 assumptions in the engineer report: preview is inline `node -e` in `approve.sh`; row-2 overlap is not in the preview (needs a `policy.js` export, T-7); malformed `--expect` -> exit 5. `--preview` not run on the real repo. Auto mode: no dialog; approval.js diff shown to the CEO in chat |
+| T-5 | `gate.js` via policy (host + container), `host-gate.sh`, `run.sh` container cases | done | 8161606 | 2026-11-22: `host-gate.sh` 160 passed, `run.sh` 77, CHECK GREEN (full), verify APPROVED; bench p95 25.5 ms. Host gate not wired. Main session fixed `ASK_MODES` to `default, plan, acceptEdits` (spec R-11, AC-10; the T-3 brief wrongly left `plan` out). Rulings: host refuses empty `file_path`, container keeps today's handling; non-string target refused in both. `--bench` already implemented |
+| T-6 | `guard.js` (collector, writer targets, git options, signing dialog, mode rule), `guard.sh` + `policy.sh` additions | done | 5de0373 | 2026-11-22: `guard.sh` 375 passed (was 87; additions only), `policy.sh` 512, CHECK GREEN (full), verify APPROVED. LIVE. R-1 proof in the engineer report: `ask`/`deny` helpers and the file-tool branch byte-identical (sha `014c5dd79583`, `97d8e2b89911`). Rulings: broken policy -> mode set falls back to `default`, `plan`; `--expect` without a loadable policy or valid header -> deny "preview first"; `sh approve.sh` judged like `approve.sh`. In `auto` mode any Bash command that names the signing script, the key folder or an installer is now refused |
+| T-7 | `lint.js` rules + `COMPANY_LINT_ROOT`, `lint-rules.sh`, `check` | done | c664198 | 2026-11-22: lint 62 ok (58 untouched + 4 new rules), `lint-rules.sh` 144 passed, CHECK GREEN (full), verify APPROVED. OPEN (AC-13): `harness/test/fixtures/pretooluse-main.json` still missing; lint WARNs, must become FAIL once captured (owner and moment of the capture not named by the delta: plan G-P9, needed before T-11; no mode switch). `unlocks-row2` is in lint; the signing preview still shows header parse errors only. One read-only probe of the engineer was refused by the live guard in `auto` (it named the signing script); rerun without the sample |
+| T-8 | `harness/README.md` (Bilinen boşluklar G-1..G-22), spec templates, lint string checks | done | 0df2c8f | 2026-11-22: lint 63 ok (rule `texts-0004`, README and templates parts), CHECK GREEN (full), verify APPROVED. README sections added (Turkish), no live-gate claim. OPEN: add the 8 `texts-0004` negative cases to `lint-rules.sh` (engineer ran them ad hoc only) in T-8b (plan Ruling P-5); CLAUDE.md and routing string checks in T-9. README mermaid diagram not looked at rendered. Template placeholder for `Unlocks:` is an HTML comment the parser rejects on purpose (fail closed) |
+| Step before T-8a | Pre-signature check (S-06): literal row-2 entries of the spec header as the committed `policy.js` computes them, and `git status --short -- harness` | done | 8183bea | 2026-11-22, main session: 21 entries, eight enforcement files, `git status --short -- harness` empty; recorded in `docs/kanit/0004-delta-kapi.md` for sha12 `bd8e0c01ddf8`. The CEO then re-signed that text |
+| T-8a | Literal enforcement authority in `policy.js` (six conditions of §7.3, locked set, caller list, `unlockKinds`, amended §7.7 path text), `lint.js` `unlocks-row2`, tests of AC-16 and AC-17 (lint), four pre-approved test-line replacements | done | 9f6b1f4 | 2026-11-23, after the CEO's re-signature. Lint green again: end of the red window of R-25 |
+| T-8b | `approve.sh` preview block and locked-path finding, `guard.js` signing-dialog segment, README sections and amended G rows (Turkish), template comments, `texts-0004` checks with `lint-rules.sh` cases | done | ea09b82 | 2026-11-23. Live: preview block and dialog segment. AC-17 (preview, dialog), AC-14 (README) |
+| T-9 | Wiring: host gate in `.claude/settings.json`, one-owner lint rule, `install-project.sh`, `routing.md`, `CLAUDE.md` rule 1 (texts of §7.6 as amended) | done | 4212b94 | 2026-11-23. **Host gate live for file tools**, and with it REQ-8 (only the eight named files pass, for a listed caller) |
+| T-10 | First run by the main session alone in `auto`: observations (a)-(e) of AC-15 ((e) by a `scout` unit), `host-gate.sh --bench` p95 < 150 ms; appended to `docs/kanit/0004-t1.md`; scratch removed, `git status --short` empty | done | cedb834 | 2026-11-23, run on `4212b94`: all five observations as expected; bench 200 calls, p50 23.3 ms, p95 24.8 ms. Note in the record: in (e) `agent_type` was not captured from the payload |
+| T-11 | Verification: fresh `check`, 19 mutation probes (13 + 5 delta + 1 gate round), criterion map AC-1..AC-19; `qa-engineer` and `appsec` each run the AC-18 commands; appsec, internal-auditor, quality-office | in progress | 8617067 (fixes) | See "T-11 status" below. qa-engineer done: 16 of 19 AC pass, **AC-13 FAIL**, AC-19 not due, AC-12 defect fixed. appsec: one HIGH, fixed, recheck running. internal-auditor: no blocker. quality-office: pending |
+| T-12 | Record retirement at ship: spec moved to `specs/done/` (main session); the CEO deletes this spec's signature record from the main worktree's `approvals/` in his own terminal; `ls approvals/` quoted | waiting | - | CEO (own terminal) + main session; after T-11 and the CEO's approval of the merge to `main`. AC-19 |
+
+## T-11 status (2026-11-23 @ 8617067)
+| Gate | Result | Open |
+|---|---|---|
+| qa-engineer | done (`docs/kanit/0004-t11-qa.md`); verdict `UNPROVEN CRITERIA`: 16 passed, AC-13 failed, AC-12 passed with defect D-1, AC-19 not due (T-12) | AC-13 (CEO decision). D-1 (a duplicate host gate entry passed the owner rule) and D-2 (reason separator) fixed in `8617067` |
+| appsec | code review: one HIGH, macOS path aliases escaped the host gate; fixed in `8617067`, spec unchanged (`docs/KARARLAR.md`, entry of 2026-11-23) | recheck of the fix is running; the rest is in `docs/ACIK-ISLER.md` B34 |
+| internal-auditor | no blocker; fixes to record. Findings 1 and 2 (`STATE.md` and the plan were stale) closed by this update | the other recorded fixes |
+| quality-office | pending | not started |
+
+- Evidence, run 2026-11-23 for this update: `node harness/approval.js verify ...` -> `APPROVED` (spec sha12 `bd8e0c01ddf8`); `./harness/bin/check` -> `CHECK GREEN (full)` @ 8617067; `git status --short` empty before the update.
+- AC-13 fails on two parts (QA D-3): the fixture `harness/test/fixtures/pretooluse-main.json` does not exist (lint only warns), and T-1 observations are missing from `docs/kanit/0004-t1.md` (main-session payload keys; `plan` and `bypassPermissions`; the `|| exit 2` block on the host for a broken entry; empty `CLAUDE_PROJECT_DIR`; the rest is listed in the QA record).
+- Incident during the fix (`docs/KARARLAR.md`, entry of 2026-11-23): a half-saved `policy.js` made the live gate refuse every file edit (failed closed, nothing passed); the main session restored the committed file with `git restore`.
+- Follow-up outside this spec's signed scope, in `docs/ACIK-ISLER.md`: B32 (guard gaps of today), B33 (`internal-auditor` and `check` permissions), B34 (items of the 0004 delivery review that need their own spec and signature).
+
+## Waiting for the CEO (one question page each, filed by the main session)
+1. **AC-13 (PARK, Type 1, this criterion only):** capture the main-session payload fixture and the missing T-1 observations in his own terminal, or accept the gap by a delta to the spec (a delta voids the signature and needs a re-signature). The other gates continue.
+2. **Commit author e-mail on the branch:** all 22 branch commits carry the local user and machine name as author e-mail, and the branch is already on the remote behind draft PR 35. A squash merge would keep it off `main`.
+3. **Merge of PR 35 to `main`** (envelope), once T-11 is closed.
+4. **T-12:** deletion of this spec's signature record at ship (envelope: permanent deletion, in his own terminal).
+
+Standing decision, CEO 2026-11-22 (KARARLAR rev. 48): sessions always run in `auto`, he does not switch modes; every enforcement-file diff is shown in chat before the commit.
+
+## (history) pre-signature tasks
+| ID | Task | Status | Commit | Note |
+|---|---|---|---|---|
+| 1 | Structure review, 12 findings reported to CEO | done | - | no file changed |
+| 2 | Draft specs 0004 (items 1-5) and 0005 (items 6-12) | done | - | business-analyst |
+| 3 | Gates round 1: spec-critic x2, appsec on 0004 | done | - | 0004: critic 1 Critical + 6 High, appsec FAIL as written; 0005: 4 High |
+| 4 | Revise 0005 (fixable findings) | in progress | - | business-analyst |
+| 5 | Redesign 0004 | in progress | - | CEO accepted the key risk (KARARLAR rev. 48); software-architect redesigning |
+| 7 | Spec 0002 moved to specs/done unchanged (CEO 2026-11-21); QA r2b open items in docs/ACIK-ISLER.md B2 | done | - | specs/active is empty |
+| 6 | Mobile engineer units | waiting | - | after 0004/0005 ship |
+
+## Parked questions (for the CEO)
+- DECIDED 2026-11-21: appsec S-01 (passphrase-less CEO key, regex-recognised signing command). CEO accepted the risk: the host gate stops accidents, not an adversarial agent with Bash. Recorded in `docs/KARARLAR.md` rev. 48.
+- Listed as open on 2026-11-21 (0004 Q-1..Q-3 were decided since, see "Decided 2026-11-21"; the per-edit dialog of Q-1 is not in use since the delta of 2026-11-22, sessions run in `auto`): waiver vs per-edit dialog (0004 Q-1); should unsigned Bash writes to code ask; waiver breadth cap and revocation; QA write area; is spec 0002 finished (it blocks `approve.sh`, which needs exactly one active spec); post-merge handling of a signed spec.
+
+## Assumptions (Type 3)
+- This job goes before spec 0003. The Tower job that 0002/0003 call "0004" needs a new number.
+
+## Reasons to stop
+- None open. (Stopped once on appsec S-01; resolved by CEO risk acceptance. 0004 stays lane 3.)
+
+## Decided 2026-11-21 (docs/KARARLAR.md rev. 48)
+Q-1 exception = per-edit dialog only (no exception notes, signature v1 kept) · Q-3 QA writes only new test files / `repro/`, rule 3 reworded · Q-2 deny in `acceptEdits`/`auto`/`bypassPermissions` until proven, ask when mode is absent. business-analyst is rewriting 0004 and writing 0006 (`specs/draft/0006-harness-unit-areas-evidence.md`); order 0004 -> 0006 -> 0005; then gates round 2 and CEO signature.
+
+## Status 2026-11-21, late
+- 0006 revised after gates (13 AC, no open question). 0004 revision in progress (round-2 findings + guard `git -C` gap). 0005 must then be updated to 0004's final classes and take the `image.sh` test-14 fix (docs/ACIK-ISLER.md B28).
+- 0007 `specs/draft/0007-agency-config-update.md` drafted (config update, lane 2). CEO answered its two questions: narrow push ask rule; `/ceo-sign` runs `approve.sh . --expect` itself. Spec text still shows them open: fix in its revision. Gates for 0007 (spec-critic, appsec, architecture-board for `actions/setup-node`) run after 0004/0006 are final.
+- Mobile: RN + Expo recorded "dene" in STACK.md; `mobile-engineer` opens after the trial (ACIK-ISLER B26). Scout reports 0002, 0003.
+- Container tests run fresh: e2e 18/18, python 4/4, image 14/15 (B28). Image `company-agent:dev` built locally; proxy stopped.
+- Sign order: 0004 -> 0006 -> 0005 -> 0007. Nothing committed; work is in the working tree on `main`.
+
+## (history) DELTA 2026-11-22: spec 0004 unsigned, waiting for re-signature (re-signed since; T-8a..T-10 done, see the task table)
+- CEO decision 2026-11-22: sessions always run in permission mode `auto`. The spec got a second delta ("always-auto", map in spec §14; gate round: spec-critic round 5 "delta signable", appsec PASS WITH CONDITIONS, all findings folded; record `docs/kanit/0004-delta-kapi.md`). The signature of 2026-11-21 does not cover this text.
+- Done on the signed text `9f1371e1ae39…`: T-0..T-8 (table above). Not started: T-8a, T-8b (new), T-9, T-10, T-11 (amended), T-12 (new). New criteria AC-16..AC-19; AC-15 rewritten (five observations in `auto`, no CEO).
+- Current state @ 8183bea: verify -> `NOT APPROVED: spec changed after approval`; `check` -> `CHECK FAILED`, single `FAIL  unlocks-row2` (R-25, expected until T-8a). Pre-signature step (S-06) done.
+- Next: CEO re-signs sha12 `bd8e0c01ddf8` in his own terminal -> verify `APPROVED` -> T-8a (polyglot-engineer).
+
+## (history) SIGNED 2026-11-21: spec 0004 (signature void since the delta of 2026-11-22)
+- CEO generated a new key in his own terminal (no passphrase; `harness/keys/ceo.pub.pem` changed) and signed through the permission dialog. `node harness/approval.js verify specs/active/0004-harness-enforcement-gaps.md approvals harness/keys/ceo.pub.pem` -> APPROVED. Record: `approvals/specs__active__0004-harness-enforcement-gaps.md.sig.json` (local, gitignored). The spec file must not be edited: any edit voids the signature.
+- Next: delivery-manager writes `plans/0004-plan.md` from the spec's task table T-0..T-11; T-1 (host verification with the CEO) comes first; engineer starts after the plan.
+
+## (history) blocked on signature earlier on 2026-11-21
+- CEO said yes to signing 0004. Done: branch `harness/0004-host-enforcement`, spec moved to `specs/active/` (sha256 unchanged `a686d6dc68c3…`). `harness/bin/approve.sh .` answered `no CEO key: run harness/bin/ceo-keygen.sh first`: the private key `~/.company/keys/ceo.key.pem` is not on this machine. NOT signed. The CEO must restore the old key or run `./harness/bin/ceo-keygen.sh` in his own terminal (it rewrites `harness/keys/ceo.pub.pem`, an enforcement file: commit it on this branch), then re-run approve.
+- 0007: appsec round 2 PASS WITH CONDITIONS (S-01..S-06, no high); spec-critic round 2 still running.
+
+## RESUMED 2026-11-21
+- The interrupted consistency pass was verified item by item by a fresh analyst: all 17 items (0004-1..8, 0006-1..3, 0005-1..6) are applied; no edit was needed. 0004 sha256 starts `a686d6dc68c3` (draft path). `./harness/bin/check`: CHECK GREEN (full).
+- 0004 is ready for the CEO's signature. On a yes: branch, move `specs/draft/0004-*` to `specs/active/`, set the `Spec:` line here, run `harness/bin/approve.sh .` (guard dialog = signature), then delivery-manager.
+- 0007 gates round 2 (spec-critic, appsec) running.
+
+## (history) stopped earlier on 2026-11-21 at the usage limit
+- Gates done: 0004 r3 (signable on severity), 0006 r2, final consistency read (0004 and 0006 signable; 0005 blocked by two text items), appsec r3 (0004/0006 PASS WITH CONDITIONS, applied), ADR `docs/architecture/adr/0001-path-class-taxonomy.md` synced to 0004.
+- IN-FLIGHT, UNFINISHED: the last consistency pass on 0004/0006/0005 (business-analyst) stopped at its turn limit with no report. Some of these items may be half-applied: 0004-1..0004-8 (refusal text vs AC-10, REQ-35 qualifier, quoted `<rel>` in §7.5, raw-view carve-out, darwin/win32 and deny>ask wording, AC-12 "at least these entries", stale 0005 statements in §13/R-10, `lint.js:8` in §12 rule 2); 0006-1..3 (row-3 branch, gate-round labels, T-0 record retirement); 0005-1..6 (diagram: record moves to `approvals/retired/`; Q-A marked decided; `git add STATE.md` in T-1; AC-9 auto/manual; §7 lifecycle sentence; round labels). NEXT: have a fresh analyst verify each item against the files and finish the rest, then one short verification read, then present 0004 to the CEO for signature.
+- 0007: worktree scope removed (CEO decision; now six items, 13 AC, B29 tracks isolation). Needs gates round 2 (spec-critic, appsec). Open point: after 0004 REQ-36 the "reduced" ask-rule set is a single rule; decide keep or drop rows.
+- Nothing signed, nothing committed. No harness or code file changed. Sign order: 0004 -> 0006 -> 0005 -> 0007. Then mobile trial (B26), worktree spec (B29).
+
+## Next step (superseded by the blocks above where they differ)
+Design written: `docs/architecture/tasarim/0004-host-enforcement.md` (paper design, nothing run). `architecture-board`: APPROVE WITH CONDITIONS K1-K9 (`docs/architecture/gorus-0004-host-enforcement-2026-11-21.md`): keep signature v1 and drop projectId (v2 would break container BUILD mode: host path vs /work), per-edit dialog now and defer exception notes, unit areas as a constant, split 0004b, reorder tasks (wrapper before T5, single hook owns file tools), fix the "superset of ENFORCEMENT" claim. CEO to answer Q-1 (exception mechanism; architect recommends E = signed exception note, board recommends A = per-edit dialog only; main session now recommends A), then Q-2 (deny in unproven permission modes) and Q-3 (QA write rule). Then business-analyst revises 0004 from the design (likely split 0004a gate+signing / 0004b areas+stop+rule 3), gates round 2, CEO signs.

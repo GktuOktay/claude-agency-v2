@@ -13,7 +13,7 @@ When the CEO describes a job, start the matching unit without asking. Chat, ques
 | store copy, brand, manual | `marketing`, `tech-comms` |
 
 ## Lanes (pick the lightest that fits; name it in one line)
-- **0** chat, trivial fix, rename, config tweak: main session; show fresh test/build output. No spec, no units.
+- **0** chat, trivial fix, rename, config tweak: main session; show fresh test/build output. No spec, no units. Where the hook set of spec 0004 is installed, an unsigned code edit on the host is refused in `auto` mode, in which sessions run, until a signed active spec opens it (in a mode proven to show the permission dialog it needs a CEO click).
 - **1** small job/bug; no new data model, auth, external call, dependency or visible redesign: quick spec → CEO signs in chat → one engineer → one review by `qa-engineer` (QA + audit). No gates, no delivery-manager, no quality-office.
 - **2** medium feature, visible behavior, no new trust boundary: spec → `spec-critic` (+ `appsec` if auth, input, secrets, files or external calls; + `architecture-board` if a new dependency) → CEO signs → engineer → `qa-engineer` → `internal-auditor`. `delivery-manager` only if work spans sessions.
 - **3** new system, migration, data-loss or security-sensitive, public or paid: `software-architect` → spec → `spec-critic`, `appsec`, `architecture-board` in parallel → CEO signs → `delivery-manager` → engineer → `qa-engineer` → `appsec` → `internal-auditor` → `quality-office`.
@@ -33,4 +33,4 @@ Smallest model that can do the job; override per call with the Agent `model` par
 - End every brief with: "Report caveman style: findings and evidence only, max 25 lines unless the output is a file."
 - Rewrite unit reports for the CEO in terse Turkish (full text where `terse-mode.md` says off). Reviews: `caveman-review`; commits: `caveman-commit`. Files on disk are written plainly.
 
-Default stack .NET + React, a preference not a restriction. The signature gate and guard are enforced only where `harness/bin/install-project.sh` ran; elsewhere follow the pipeline by instruction and get spec approval in chat.
+Default stack .NET + React, a preference not a restriction. Where the hook set of spec 0004 is installed (`harness/bin/install-project.sh` from spec 0004 on, or its entries merged by hand; earlier installs keep the old hooks) and the workspace has a `specs/` folder, the host hooks do not let an unsigned code or product-config edit through silently, nor an enforcement-file edit unless the signed spec's `Unlocks:` names that file by its exact path (refusal in `auto` mode, in which sessions run; a dialog in a mode proven to show it); they stop accidents, not a determined agent, and have known gaps (`harness/README.md`, Bilinen boşluklar). Elsewhere follow the pipeline by instruction and get spec approval in chat.

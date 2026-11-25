@@ -5,7 +5,9 @@
 const fs = require("fs");
 const path = require("path");
 
-const ROOT = path.resolve(__dirname, "..", "..");
+const ROOT = process.env.COMPANY_LINT_ROOT ? path.resolve(process.env.COMPANY_LINT_ROOT) : path.resolve(__dirname, "..", "..");
+// A redirected lint says so on its first line (spec 0004, AC-6); harness/bin/check unsets the variable before it runs lint.
+if (process.env.COMPANY_LINT_ROOT) console.log("LINT ROOT OVERRIDDEN: " + ROOT);
 const REQUIRED_SECTIONS = ["Purpose", "Inputs", "Method", "Output template", "Checklist", "Prohibitions", "Tools and permissions", "Stop and escalate", "Examples"];
 let failures = 0, checks = 0;
 const fail = (m) => { failures++; console.log("FAIL  " + m); };
@@ -216,8 +218,37 @@ try {
   if (!/loop\.js/.test(JSON.stringify(pre))) fail(".claude/settings.json: loop guard (harness/loop.js) is not wired"); else ok(".claude/settings.json: loop guard wired (all tools)");
   const cs = JSON.parse(fs.readFileSync(path.join(ROOT, "harness", "container-settings.json"), "utf8"));
   if (!/loop\.js/.test(JSON.stringify((cs.hooks && cs.hooks.PreToolUse) || []))) fail("container-settings.json: loop guard (loop.js) is not wired"); else ok("container-settings.json: loop guard wired");
-  const fileGuard = pre.some((h) => /Write/.test(h.matcher || "") && /Edit/.test(h.matcher || "") && /guard\.js/.test(JSON.stringify(h.hooks || [])));
-  if (!fileGuard) fail(".claude/settings.json: enforcement files are not protected (guard.js must also be wired for Write|Edit)"); else ok(".claude/settings.json: enforcement files protected (Write|Edit through the guard)");
+  // host-gate-owner (AC-12, board-K5): on the host one hook owns the file tools, the gate in host mode. It must run for
+  // each of the four tools; no entry that covers a file tool may run the guard or the gate in another form (two owners
+  // would mean two answers for one edit); the guard stays wired for Bash. The '|| exit 2' suffix is hook-wrapper's rule.
+  {
+    const FILE_TOOLS = ["Write", "Edit", "MultiEdit", "NotebookEdit"];
+    // Does an entry's matcher cover the tool? No matcher, "" and "*" cover every tool; otherwise a name list (a|b) or a
+    // regular expression over the whole name. `unsure` is the answer for a matcher this rule cannot read.
+    const covers = (matcher, tool, unsure) => {
+      if (matcher === undefined || matcher === null || matcher === "" || matcher === "*") return true;
+      if (typeof matcher !== "string") return unsure;
+      if (matcher.split("|").map((x) => x.trim()).includes(tool)) return true;
+      try { return new RegExp("^(?:" + matcher + ")$").test(tool); } catch { return unsure; }
+    };
+    const commandsOf = (e) => ((e && Array.isArray(e.hooks)) ? e.hooks : []).map((h) => (h && typeof h.command === "string" ? h.command : ""));
+    const isHostGate = (c) => /\bgate\.js\b["']?\s+--host(?=\s|$)/.test(c);
+    const entries = Array.isArray(pre) ? pre : [];
+    const bad = [];
+    for (const tool of FILE_TOOLS) {
+      if (!entries.some((e) => covers(e && e.matcher, tool, false) && commandsOf(e).some(isHostGate))) bad.push(`the host gate (gate.js --host) is not wired for ${tool}`);
+      const others = entries.filter((e) => covers(e && e.matcher, tool, true)).flatMap(commandsOf).filter((c) => /\b(gate|guard)\.js\b/.test(c) && !isHostGate(c));
+      if (others.length) bad.push(`${tool} also runs ${[...new Set(others.map((c) => (/\bguard\.js\b/.test(c) ? "guard.js" : "gate.js without --host")))].join(" and ")} (one owner: only gate.js --host decides a file-tool write)`);
+      // One owner also means one run (AC-12, QA D-1): the host gate command twice for a tool is two answers for one edit.
+      // Counted among the commands that carry the '|| exit 2' suffix: one without it already fails hook-wrapper (every
+      // gate.js command does), so no duplicate passes lint, and that finding keeps its own rule id alone (T-7 case of AC-11).
+      const owners = entries.filter((e) => covers(e && e.matcher, tool, true)).flatMap(commandsOf).filter((c) => isHostGate(c) && /\|\| exit 2\s*$/.test(c)).length;
+      if (owners > 1) bad.push(`${tool} runs the host gate (gate.js --host) ${owners} times (one owner: one entry, one command per file tool)`);
+    }
+    if (!entries.some((e) => covers(e && e.matcher, "Bash", false) && commandsOf(e).some((c) => /\bguard\.js\b/.test(c)))) bad.push("the guard (guard.js) is not wired for Bash");
+    if (bad.length) fail("host-gate-owner .claude/settings.json: " + bad.join("; "));
+    else ok("host-gate-owner: gate.js --host is the one owner of Write, Edit, MultiEdit and NotebookEdit; the guard is wired for Bash");
+  }
 } catch (e) { fail(".claude/settings.json: " + e.message); }
 for (const t of ["scorecard.md", "uyum-kontrol.md", "olay-postmortem.md", "destek-triyaj.md"]) {
   if (!fs.existsSync(path.join(ROOT, "templates", t))) fail(`templates/${t} missing`);
@@ -233,6 +264,191 @@ try {
 // graph output stays out of git
 const gi = fs.existsSync(path.join(ROOT, ".gitignore")) ? fs.readFileSync(path.join(ROOT, ".gitignore"), "utf8") : "";
 if (!/graphify-out/.test(gi)) fail(".gitignore: graphify-out/ must be ignored (derived output)"); else ok(".gitignore: graphify-out/ ignored");
+
+// ---- spec 0004 rules. Each prints its rule id as the first word after "FAIL  " or "WARN  " (spec §9);
+// harness/test/lint-rules.sh asserts the ids. A WARN line does not change the exit code.
+const warn = (m) => console.log("WARN  " + m);
+const q = (s) => JSON.stringify(String(s)).slice(0, 200);          // spec and glob text is chosen by an agent: always quoted
+
+// unlocks-header, unlocks-row2 (AC-6, §7.3, Ruling R-10): an active spec fails, a draft only warns.
+{
+  let policy = null;
+  try { policy = require(path.join(__dirname, "..", "policy.js")); } catch (e) { fail("unlocks-header harness/policy.js cannot be loaded: " + String(e.message).split("\n")[0]); }
+  const SAMPLES = ["CLAUDE.md", ".mcp.json", ".claude/settings.json", ".claude/settings.local.json", ".claude/commands/x.md", ".github/workflows/check.yml",
+    "harness/keys/ceo.pub.pem", "harness/container-settings.json",
+    ...["approval", "gate", "guard", "loop", "notify", "policy", "stop"].map((n) => `harness/${n}.js`), "harness/x.js",
+    ...["approve", "ceo-keygen", "company-run", "install-project", "install-global"].map((n) => `harness/bin/${n}.sh`)];
+  const walk = (dir, rel, out) => {
+    let entries = []; try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { return out; }
+    for (const e of entries) {
+      if (e.name === ".git" || e.name === "node_modules") continue;
+      const r = rel ? rel + "/" + e.name : e.name;
+      if (e.isDirectory()) walk(path.join(dir, e.name), r, out); else out.push(r);
+    }
+    return out;
+  };
+  // Every path the policy puts in row 2: the files of the tree plus the fixed sample list. Each entry carries the
+  // root-relative path and, for a nested root, the path relative to that root (globs are matched against both).
+  let row2 = null;
+  const enforcementPaths = () => {
+    if (row2) return row2;
+    row2 = [];
+    const ctx = { root: ROOT, mainRoot: ROOT, mode: "host", cfgDirs: [], home: null, platform: process.platform };
+    for (const rel of new Set([...SAMPLES, ...walk(ROOT, "", [])])) {
+      let c; try { c = policy.classify(path.join(ROOT, rel), ctx); } catch { c = { row: 2, rel }; }   // unresolvable: counted (fail closed)
+      if (c.row === 2) row2.push([...new Set([rel, c.rel])]);
+    }
+    return row2;
+  };
+  const dirs = [["active", fail], ["draft", warn]];
+  for (const [kind, report] of dirs) {
+    const dir = path.join(ROOT, "specs", kind);
+    const files = policy && fs.existsSync(dir) ? fs.readdirSync(dir).filter((f) => f.endsWith(".md")).sort() : [];
+    let badHeader = 0, badGlob = 0;
+    for (const f of files) {
+      const label = `specs/${kind}/${f}`;
+      let h; try { h = policy.parseHeader(fs.readFileSync(path.join(dir, f), "utf8")); } catch (e) { h = { unlocks: null, errors: ["not readable: " + e.message] }; }
+      if (h.errors.length || !Array.isArray(h.unlocks)) { badHeader++; report(`unlocks-header ${q(label)}: invalid 'Unlocks:' header, the whole field is ignored: ${h.errors.join("; ")}`); continue; }
+      // §7.3 as amended by the delta of 2026-11-22: an exact path may open an enforcement file, a glob never does.
+      // Entry kinds come from the policy (unlockKinds, Ruling R-23), so lint, the gate and the signing preview agree.
+      const hits = [];
+      const kinds = policy.unlockKinds(h.unlocks, ROOT, { root: ROOT, mainRoot: ROOT, mode: "host", cfgDirs: [], home: null, platform: process.platform });
+      const fold = (s) => String(s).normalize("NFC").toLowerCase();
+      for (const g of h.unlocks) {
+        if (/[*?]/.test(g)) {
+          // Folded on every platform: a glob that reaches row 2 on darwin or win32 is refused everywhere (row 2 itself folds everywhere, R-14).
+          const hit = enforcementPaths().find((names) => names.some((n) => policy.matchGlob(g, n, true)));
+          if (hit) hits.push(`glob ${q(g)} matches enforcement path ${q(hit[0])}`);
+        } else if (kinds.locked.includes(g)) {
+          hits.push(`${q(g)} is a locked path: no header opens signatures, keys or git metadata`);
+        } else if (kinds.enforcement.includes(g)) {
+          // Ruling R-27: the gate compares with exact case, so an entry that differs from a known enforcement path only in case opens nothing its author meant.
+          const known = enforcementPaths().flat();
+          const twin = known.find((n) => fold(n) === fold(g));
+          if (twin && !known.some((n) => n.normalize("NFC") === g.normalize("NFC"))) hits.push(`${q(g)} names enforcement path ${q(twin)} in another case (the exact path is required)`);
+        }
+      }
+      if (hits.length) { badGlob++; report(`unlocks-row2 ${q(label)}: an exact path may open an enforcement file, a glob never does: ${hits.join("; ")}`); }
+    }
+    if (kind === "active" && policy) {
+      if (!badHeader) ok(`unlocks-header: ${files.length} active spec(s), 'Unlocks:' header valid or absent`);
+      if (!badGlob) ok("unlocks-row2: no glob of an active spec reaches an enforcement path, no literal entry is locked or wrongly cased");
+    }
+  }
+}
+
+// hook-wrapper (AC-11): a gate or guard hook that crashes or is missing must block (exit 2), a stop hook must not.
+{
+  const WRAPPED = /\|\| exit 2\s*$/;
+  const commands = (file) => {
+    const s = JSON.parse(fs.readFileSync(path.join(ROOT, file), "utf8")); const out = [];
+    for (const [event, entries] of Object.entries((s && s.hooks) || {})) {
+      for (const e of Array.isArray(entries) ? entries : []) for (const h of (e && e.hooks) || []) if (h && typeof h.command === "string") out.push({ event, command: h.command });
+    }
+    return out;
+  };
+  const bad = [];
+  try {
+    for (const { event, command } of commands(path.join(".claude", "settings.json"))) {
+      if (/\b(gate|guard)\.js\b/.test(command) && !WRAPPED.test(command)) bad.push(`.claude/settings.json: ${event} command for ${/gate\.js/.test(command) ? "gate.js" : "guard.js"} lacks the '|| exit 2' suffix`);
+      if ((/\bstop\.js\b/.test(command) || /^(Stop|SubagentStop)$/.test(event)) && /\|\|\s*exit\s+2\b/.test(command)) bad.push(`.claude/settings.json: ${event} stop command carries '|| exit 2'`);
+    }
+  } catch (e) { bad.push(".claude/settings.json: " + e.message); }
+  try {
+    for (const { event, command } of commands(path.join("harness", "container-settings.json"))) {
+      if (/\bgate\.js\b/.test(command) && !WRAPPED.test(command)) bad.push(`harness/container-settings.json: ${event} command for gate.js lacks the '|| exit 2' suffix`);
+    }
+  } catch (e) { bad.push("harness/container-settings.json: " + e.message); }
+  if (bad.length) fail("hook-wrapper " + bad.join("; ")); else ok("hook-wrapper: gate and guard commands end with '|| exit 2', stop commands do not");
+}
+
+// fixture-sanitized (AC-13): the repository is public, so a recorded hook payload carries no home path and no session id.
+{
+  const dir = path.join(ROOT, "harness", "test", "fixtures");
+  const PATTERNS = [["/Users/ path", /\/Users\//], ["/home/<name> path", /\/home\/[a-z]/], ["UUID", /[0-9a-f]{8}-[0-9a-f]{4}-/i]];
+  const files = fs.existsSync(dir) ? fs.readdirSync(dir).filter((f) => f.endsWith(".json")).sort() : [];
+  const bad = [];
+  if (!files.length) bad.push("harness/test/fixtures: no fixture found");
+  for (const f of files) {
+    const t = fs.readFileSync(path.join(dir, f), "utf8");
+    try { JSON.parse(t); } catch { bad.push(`${f}: does not parse as JSON`); }
+    for (const [name, re] of PATTERNS) if (re.test(t)) bad.push(`${f}: contains a ${name}`);   // the match itself is never printed
+  }
+  for (const f of ["pretooluse-main.json", "pretooluse-subagent.json", "subagentstop.json"]) {
+    if (files.length && !files.includes(f)) warn(`fixture-sanitized harness/test/fixtures/${f} is missing (AC-13 names it; not captured in T-1)`);
+  }
+  if (bad.length) fail("fixture-sanitized " + bad.join("; ")); else ok(`fixture-sanitized: ${files.length} fixture(s) parse, no home path, no UUID`);
+}
+
+// texts-0004 (AC-14): string checks against the real files: the README and template parts (T-8, T-8b), and the exact
+// texts of spec 0004 §7.6 for CLAUDE.md rule 1 and two lines of .claude/rules/routing.md (T-9, written together with
+// the wiring those texts describe, REQ-32).
+{
+  const RULE1 = "1. **No signature, no code.** Every job starts with a spec (large job: `templates/spec-tam.md`, small job/bug: `spec-hizli.md`). Only the CEO signs a spec (`harness/`), in his own terminal; an agent does not sign and does not write to the signature directory. Where the hook set of spec 0004 is installed, the host hooks do not let an unsigned edit to code or product config through silently: sessions run in `auto` mode, where it is refused (in a mode proven to show the CEO's permission dialog it gets that dialog); an exception for a whole job is a quick spec plus one signature. The host hooks stop accidents, not a determined agent, and have known gaps (`harness/README.md`). If a signed spec changes, the signature drops: stop, write a delta plan, get it re-signed.";
+  const LANE0 = "- **0** chat, trivial fix, rename, config tweak: main session; show fresh test/build output. No spec, no units. Where the hook set of spec 0004 is installed, an unsigned code edit on the host is refused in `auto` mode, in which sessions run, until a signed active spec opens it (in a mode proven to show the permission dialog it needs a CEO click).";
+  const LASTLINE = "Default stack .NET + React, a preference not a restriction. Where the hook set of spec 0004 is installed (`harness/bin/install-project.sh` from spec 0004 on, or its entries merged by hand; earlier installs keep the old hooks) and the workspace has a `specs/` folder, the host hooks do not let an unsigned code or product-config edit through silently, nor an enforcement-file edit unless the signed spec's `Unlocks:` names that file by its exact path (refusal in `auto` mode, in which sessions run; a dialog in a mode proven to show it); they stop accidents, not a determined agent, and have known gaps (`harness/README.md`, Bilinen boşluklar). Elsewhere follow the pipeline by instruction and get spec approval in chat.";
+  const bad = [];
+  const read = (rel) => { try { return fs.readFileSync(path.join(ROOT, rel), "utf8"); } catch { bad.push(`${rel}: not readable`); return null; } };
+  // The body of a level-2 section: the lines after the exact heading line, up to the next level-2 heading.
+  const section = (text, heading) => {
+    const lines = text.split("\n").map((l) => l.replace(/\r$/, ""));
+    const i = lines.indexOf(heading); if (i < 0) return null;
+    const j = lines.findIndex((l, k) => k > i && l.startsWith("## "));
+    return lines.slice(i + 1, j < 0 ? undefined : j).join("\n");
+  };
+  const README = "harness/README.md";
+  const ORDER = "hard-deny > enforcement > product-config > code > outside > free";                    // Ruling R-17
+  const RULE = "classify both the lexical and the resolved path, stronger class wins";                 // the name §7.1.1 defines
+  const EXACT = "an exact path may open an enforcement file, a glob never does";                       // the rule name §7.3 defines
+  const BLOCK = "ENFORCEMENT FILES THIS SIGNATURE OPENS";                                              // the preview heading of §7.5
+  const readme = read(README);
+  if (readme !== null) {
+    const gaps = section(readme, "## Bilinen boşluklar");
+    if (gaps === null) bad.push(`${README}: section '## Bilinen boşluklar' missing`);
+    else {
+      const missing = [];
+      // An id counts only where it opens its own entry (a table row or a list item): a mention such as "G-1..G-22" or "see G-21" is no entry.
+      for (let n = 1; n <= 22; n++) if (!new RegExp(`^(\\| ?|[-*] )G-${n}(?![\\w-])`, "m").test(gaps)) missing.push("G-" + n);
+      if (missing.length) bad.push(`${README}: '## Bilinen boşluklar' lacks ${missing.join(", ")}`);
+    }
+    const classes = section(readme, "## Yol sınıfları");
+    if (classes === null) bad.push(`${README}: section '## Yol sınıfları' missing`);
+    else {
+      if (!classes.includes(ORDER)) bad.push(`${README}: '## Yol sınıfları' lacks the strength order '${ORDER}'`);
+      if (!classes.includes(RULE)) bad.push(`${README}: '## Yol sınıfları' lacks the rule '${RULE}'`);
+      if (!classes.includes(EXACT)) bad.push(`${README}: '## Yol sınıfları' lacks the rule '${EXACT}'`);
+    }
+    // Delta 2026-11-22 (T-8b, AC-14): where and how the CEO signs, the permission-mode section, and the amended G-1 row.
+    const signing = section(readme, "## CEO nerede ve nasıl imzalar");
+    if (signing === null) bad.push(`${README}: section '## CEO nerede ve nasıl imzalar' missing`);
+    else if (!signing.includes(BLOCK)) bad.push(`${README}: '## CEO nerede ve nasıl imzalar' lacks '${BLOCK}'`);
+    if (section(readme, "## İzin kipi ve onay penceresi") === null) bad.push(`${README}: section '## İzin kipi ve onay penceresi' missing`);
+    if (gaps !== null) {
+      const g1 = gaps.split("\n").find((l) => /^\| ?G-1(?![\w-])/.test(l));
+      if (g1 !== undefined && !g1.includes("Unlocks:")) bad.push(`${README}: the G-1 row of '## Bilinen boşluklar' lacks 'Unlocks:'`);
+    }
+  }
+  for (const rel of ["templates/spec-tam.md", "templates/spec-hizli.md"]) {
+    const t = read(rel); if (t === null) continue;
+    const lines = t.split("\n").map((l) => l.replace(/\r$/, ""));
+    const end = lines.findIndex((l) => l.startsWith("## "));
+    const n = (end < 0 ? lines : lines.slice(0, end)).filter((l) => /^- Unlocks: /.test(l)).length;   // header as in §7.3
+    if (n !== 1) bad.push(`${rel}: the header must carry the optional '- Unlocks: ' line exactly once, found ${n}`);
+  }
+  // T-9: the three exact texts of §7.6. Each is one whole line; a rule or lane line is found by how it starts, so the
+  // text moved elsewhere, changed, or followed by a later last line does not count.
+  const linesOf = (t) => t.split("\n").map((l) => l.replace(/\r$/, ""));
+  const claude = read("CLAUDE.md");
+  if (claude !== null && linesOf(claude).find((l) => l.startsWith("1. ")) !== RULE1) bad.push("CLAUDE.md: rule 1 is not the exact text of spec 0004 §7.6");
+  const routing = read(".claude/rules/routing.md");
+  if (routing !== null) {
+    const lines = linesOf(routing);
+    if (lines.find((l) => l.startsWith("- **0** ")) !== LANE0) bad.push(".claude/rules/routing.md: the lane-0 line is not the exact text of spec 0004 §7.6");
+    if (lines.filter((l) => l.trim() !== "").pop() !== LASTLINE) bad.push(".claude/rules/routing.md: the last line is not the exact text of spec 0004 §7.6");
+  }
+  if (bad.length) fail("texts-0004 " + bad.join("; "));
+  else ok("texts-0004: harness/README.md names G-1..G-22, the class strength order and the two-path rule; both spec templates carry '- Unlocks:'; CLAUDE.md rule 1 and the lane-0 and last lines of routing.md are the texts of §7.6");
+}
 
 console.log(`\nLINT ${failures ? "FAILED" : "GREEN"}: ${checks} ok, ${failures} failed`);
 process.exit(failures ? 1 : 0);
