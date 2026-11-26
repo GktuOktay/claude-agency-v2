@@ -1,12 +1,12 @@
-# Spec 0008 — Team expansion (mobile stacks, design, UX writing, vertical playbooks)
+# Spec 0008 — Team expansion (React Native unit, design, UX writing)
 <!-- Header fields and Status values stay English (protocol); content is written in English. -->
 
-- Status: Awaiting approval
+- Status: Draft
 - Tier: full
 - Lane: 3
-- Previous spec: none (dependencies D1, D2 and related spec D3 in §6.7)
-- Unlocks: `.claude/agents/product-designer.md`, `.claude/agents/ux-writer.md`, `.claude/agents/rn-engineer.md`, `.claude/agents/swift-engineer.md`, `.claude/agents/flutter-engineer.md`, `.claude/agents/marketing.md`, `.claude/skills/product-design/**`, `.claude/skills/ux-writing/**`, `.claude/skills/rn-engineering/**`, `.claude/skills/mobile-common/**`, `.claude/skills/store-release/**`, `.claude/skills/swift-engineering/**`, `.claude/skills/flutter-engineering/**`, `.claude/skills/data-design/**`, `.claude/skills/ai-integration/**`, `.claude/skills/graphic-design/**`, `.claude/skills/qa-verification/**`, `.claude/skills/application-security/**`, `.claude/skills/devops-sre/**`, `.claude/skills/product-management/**`, `.claude/skills/marketing-brand/**`, `.claude/skills/quality-compliance/**`, `.claude/skills/dotnet-engineering/**`, `.claude/skills/react-engineering/**`, `.claude/rules/routing.md`, `evals/product-design.md`, `evals/ux-writing.md`, `evals/rn-engineering.md`, `evals/mobile-common.md`, `evals/store-release.md`, `evals/swift-engineering.md`, `evals/flutter-engineering.md`, `evals/data-design.md`, `evals/ai-integration.md`, `evals/graphic-design.md`, `evals/qa-verification.md`, `evals/application-security.md`, `evals/devops-sre.md`, `evals/product-management.md`, `evals/marketing-brand.md`, `evals/quality-compliance.md`, `evals/dotnet-engineering.md`, `harness/bin/lint.js`, `harness/bin/site-data.js`, `site/index.html`, `docs/architecture/STACK.md`
-- Self-critique: done. Round 1: spec-critic 5 BLOCKER, appsec 2 HIGH, board CONDITIONAL K1-K7. Round 2: board APPROVE, appsec PASS WITH FOLLOW-UPS (0 HIGH; F-1..F-8 applied or routed to D2). Round 3 (diff): spec-critic "signable", 0 BLOCKER; its 3 SHOULD and 4 NIT applied by the main session. Reports: `docs/kanit/0008-kapi-raporlari-tur1.md`, `-tur2.md`, `docs/architecture/gorus-0008-team-expansion-2026-11-22.md`
+- Previous spec: none (preconditions of the signature: D1 = spec 0004, merged; D2 = spec 0010; related spec D3; all in §6.7)
+- Unlocks: `.claude/agents/product-designer.md`, `.claude/agents/ux-writer.md`, `.claude/agents/rn-engineer.md`, `.claude/agents/marketing.md`, `.claude/skills/product-design/**`, `.claude/skills/ux-writing/**`, `.claude/skills/rn-engineering/**`, `.claude/skills/mobile-common/**`, `.claude/skills/store-release/**`, `.claude/skills/qa-verification/**`, `.claude/skills/application-security/**`, `.claude/skills/devops-sre/**`, `.claude/skills/marketing-brand/**`, `.claude/rules/routing.md`, `evals/product-design.md`, `evals/ux-writing.md`, `evals/rn-engineering.md`, `evals/mobile-common.md`, `evals/store-release.md`, `evals/qa-verification.md`, `evals/application-security.md`, `harness/bin/lint.js`, `harness/bin/site-data.js`, `site/index.html`, `docs/architecture/STACK.md`
+- Self-critique: rev 5 (2026-11-26, delta after spec 0004 shipped, §14 "Rev 5 delta") awaits its diff gate round; the chat approval of rev 4 (sha12 `8164de360511`) does not carry over to these bytes. Rev 4 — Round 1: spec-critic 5 BLOCKER, appsec 2 HIGH, board CONDITIONAL K1-K7. Round 2: board APPROVE, appsec PASS WITH FOLLOW-UPS (0 HIGH; F-1..F-8 applied or routed to D2). Round 3 (diff): spec-critic "signable", 0 BLOCKER; its 3 SHOULD and 4 NIT applied by the main session. Reports: `docs/kanit/0008-kapi-raporlari-tur1.md`, `-tur2.md`, `docs/architecture/gorus-0008-team-expansion-2026-11-22.md`
 
 ## 1. Intent
 The CEO's words (2026-11-21/22, source `docs/KARARLAR.md` Revizyon 49):
@@ -15,17 +15,17 @@ The CEO's words (2026-11-21/22, source `docs/KARARLAR.md` Revizyon 49):
 - "frontend de yazıyoruz. sadece mobil için gerekli değil bunlar. tüm yapıyı değerlendir ve eksikleri söyle"; "üçü de geçerli, hepsini ekle bir tek müşteri işi kısmını çıkart. token tüketimini de minimize et. dikey uzmanlık gerekiyorsa sürdür"
 - "ok bunları yapalım" (design rule). Graphic design: occasional, no own unit.
 
-Clarification: the company gets one code unit per mobile stack (React Native/Expo, Swift, Flutter), two non-code units (`product-designer`, `ux-writer`), on-demand playbooks (`mobile-common`, `store-release`, `data-design`, `ai-integration`, `graphic-design`) and short addenda to seven existing units. Success: a spec can reach a store-ready package with expertise loaded only when the spec touches it, and the always-loaded token cost stays inside the measured caps (§6.6). Deliberately NOT done: proposal/estimation unit (CEO excluded it); `mobile-engineer`, `data-engineer`, `ai-engineer`; `payments-billing` (first payment job); Capacitor/PWA, MAUI, Kotlin; host installs; store submission; the Swift and Flutter trials (separate quick specs); the enforcement hardening (spec D2).
+Clarification (scope of rev 5, R-17): this spec gives the company one code unit for React Native/Expo (`rn-engineer`), two non-code units (`product-designer`, `ux-writer`), two on-demand playbooks (`mobile-common`, `store-release`) and short addenda to four existing units (`marketing`, `qa-engineer`, `appsec`, `devops-sre`). The Swift and Flutter units and the playbooks `data-design`, `ai-integration`, `graphic-design` are not dropped: each arrives in its own later spec (§6.7 Later). Success: an RN spec can reach a store-ready package with expertise loaded only when the spec touches it, and the always-loaded token cost stays inside the measured caps (§6.6). Deliberately NOT done: proposal/estimation unit (CEO excluded it); `mobile-engineer`, `data-engineer`, `ai-engineer`; `payments-billing` (first payment job); Capacitor/PWA, MAUI, Kotlin; host installs; store submission; the Swift and Flutter trials (separate quick specs); the enforcement hardening (spec 0010, D2).
 
 ## 2. Market summary (Product)
-none (internal structure). The mobile stack comparison exists in `docs/scout/0002` and `0003` (arrive with D1).
+none (internal structure). The mobile stack comparison exists in `docs/scout/0002` and `0003` (on this branch since the D1 merge).
 
 ## 3. Requirements (EARS)
-- REQ-1 — When a signed spec names React Native/Expo (from Phase 1b), Swift (from Phase 2) or Flutter (from Phase 3), the main session shall start the matching stack engineer; from Phase 1a until that stack's unit ships (RN until 1b), a job naming that stack shall stop and report "unit not yet opened; needs its trial / D2" (never `polyglot-engineer`).
+- REQ-1 — When a signed spec names React Native/Expo (from Phase 1b), the main session shall start `rn-engineer`; from Phase 1a until 1b ships, a job naming React Native/Expo shall stop and report "unit not yet opened"; a job naming Swift or Flutter shall stop and report the same for as long as that stack has no unit (each needs its trial and its own later spec, §6.7 Later); never `polyglot-engineer`.
 - REQ-2 — Each stack engineer shall use exactly one stack playbook per job.
 - REQ-3 — When the business analyst's draft adds or redesigns screens, the order shall be: BA drafts → `product-designer` → BA fixes §4 → gates.
 - REQ-4 — When a spec adds or changes user-visible strings, locales or accessibility labels, `ux-writer` shall run after `product-designer` (directly after the BA draft if no screen changes) and produce a copy deck with keys; the stack engineer wires the keys.
-- REQ-5 — On-demand playbooks (`mobile-common`, `data-design`, `ai-integration`, `graphic-design`, `store-release`) shall be in no unit's `skills:` list and named only in the routing/brief rule; the engineer reads one only when the spec touches its §6.3 trigger.
+- REQ-5 — On-demand playbooks (`mobile-common`, `store-release`) shall be in no unit's `skills:` list and named only in the routing/brief rule; the engineer reads one only when the spec touches its §6.3 trigger.
 - REQ-6 — `store-release` shall prepare a submission package with empty CEO approval boxes and shall never submit.
 - REQ-7 — Signing custody: stack engineers and `devops-sre` shall build only debug, unsigned or throwaway-key artefacts and shall be instructed never to read, export or use release signing identities, keystores, App Store Connect API keys or Play service-account JSON, and never to run `xcodebuild -allowProvisioningUpdates`; release signing and upload are the CEO's. Technical separation is the CEO's setup (separate macOS user or machine, or a separate build keychain; trial report, Riskler); host hooks raise the bar but do not stop a determined agent. Secret values never appear in repo, chat or logs. Android throwaway-key signing uses only `ORG_GRADLE_PROJECT_android.injected.signing.*` environment variables (no password on a command line or in a log).
 - REQ-8 — Units shall only draft. They shall never create or change a store record, reply to App Review or a store review, invite testers (external TestFlight is a beta review), change a rollout percentage, or fill a data-safety/privacy form on a store; each is the CEO's, each time.
@@ -40,7 +40,7 @@ none (internal structure). The mobile stack comparison exists in `docs/scout/000
 - REQ-17 — Host installs and licence acceptance are the CEO's, one by one; no unit uses `sudo` or changes `xcode-select`.
 - REQ-18 — STACK.md shall keep React Native + Expo and the test stack (Jest + jest-expo, RNTL, Maestro) at "dene" and add Flutter and Swift as "değerlendir"; no row becomes "benimse" by opening a unit.
 - REQ-19 — Each phase shall regenerate the intro-page data and correct its prose counts.
-- REQ-20 — D1 (spec 0004 merged to main) gates every phase; D2 (guard hardening for mobile merged) gates every phase that ships a Bash-capable mobile unit or `store-release` (1b, 2, 3).
+- REQ-20 — D1 (spec 0004 merged to main: PR 35, squash `b46e144`) and D2 (spec 0010, guard hardening, implemented and merged to main) shall both hold before this spec is signed; they are preconditions of the signature, not of a phase, and no task starts on an unmet one.
 - REQ-21 — Phases ship as separate PRs under one signature; a phase's files shall not exist before its trigger; delivery chains per §6.7.
 - REQ-22 — The envelope is unchanged: store submission, push/merge to main, spending, deletion, EAS/OTA/paid plans need CEO approval each time.
 - REQ-23 — The maker of a file shall not verify it.
@@ -51,12 +51,12 @@ none (internal structure). The mobile stack comparison exists in `docs/scout/000
 - REQ-28 — The `lint.js` change shall be additive: an eval set is required for every skill whose description starts with "Playbook:"; every new playbook description, on-demand ones included, starts with "Playbook:".
 - REQ-29 — Every Expo command shall run with `EXPO_NO_TELEMETRY=1` (trial finding 2).
 - REQ-30 — `store-release` shall carry the header "unverified": real device, device signing, provisioning, TestFlight/Play upload and store review were never exercised (trial report, Doğrulanamayanlar, Öneri 3); it becomes "evidenced" only after a separate CEO-approved trial with accounts and fees (§13).
-- REQ-31 — A unit body shall name no playbook that has not shipped; the pointer line is added to `product-designer` in the phase that ships the playbook (`mobile-common` in 1b, `graphic-design` in 4).
-- REQ-32 — Phase 2 and 3 playbooks shall carry their stack's own pinning and upgrade rules (Xcode + Swift toolchain pin; Flutter channel/version pin), and the MASVS reference shall be stack-neutral.
-- REQ-33 — Before the first host build of Phase 1b (and of each later stack) the plan shall record the output of `security find-identity -v -p codesigning` run in the agent's user context showing no distribution identity, or that builds run under a separate macOS user or machine; if a distribution identity is visible, the build shall not start and the unit shall stop and report to the CEO.
+- REQ-31 — A unit body shall name no playbook that has not shipped; the pointer line is added to `product-designer` in the phase that ships the playbook (`mobile-common` in 1b).
+- REQ-32 — The MASVS reference shall be stack-neutral (a later stack's pinning and upgrade rules belong to that stack's own spec, §6.7 Later).
+- REQ-33 — Before the first host build of Phase 1b the plan shall record the output of `security find-identity -v -p codesigning` run in the agent's user context showing no distribution identity, or that builds run under a separate macOS user or machine; if a distribution identity is visible, the build shall not start and the unit shall stop and report to the CEO.
 - REQ-34 — Until D3 (draft spec 0006, per-unit write areas) merges, the docs-only write areas of `product-designer` and `ux-writer` are kept by instruction only (known gap); D3 does not block 1a.
 - REQ-35 — Agent-built artefacts shall be marked "not uploadable"; the package shall record the `apksigner verify --print-certs` fingerprint; a throwaway or debug key shall never become a Play upload key; the first-store-job ADR shall require a CEO-generated upload key.
-- REQ-36 — Units shall never run Gradle with `--scan` (it uploads build data to a third party) nor put `VAR=password` inline on a command line; throwaway passwords are generated per build outside the repo.
+- REQ-36 — Units shall never run Gradle with `--scan` (it uploads build data to a third party) nor put `VAR=password` inline on a command line; throwaway keystores and passwords are generated per build in a temp directory outside the repo (inside a repo the D2 secret-file rule allowlists only the template's `android/app/debug.keystore`, §6.7).
 - REQ-37 — Evidence logs committed under `docs/kanit/` shall be redacted (tokens, `EXPO_TOKEN`, app-specific passwords); no store credential goes into CI secrets without its own spec.
 
 ## 4. User experience
@@ -69,14 +69,14 @@ Global (every phase, for that phase's files):
 - [ ] AC-3 — Each new SKILL.md passes lint "standard playbook format", has a description starting "Playbook:" (≤ 170 chars) and respects the §6.6 byte caps (checked by `wc -c` in the QA table; lint checks minimums only).
 - [ ] AC-4 — `node harness/bin/eval.js self evals/<p>.md` exits 0 for every new playbook (≥ 3 cases) and each set contains one case titled "Adversarial (QA)" (greppable): `qa-engineer` drafts it in its report, the main session commits it verbatim, QA then verifies it (no unit writes `evals/**`; `appsec` reports likewise, never writes).
 - [ ] AC-5 — One smoke job per new unit (plan mode, Task of case 1) is graded `eval.js grade ... 1 <output>` exit 0; outputs stay outside the repo.
-- [ ] AC-6 — `footprint.js` "Always loaded" vs baseline 2,910 est. tokens: after 1a ≤ +500, after 1b ≤ +850, after all phases ≤ +1,400; numbers in each phase PR.
-- [ ] AC-7 — footprint "Per agent spawn" for each new unit ≤ 4,090 (today's maximum, `devops-sre`); the worst-case job (stack playbook + all three on-demand reads) is recorded (board estimate ≈ 8.5k).
+- [ ] AC-6 — `footprint.js` "Always loaded" vs the T-1 baseline (2,910 est. tokens before the 0004 and 0010 merges; re-measured in T-1): after 1a ≤ +500, after 1b ≤ +850; numbers in each phase PR.
+- [ ] AC-7 — footprint "Per agent spawn" for each new unit ≤ 4,090 (today's maximum, `devops-sre`); the worst-case job (stack playbook + the `mobile-common` read) is recorded (the board's ≈ 8.5k estimate assumed three on-demand reads).
 - [ ] AC-8 — `skills:` of each new unit lists only its playbook + `graph-usage` (+ `visual-standards` for `product-designer`, `writing-standards` for `ux-writer`); a stack engineer lists exactly one stack playbook; no on-demand playbook is in any `skills:` list.
-- [ ] AC-9 — `routing.md`: additions ≤ 1,700 B in total over all phases (baseline 3,521 B / 869 est. tokens), only the §6.8 text per phase; existing rows and lane chains textually unchanged except the one conditional design/copy sentence; the "unit not yet opened" stop line is present from 1a and counted in the 1a bytes (`git diff`, `wc -c`). Other files have their own caps.
+- [ ] AC-9 — `routing.md`: additions ≤ 1,700 B in total over both phases (baseline re-measured in T-1; it was 3,521 B / 869 est. tokens before the 0004 merge), only the §6.8 text per phase; existing rows and lane chains textually unchanged except the one conditional design/copy sentence; the "unit not yet opened" stop line is present from 1a and counted in the 1a bytes (`git diff`, `wc -c`). Other files have their own caps.
 - [ ] AC-10 — No `mobile-engineer`, `data-engineer`, `ai-engineer`, proposal or estimation unit exists.
 - [ ] AC-11 — `lint.js` change is additive and keyed on "Playbook:"; `qa-engineer` probes a temporary copy: a `Playbook:` skill without an eval FAILS, and all old failures (bad sections, missing skill, missing eval of a unit's first skill) still fail; the real tree is green.
 - [ ] AC-12 — Job hygiene: `git diff --stat` of each delivery lists only §7 paths; each existing playbook grew ≤ 600 B (`wc -c` before/after).
-- [ ] AC-13 — After each phase `node harness/bin/site-data.js --check` passes and the numerals in `site/index.html` (prose lines 230, 378, 513 today; `data-k` values 279-280) equal the real counts (1a 20 agents/23 skills; 1b 21/26; P2 22/27; P3 23/28; P4 23/31); page seen by eye at both themes and 375 px (`visual-check.sh`).
+- [ ] AC-13 — After each phase `node harness/bin/site-data.js --check` passes and the numerals in `site/index.html` (prose lines 230, 378, 513 today; `data-k` values 279-280) equal the real counts (1a 20 agents/23 skills; 1b 21/26); page seen by eye at both themes and 375 px (`visual-check.sh`).
 Phase 1a:
 - [ ] AC-14 — `product-designer` and `ux-writer` have no Bash; smoke outputs contain a state table (designer) and a copy deck with keys, TR+EN, length limits, accessibility labels (writer); the routing text carries the REQ-3/4 order.
 - [ ] AC-15 — `product-design` and `ux-writing` ≤ 5,000 B; `marketing.md` description no longer claims in-product copy; `marketing-brand` points to `ux-writer` (after T-4).
@@ -86,21 +86,17 @@ Phase 1b:
 - [ ] AC-18 — `mobile-common` states its boundary with `react-engineering` (mobile-only, pointer instead of repetition); an eval case rejects repeated web WCAG text.
 - [ ] AC-19 — qa-engineer and appsec each gain one reference file ≤ 3,000 B, a pointer ≤ 300 B and one eval case; the MASVS file covers the board C5 list (secret, token storage, local storage, network, privacy manifest).
 - [ ] AC-20 — `devops-sre` `skills:` unchanged; its SKILL.md gains only the `store-release` pointer (≤ 300 B), and that pointer line itself states the REQ-7/8 rule (never read, export or use release signing material; never upload or change a store record), since `store-release` is on demand (grep).
-- [ ] AC-21 — STACK.md: RN + Expo and the test-stack row "dene"; Flutter, Swift "değerlendir"; no "benimse"; rows reconciled with those already on the 0004 branch.
-Phases 2, 3:
-- [ ] AC-22 — Starts only after the stack's trial quick spec passed (minimum: headless-prerequisite / simulator-runtime check, account-free build, release-configuration build, one unit + one UI test headless twice from clean, supply-chain check, one upgrade rehearsal; defined in that spec) and, for Flutter, a recorded CEO approval of the SDK install; the playbook header cites the trial and carries the stack's own pinning/upgrade rules (Xcode + Swift toolchain pin; Flutter channel/version pin); its evidence matrix states Swift = nothing in the container (`check` cannot gate it; the host command is the evidence) and Flutter = host only until a spec adds the SDK to the agent image.
-Phase 4:
-- [ ] AC-23 — `data-design`, `ai-integration`, `graphic-design` meet AC-3/4; `ai-integration` covers prompt versioning, validated output, eval regression, cost per request, injection; each remaining addendum meets REQ-15 with one passing eval case.
-Phase checks:
-- [ ] AC-24 — D1 and D2 are verified merged before the phases they gate (`git log main`), recorded in the plan; and D2's own ACs trace every item of the §6.7 minimum list (checked item by item, not only the merge).
-- [ ] AC-25 — Each phase: `qa-engineer` evidence table complete, `internal-auditor` CLEAN; `appsec` PASS on `store-release`, the MASVS reference, `mobile-common`, `rn-engineering` (1b) and on the first spec of each stack; chains per §6.7. AC-27 is a post-1b follow-up owned by T-31 (first RN job), not a 1b exit criterion.
+- [ ] AC-21 — STACK.md: RN + Expo and the test-stack row "dene"; Flutter, Swift "değerlendir"; no "benimse"; rows reconciled with those now on main (`STACK.md` lines 29-30, which arrived with the D1 merge).
+Phase checks (AC-22 and AC-23 left with Phases 2-4, §14 rev 5; removed IDs are not reused):
+- [ ] AC-24 — Before any other task (T-0): D1 (`b46e144`) and D2 (the spec 0010 merge) are verified on main (`git log main`) and `specs/active/` holds this spec alone, recorded in the plan; and spec 0010's own ACs trace every item of the §6.7 minimum list (checked item by item, not only the merge).
+- [ ] AC-25 — Each phase: `qa-engineer` evidence table complete, `internal-auditor` CLEAN; `appsec` PASS on `store-release`, the MASVS reference, `mobile-common`, `rn-engineering` (1b) and on the first spec of each stack; chains per §6.7. AC-27 is checked at 1b close as a hand-over (T-31); the measurement itself is the first RN job's.
 - [ ] AC-26 — `rn-engineering` has an eval criterion requiring `EXPO_NO_TELEMETRY=1` on every Expo command shown in its pass sample (fail sample omits it).
-- [ ] AC-27 — Post-1b follow-up (T-31, not a 1b exit criterion): the first RN job's evidence includes the measured `--localhost` effect (`lsof -iTCP:8081` output shows 127.0.0.1 only) and the playbook is updated from "unverified" to the measured result; until then the playbook text says "unverified".
-- [ ] AC-28 — No unit body references a playbook that has not shipped (grep of each agent body against existing skill folders); `product-designer` gains the `mobile-common` pointer in 1b and the `graphic-design` pointer in 4.
+- [ ] AC-27 — Hand-over at 1b close (T-31): the playbook text says "unverified" for `--localhost` (grep) and `docs/ACIK-ISLER.md` carries an open item naming REQ-9: the first RN job measures the effect (`lsof -iTCP:8081` output shows 127.0.0.1 only) and the playbook is then updated from "unverified" to the measured result under that job's own signed coverage (this spec is closed by then).
+- [ ] AC-28 — No unit body references a playbook that has not shipped (grep of each agent body against existing skill folders); `product-designer` gains the `mobile-common` pointer in 1b.
 - [ ] AC-29 — `store-release` header says "unverified" with the reason (REQ-30); its eval has a case requiring Android throwaway-key signing via `ORG_GRADLE_PROJECT_android.injected.signing.*` and rejecting a password on a command line, and a fail sample using `-allowProvisioningUpdates`.
 - [ ] AC-30 — The first-store-job ADR template line in `store-release` requires custody evidence (where keys live, who can read them); the MASVS reference names no single stack's API only (stack-neutral, checked by grep for per-stack sections: each stack named only as an example).
-- [ ] AC-31 — Before 1b ships, `appsec` probes each command in the §6.7 D2 minimum list against the hook as installed on the host (read-only, dummy input) and attaches the output; a command that passes silently is a finding routed to D2 (T-32).
-- [ ] AC-32 — The plan records the `security find-identity -v -p codesigning` output (or the separate-user/machine statement) before the first host build of each stack (REQ-33); an eval case in `rn-engineering` rejects a build step run without it.
+- [ ] AC-31 — Before 1b ships, `appsec` probes each command in the §6.7 D2 minimum list against the hook as installed on the host after the spec 0010 merge (read-only, dummy input with `permission_mode` `auto`) and attaches the output; the expected result is a refusal (`security find-identity`: no opinion); a command that passes silently is a finding: 1b does not ship, the unit stops and reports to the CEO (the fix is a follow-up harness spec, since 0010 is already merged) (T-32).
+- [ ] AC-32 — The plan records the `security find-identity -v -p codesigning` output (or the separate-user/machine statement) before the first host build of Phase 1b (REQ-33); an eval case in `rn-engineering` rejects a build step run without it.
 - [ ] AC-33 — The diff of every delivery removes or weakens no existing eval case and no existing lint check (rule 7); QA checks `git diff` on `evals/` and `harness/bin/lint.js`.
 - [ ] AC-34 — `store-release` eval fail samples: an artefact not marked "not uploadable", a debug/throwaway key used as an upload key, Gradle `--scan`, `VAR=password` inline; pass sample records the `apksigner verify --print-certs` fingerprint and a CEO-generated upload key in the ADR line. The `--scan` and inline-password fail samples (REQ-36) are also in the `rn-engineering` eval set, since stack engineers run Gradle.
 - [ ] AC-35 — `grep` over the added lines only (`git diff`) of `docs/kanit/` finds no token pattern (`EXPO_TOKEN`, app-specific password shapes); no store credential appears in any workflow file's secrets (REQ-37).
@@ -113,40 +109,41 @@ Phase checks:
 | A. Per-stack engineers + on-demand playbooks (pattern of `dotnet-`, `react-`, `polyglot-engineer`) | 3 unit descriptions + skill descriptions (~43 tokens each) | one stack playbook + graph-usage | each stack has its own Never list, host prerequisites and CEO approvals; a unit appears only when its trial passes | **Chosen** |
 | B. One `mobile-engineer` + three playbooks | 1 description | one playbook if read on demand | one file would carry three toolchains' Never lists and host prerequisites; it exists from day one, so Swift/Flutter units cannot be gated on their trials; one unit holds three different CEO approvals | Rejected: no phase gating, overloaded Never list (token cost is not the deciding reason) |
 | C. Vertical units (`mobile-`, `data-`, `ai-engineer`...) | +3 descriptions, more routing | extra spawn + handoff per job | two units write the same code | Rejected: CEO design rule |
-`ux-writer` alternative (talent-capacity, `docs/talent/2026-11-22-eksik-uzmanlik.md`): a section in `marketing-brand`; objection recorded, unit kept (R-7). Board opinion (`docs/architecture/gorus-mobil-rn-expo-2026-11-21.md`, arrives with D1): C1-C5 stay in force; C2's "unit only after trial" is overridden by Revizyon 49; K1-K7 closed per §14.
+`ux-writer` alternative (talent-capacity, `docs/talent/2026-11-22-eksik-uzmanlik.md`): a section in `marketing-brand`; objection recorded, unit kept (R-7). Board opinion (`docs/architecture/gorus-mobil-rn-expo-2026-11-21.md`, on this branch since the D1 merge): C1-C5 stay in force; C2's "unit only after trial" is overridden by Revizyon 49; K1-K7 closed per §14. This spec opens the first unit of option A (`rn-engineer`); the Swift and Flutter units follow in their own specs (§6.7 Later).
 
 ```mermaid
 %% Question: who calls whom, and which playbook is read when? (solid = unit started / preloaded; dotted = read only when the spec touches the area; rounded = playbook)
 flowchart LR
   M[Main session] -->|new screens| PD[product-designer]
   M -->|new strings| UW[ux-writer]
-  M -->|signed spec| SE[Stack engineer rn / swift / flutter]
+  M -->|signed RN spec| SE[rn-engineer]
   M -->|store release| DO[devops-sre]
-  SE --> SP([One stack playbook])
-  SE -.->|spec touches area| OD(["mobile-common, data-design, ai-integration"])
+  SE --> SP([rn-engineering])
+  SE -.->|spec touches area| OD([mobile-common])
   DO -.->|store release| SR([store-release])
-  PD -.->|asset needed| GD([graphic-design])
+  PD -.->|mobile screens| OD
 ```
-Description: units start only when the spec names their area. Text equivalent: M→PD, M→UW, M→SE, M→DO (solid); SE→one stack playbook (preloaded); SE⇢mobile-common/data-design/ai-integration; DO⇢store-release; PD⇢graphic-design (dotted). Review units follow the lane chain (not drawn).
+Description: units start only when the spec names their area. Text equivalent: M→PD, M→UW, M→`rn-engineer`, M→DO (solid); `rn-engineer`→`rn-engineering` (preloaded); `rn-engineer`⇢`mobile-common`; `product-designer`⇢`mobile-common`; DO⇢`store-release` (dotted). Review units follow the lane chain (not drawn).
 
 ### 6.2 Units
-Stack engineers (common contract):
+Stack engineer (common contract; `rn-engineer` is the only stack engineer of this spec, later stack specs reuse the contract):
 | Attribute | Value |
 |---|---|
 | Purpose | Implement a signed spec in the stack, test first, all UX states, evidence per §6.4 |
 | Called when | §6.8 rows; first app, store release, secure storage, push, permissions or an LLM call = lane 3 |
-| Tools | Read, Grep, Glob, Write, Edit, MultiEdit, Bash (host, under `guard.js` after D1/D2) |
+| Tools | Read, Grep, Glob, Write, Edit, MultiEdit, Bash (host, under the hooks of specs 0004 and 0010) |
 | Model / effort / maxTurns | sonnet / medium / 60 |
 | Write area | the signed spec's file-ownership list in the app workspace (named in the agent body) |
 | Never | hand-edit generated `ios/`/`android/`; OTA/`expo-updates`, `eas`; `sudo`, `xcode-select`, licence acceptance, host installs; read, export or use release signing material, build release-signed artefacts, run `-allowProvisioningUpdates` (REQ-7); act on a store (REQ-8); add a native third-party library without the board pre-check; bare `expo start`; call "done" on Expo Go or debug-only output |
-| Preloaded / on demand | `<stack>-engineering`, `graph-usage` / `mobile-common`, `data-design`, `ai-integration` |
+| Preloaded / on demand | `<stack>-engineering`, `graph-usage` / `mobile-common` |
+| Enforcement files | none: no task of this spec edits an enforcement-class file and `Unlocks:` names none; `rn-engineer` is not in `UNLOCK_CALLERS` (`harness/policy.js:379`) and is not added, so such an edit by it stays refused in `auto` whatever a header says (AC-12) |
 
-| | `rn-engineer` | `swift-engineer` | `flutter-engineer` |
-|---|---|---|---|
-| Phase / trigger | 1b / D1 + D2 (trial report is final) | 2 / Swift trial passed | 3 / CEO approves SDK install + trial passed |
-| Toolchain | Expo SDK pinned, `prebuild`, `expo run:*`, Gradle, `xcodebuild`, Jest + jest-expo + RNTL, Maestro, `tsc` strict, `expo-doctor` | SwiftUI, SwiftPM, Swift Testing/XCTest, `xcodebuild test`, `simctl`, `DEVELOPER_DIR`, Keychain, privacy manifest | Dart/Flutter, `flutter test`, integration tests, `flutter build`; from trial |
-| Host prerequisite | installed | Xcode 27.2 installed | Flutter SDK = CEO install |
-| STACK.md | dene | değerlendir | değerlendir |
+| | `rn-engineer` |
+|---|---|
+| Phase / trigger | 1b / signature (D1 + D2 on main); the trial report is final (§6.5) |
+| Toolchain | Expo SDK pinned, `prebuild`, `expo run:*`, Gradle, `xcodebuild`, Jest + jest-expo + RNTL, Maestro, `tsc` strict, `expo-doctor` |
+| Host prerequisite | installed |
+| STACK.md | dene |
 
 Non-code units (Phase 1a, no Bash, no host build):
 | Attribute | `product-designer` | `ux-writer` |
@@ -157,35 +154,31 @@ Non-code units (Phase 1a, no Bash, no host build):
 | Model / effort / maxTurns | sonnet / medium / 30 | sonnet / medium / 30; translation, key/length checks: `haiku` per call |
 | Write area | `docs/design/` | `docs/copy/` (engineer wires strings; R-10) |
 | Never | write code; commit binary images (CEO-approved brand assets excepted); say "looks good" unseen; publish | write code; write store/social/brand copy (`marketing`); claim features the spec lacks; leave a string without a key |
-| Preloaded / on demand | `product-design`, `visual-standards` / `mobile-common` (pointer added in 1b), `graphic-design` (pointer added in 4); the 1a body names neither (REQ-31) | `ux-writing`, `writing-standards` / none |
+| Preloaded / on demand | `product-design`, `visual-standards` / `mobile-common` (pointer added in 1b); the 1a body does not name it (REQ-31) | `ux-writing`, `writing-standards` / none |
 Boundary: `marketing` keeps store listing, brand and asset briefs (`docs/marka/`); `ux-writer` takes everything inside the app.
 
 ### 6.3 Playbooks (`.claude/skills/<name>/SKILL.md`, description starts "Playbook:", 9 sections, `evals/<name>.md`)
 | Playbook | Content outline | Loaded by, trigger | Cap | Phase |
 |---|---|---|---|---|
 | `rn-engineering` | toolchain, state tables, evidence matrix, the 12 trial findings, SDK rules, Metro and telemetry rules (§6.4, §6.5) | `rn-engineer`, preloaded | 10 KB | 1b |
-| `swift-engineering`, `flutter-engineering` | as §6.2; from their trials | their engineer, preloaded | 10 KB | 2, 3 |
 | `product-design` | flow + state table, tokens, HIG/Material checklist, a11y, handoff format | `product-designer`, preloaded | 5 KB | 1a |
 | `ux-writing` | copy-deck format, tone, length budgets, plural/placeholder rules, glossary, a11y labels, error rules | `ux-writer`, preloaded | 5 KB | 1a |
 | `mobile-common` | mobile-only: just-in-time permissions, push, offline/sync, deep links, background limits, Dynamic Type/TalkBack, i18n keys/plurals, crash/telemetry hooks, min-OS policy, privacy-label inventory; points to `react-engineering` for shared rules | stack engineer / `product-designer`: spec has a permission, push, offline, deep link, background task, locale or crash item | 6 KB | 1b |
 | `store-release` | bundle ID ownership (CEO), signing by name only, version/build numbers, artefact identity (file, size, sha256), privacy manifest/data-safety input, review notes, screenshot spec, TestFlight/internal package, phased rollout, no-rollback plan (REQ-10); boundary with `quality-compliance` (it checks rules, this prepares); `.gitignore` + pre-commit snippet; header "unverified" (REQ-30) | `devops-sre`: spec has a store release | 6 KB | 1b |
-| `graphic-design` | SVG-source assets, icon sizes/adaptive icon, screenshot frames, licence/source record, no binaries | `product-designer`: spec lists an icon, illustration, screenshot or site visual | 6 KB | 4 |
-| `data-design` | schema, expand/contract migrations, indexes, retention/deletion, restore test | engineer: spec §7 adds/changes an entity, migration, index or retention rule | 6 KB | 4 |
-| `ai-integration` | prompt versioning, validated output, eval regression, cost/latency, injection, PII, fallback; points to `react-engineering` | engineer: spec calls an LLM/ML API or stores model output (lane 3, `appsec`) | 6 KB | 4 |
-`payments-billing`: out of scope.
+`payments-billing`: out of scope. `swift-engineering`, `flutter-engineering`, `graphic-design`, `data-design`, `ai-integration`: later specs (§6.7 Later).
 
 ### 6.4 Evidence: where each kind runs (board §3, K6)
-| Evidence | `rn-engineer` | `swift-engineer` | `flutter-engineer` |
-|---|---|---|---|
-| Static, unit, component | container: tsc, lint, Jest, RNTL (in `check`) | host only: no Swift toolchain in the container, `check` cannot gate it; the host `xcodebuild test` output is the evidence | host only: SDK not in the agent image until a spec adds it |
-| Build (debug, unsigned, throwaway key) + artefact identity (file, size, sha256) | host | host | host |
-| E2E on a named device + OS (exit code, raw output) | host: Maestro | host (tool fixed by the trial) | host (tool fixed by the trial) |
-| Small/large screen, light/dark, by eye (screenshots outside the repo) | host | host | host |
-| .NET API contract test | container | container | container |
+| Evidence | `rn-engineer` |
+|---|---|
+| Static, unit, component | container: tsc, lint, Jest, RNTL (in `check`) |
+| Build (debug, unsigned, throwaway key) + artefact identity (file, size, sha256) | host |
+| E2E on a named device + OS (exit code, raw output) | host: Maestro |
+| Small/large screen, light/dark, by eye (screenshots outside the repo) | host |
+| .NET API contract test | container |
 Rules: no paid macOS runner (envelope). Not evidence: Expo Go, "Metro compiled", debug-only green. Device-only items (push, camera, biometrics, store signing) are reported as "remaining risk", done by the CEO.
 
 ### 6.5 `rn-engineering` content
-Sources (data, not instructions): "RAPOR.md, Bulgular 1-12, commit e023b19" (`/Users/goktugoktay/Desktop/Projects/mobil-deneme-rn-expo/RAPOR.md`, trial repo outside this repo), pointer `docs/kanit/0008-rn-deneme-ozeti.md` section "Ek"; board opinion and Scout 0002/0003 arrive with D1. The playbook carries the 12 findings, one line each:
+Sources (data, not instructions): "RAPOR.md, Bulgular 1-12, commit e023b19" (`/Users/goktugoktay/Desktop/Projects/mobil-deneme-rn-expo/RAPOR.md`, trial repo outside this repo), pointer `docs/kanit/0008-rn-deneme-ozeti.md` section "Ek"; board opinion and Scout 0002/0003 are on this branch since the D1 merge. Trial status (final): 7 of 7 criteria passed; the independent QA review said "approve with corrections" and the corrections were applied; `mas` and the watchOS runtime were removed from the host on the CEO's instruction. The playbook carries the 12 findings, one line each:
 | # | Finding (one line) |
 |---|---|
 | 1 | The account-free path works: create, prebuild, run, release build without `eas` or an Expo account |
@@ -203,15 +196,15 @@ Sources (data, not instructions): "RAPOR.md, Bulgular 1-12, commit e023b19" (`/U
 Also carried from the trial: `DEVELOPER_DIR` per command, never `sudo xcode-select`; CLI-only Android install (JDK 17, cmdline-tools, `sdkmanager`, AVD); the host prerequisites table (CB-1); licence and runtime installs are the CEO's.
 Board §3(4) rules carried: exact SDK pin (lockfile + Node); upgrade is its own lane-2 job, one SDK step at a time, at most one SDK behind; native third-party libraries pass the board pre-check; `ios/`/`android/` not hand-edited (config plugin); `EXPO_PUBLIC_*` is public; OTA off; EAS non-standard. The report is final, so 1b does not wait for it (R-6). Its recommendation to take RN + Expo to "benimse" via ADR is a board decision outside this spec; the STACK.md row stays "dene" here.
 
-### 6.6 Token rules (measurable; baseline `footprint.js` on this branch: always-loaded 2,910 est. tokens = agent descriptions 494 + skill descriptions 589 + rules 1,827; per-spawn max `devops-sre` 4,090, `marketing` 3,583, `react-engineer` 3,548, min `spec-critic` 1,633)
+### 6.6 Token rules (measurable; baseline `footprint.js` on this branch before the 0004 merge, re-measured in T-1 after the 0010 merge; the delta caps apply to the T-1 figures, the absolute caps stay: always-loaded 2,910 est. tokens = agent descriptions 494 + skill descriptions 589 + rules 1,827; per-spawn max `devops-sre` 4,090, `marketing` 3,583, `react-engineer` 3,548, min `spec-critic` 1,633)
 | Rule | Limit | Measured by |
 |---|---|---|
 | Unit file; description | ≤ 1,100 B; ≤ 170 chars (existing up to ~170) | `wc -c` (QA table; lint checks minimums only) |
 | Stack playbook / `product-design`, `ux-writing` / other on-demand / reference file / pointer | ≤ 10,000 / 5,000 / 6,000 / 3,000 / 300 B | `wc -c` |
 | Existing playbook, cumulative growth | ≤ 600 B | `wc -c` before/after |
-| Always-loaded | ≤ +500 after 1a, ≤ +850 after 1b, ≤ +1,400 total | `footprint.js` |
+| Always-loaded | ≤ +500 after 1a, ≤ +850 after 1b | `footprint.js` |
 | Per-spawn, new unit | ≤ 4,090; worst-case job recorded (≈ 8.5k) | `footprint.js` |
-| `routing.md` additions | ≤ 1,700 B total (hand count ≈ 980 B; real `wc -c` in T-1/T-6) | `wc -c` |
+| `routing.md` additions | ≤ 1,700 B total (hand count ≈ 880 B; real `wc -c` in T-1/T-6) | `wc -c` |
 | Expertise | only in skills; on-demand playbooks in no `skills:` list | AC-8 |
 | Default pipeline | new units in no lane chain | AC-9 |
 | Models | sonnet default, haiku per call, no new opus | frontmatter, routing |
@@ -220,23 +213,22 @@ Board §3(4) rules carried: exact SDK pin (lockfile + Node); upgrade is its own 
 ### 6.7 Phasing, dependencies, delivery chains (one signature, separate PRs)
 | Phase | Content | Trigger | Delivery chain |
 |---|---|---|---|
-| 1a | `product-designer`, `ux-writer`, `product-design`, `ux-writing`; routing rows and the "unit not yet opened" stop line; `marketing` edit; `lint.js` change; site data | D1 | main session → qa-engineer → internal-auditor |
-| 1b | `rn-engineer`, `rn-engineering`, `mobile-common`, `store-release`; qa Maestro/WCAG ref, appsec MASVS ref; RN routing row; STACK rows; `devops-sre` pointer | D1 + D2 | delivery-manager → main session → qa-engineer → appsec → internal-auditor → quality-office |
-| 2 | `swift-engineer`, `swift-engineering` | D1 + D2 + Swift trial passed (no host install beyond Xcode 27.2; the trial's own quick spec lists prerequisites) | as 1b |
-| 3 | `flutter-engineer`, `flutter-engineering` | D1 + D2 + CEO approves SDK install + trial passed | as 1b |
-| 4 | `data-design`, `ai-integration`, `graphic-design`; addenda for devops-sre, product-manager, marketing, quality-office, dotnet-engineer | each when its first real job touches it (R-5) | qa-engineer → internal-auditor (+ appsec for `ai-integration`, dotnet reference) |
-The software-architect step is in the D2 spec (enforcement design); this spec states constraints only.
+| 1a | `product-designer`, `ux-writer`, `product-design`, `ux-writing`; routing rows and the "unit not yet opened" stop line; `marketing` edit; `lint.js` change; site data | signature (D1 + D2 on main) | main session → qa-engineer → internal-auditor |
+| 1b | `rn-engineer`, `rn-engineering`, `mobile-common`, `store-release`; qa Maestro/WCAG ref, appsec MASVS ref; RN routing row; STACK rows; `devops-sre` pointer | signature (D1 + D2 on main); its PR follows 1a's | delivery-manager → main session → qa-engineer → appsec → internal-auditor → quality-office |
+The software-architect step is in spec 0010 (enforcement design, `docs/architecture/tasarim/0010-guard-hardening.md` on main); this spec states constraints only.
+
+Later (outside this spec and this signature, R-17): `swift-engineer` + `swift-engineering` and `flutter-engineer` + `flutter-engineering` each become their own spec after that stack's trial quick spec passes (trial minimum in §6.9; Flutter also needs the CEO's approval of the SDK install). Each such spec brings its stack's pinning and upgrade rules, its evidence matrix (Swift: nothing runs in the container; Flutter: host only until a spec adds the SDK to the agent image), the REQ-33 identity check, its routing row and the removal of its stack from the stop line. `data-design`, `ai-integration`, `graphic-design` and the remaining addenda (devops-sre, product-manager, marketing, quality-office, dotnet-engineer) are specced when a first real job touches them. Until then a Swift or Flutter job stops at the routing stop line (REQ-1).
 
 Dependencies:
-- D1 — spec 0004 (`harness/0004-host-enforcement`) merged to main (CEO ordering, Revizyon 48).
-- D2 — a separate CEO-signed lane-3 "guard hardening for mobile" spec merged before anything in 1b ships (not part of 0008). Minimum content, as input: the envelope hook asks for `xcodebuild -exportArchive`, `xcodebuild -allowProvisioningUpdates` and `-authenticationKey*`, `xcrun iTMSTransporter`, `eas-cli`/`npx eas-cli submit`, `./gradlew publish*` and `promote*` (rollout change), `bundletool`, Play publisher API scripts; wrappers `bundle exec`, `npm exec`, `pnpm dlx`/`dlx` (e.g. `bundle exec fastlane pilot upload`, `npm exec eas-cli -- submit`), which are not in `WRAPPERS` (`guard.js:52-53`); every `security` subcommand that reads or exports (`find-generic-password -w`, `export`; `find-identity` is allowed as a read-only listing); non-adhoc `codesign -s`; `keytool -list`/export; `base64`/`cat` of keystore files. Secret scan by file name for `*.jks *.keystore *.p12 *.mobileprovision key.properties`, with the RN template's `android/app/debug.keystore` allowlisted by exact path (content scan already catches `.p8` and service-account JSON; `check` line 17 uses `grep -I`, which skips binaries). Source: appsec probe 2026-11-22, all passed `harness/guard.js` silently except `eas submit`. Today `guard.js:56-59` REMOTE_BIN has fastlane, altool, notarytool, iTMSTransporter, transporter, eas, appcenter (direct calls only, not via `xcrun`); PUBLISH only `xcrun altool/notarytool`.
-- D3 — related spec, not a gating dependency: draft spec 0006 (harness unit write areas). Per-unit write areas belong there, not to 0004 or D2. It gates no phase; until it merges the areas of `product-designer` and `ux-writer` are instruction-only (REQ-34). After D1, `.claude/agents|skills|rules` on the host are product-config: the guard asks unless the signed spec's `Unlocks:` matches (hence the exact paths in the header).
+- D1 — met: spec 0004 (`harness/0004-host-enforcement`) merged to main (PR 35, squash `b46e144`; CEO ordering, Revizyon 48). The host gate is live (`harness/README.md`, "Yol sınıfları" and "CEO nerede ve nasıl imzalar"): sessions run in permission mode `auto`; an unsigned edit of code or product config is refused, not asked; the CEO signs in his own terminal (`approve.sh --preview`, then `--expect <sha12>`); an enforcement-class file opens only when the signed spec's `Unlocks:` names its exact literal path (a glob never does), and only for the main session and the four units of `UNLOCK_CALLERS` (`polyglot-engineer`, `dotnet-engineer`, `react-engineer`, `devops-sre`).
+- D2 — spec 0010 (`specs/draft/0010-guard-hardening.md` on main, written from `docs/architecture/tasarim/0010-guard-hardening.md`): a separate CEO-signed lane-3 guard-hardening spec, not part of 0008, implemented and merged to main before 0008 is signed, because only one spec can be active at a time (the 0004 file still sits in `specs/active/` on this branch; AC-24 checks that this spec is alone there). The mobile scope of 0010 is this minimum list, given as input (in `auto` an "ask" of the hook is a refusal; the CEO runs such a command in his own terminal): the envelope hook asks for `xcodebuild -exportArchive`, `xcodebuild -allowProvisioningUpdates` and `-authenticationKey*`, `xcrun iTMSTransporter`, `eas-cli`/`npx eas-cli submit`, `./gradlew publish*` and `promote*` (rollout change), `bundletool`, Play publisher API scripts; wrappers `bundle exec`, `npm exec`, `pnpm dlx`/`dlx` (e.g. `bundle exec fastlane pilot upload`, `npm exec eas-cli -- submit`), which are not in `WRAPPERS` (`guard.js:60`); every `security` subcommand that reads or exports (`find-generic-password -w`, `export`; `find-identity` is allowed as a read-only listing); non-adhoc `codesign -s`; `keytool -list`/export; `base64`/`cat` of keystore files. Secret scan by file name for `*.jks *.keystore *.p12 *.mobileprovision key.properties`, with the RN template's `android/app/debug.keystore` allowlisted by exact path (content scan already catches `.p8` and service-account JSON; `check` line 24 uses `grep -rIl`, which skips binaries). Source: appsec probe 2026-11-22, all passed `harness/guard.js` silently except `eas submit`. Before 0010, `guard.js:64-65` REMOTE_BIN has fastlane, altool, notarytool, iTMSTransporter, transporter, eas, appcenter (direct calls only, not via `xcrun`); PUBLISH only `xcrun altool/notarytool`.
+- D3 — related spec, not a gating dependency: draft spec 0006 (harness unit write areas). Per-unit write areas belong there, not to 0004 or D2. It gates no phase; until it merges the areas of `product-designer` and `ux-writer` are instruction-only (REQ-34). Since D1, `.claude/agents|skills|rules`, `evals/` and `harness/bin/lint.js|site-data.js` on the host are product-config: in `auto` an edit is refused unless this spec is the single signed active spec and its `Unlocks:` covers the path, whoever the caller is (hence the paths in the header; each entry is checked against `harness/policy.js` in §14 rev 5).
 
 ### 6.8 Routing text to add (exact, per phase; total ≤ 1,700 B)
-- 1a rows: `new screens, flows, design system, icons/assets` → `product-designer`; `in-product text, translation, a11y labels` → `ux-writer`. Stop line (holds from 1a until each unit ships): "App in React Native/Expo, Swift or Flutter whose unit is not yet opened: stop, report 'unit not yet opened; needs its trial / D2'; never `polyglot-engineer`." Order line: "Design order: BA drafts → `product-designer` (only if the draft adds or redesigns screens) → `ux-writer` (copy deck with keys; straight after the draft if no screen changes) → BA fixes §4 → gates." Models line: "`ux-writer` translation and key checks: `haiku`."
+- 1a rows: `new screens, flows, design system, icons/assets` → `product-designer`; `in-product text, translation, a11y labels` → `ux-writer`. Stop line (from 1a; RN leaves it in 1b, Swift and Flutter stay until their own specs): "App in React Native/Expo, Swift or Flutter whose unit is not yet opened: stop, report 'unit not yet opened'; never `polyglot-engineer`." Order line: "Design order: BA drafts → `product-designer` (only if the draft adds or redesigns screens) → `ux-writer` (copy deck with keys; straight after the draft if no screen changes) → BA fixes §4 → gates." Models line: "`ux-writer` translation and key checks: `haiku`."
 - 1b rows: `React Native/Expo app` → `rn-engineer`; `App Store / Play release, signing, store package` → `devops-sre` (loads `store-release`; prepares, CEO signs and submits). The stop line drops RN (now "Swift or Flutter app"). Lane line: "Store release, first app of a stack, secure storage, push, permissions, LLM call: lane 3." Briefs line: "A stack engineer's brief names the one stack playbook and any on-demand playbook the spec touches."
-- 2, 3: one row each (`Swift app` → `swift-engineer`; `Flutter/Dart app` → `flutter-engineer`); the stop line is trimmed accordingly and disappears after Phase 3.
-- Byte accounting (spec-critic hand count): 1a ≈ 547 B (includes the stop line), 1b ≈ 356 B, phases 2+3 ≈ 75 B, total ≈ 980 B against the 1,700 B cap; the real `wc -c` of each diff is taken in T-1/T-6 and re-checked at each phase.
+- After this spec the stop line stays for Swift and Flutter; each later stack spec adds its own row and trims the line (§6.7 Later).
+- Byte accounting (spec-critic hand count): 1a ≈ 525 B (includes the stop line; rev 4's 547 B less the 22 B of the dropped "; needs its trial / D2"), 1b ≈ 356 B, total ≈ 880 B against the 1,700 B cap; the real `wc -c` of each diff is taken in T-1/T-6 and re-checked at each phase.
 
 ### 6.9 Adoption criteria
 | Item | Needs |
@@ -244,7 +236,7 @@ Dependencies:
 | A stack becomes "benimse" | trial checklist closed with output + Scout gaps closed (`docs/scout/0002`, `0003`) + ADR |
 | First store job of each app | ADR: bundle ID, signing custody, Play App Signing (irreversible per app) |
 | RN + Expo STACK.md state | stays "dene" in this spec; the trial report's recommendation of "benimse" goes to the board via ADR (outside this spec) |
-| Swift/Flutter "trial passed" | headless-prerequisite / simulator-runtime check, account-free build, release-configuration build, one unit + one UI test headless twice from clean, supply-chain check, one upgrade rehearsal (in each trial's own quick spec) |
+| Swift/Flutter "trial passed" | headless-prerequisite / simulator-runtime check, account-free build, release-configuration build, one unit + one UI test headless twice from clean, supply-chain check, one upgrade rehearsal (in each trial's own quick spec); input to the later specs (§6.7 Later), not checked here |
 | First spec of each stack | `appsec` (Keychain, Flutter secure storage differ) |
 
 ## 7. Data and API contract
@@ -253,36 +245,30 @@ none (no entities or endpoints). File inventory (also the AC-12 allowlist):
 |---|---|---|
 | `.claude/agents/{product-designer,ux-writer}.md`; `.claude/skills/{product-design,ux-writing}/SKILL.md`; `evals/{product-design,ux-writing}.md` | new | 1a |
 | `.claude/agents/marketing.md` (description); `.claude/skills/marketing-brand/SKILL.md` (pointer) | changed | 1a |
-| `harness/bin/lint.js` (eval for every `Playbook:` skill; CEO-approved by this signature) | changed | 1a |
+| `harness/bin/lint.js` (eval for every `Playbook:` skill; additive on the version spec 0010 merges; CEO-approved by this signature) | changed | 1a |
 | `.claude/agents/rn-engineer.md`; `.claude/skills/{rn-engineering,mobile-common,store-release}/SKILL.md`; `evals/{same}.md` | new | 1b |
 | `.claude/skills/qa-verification/refs/e2e-mobile-web.md`; `.claude/skills/application-security/refs/mobile-masvs.md` | new | 1b |
 | `.claude/skills/{qa-verification,application-security,devops-sre}/SKILL.md` (pointers); `evals/{qa-verification,application-security}.md` (+1 case) | changed | 1b |
 | `.claude/agents/product-designer.md` (`mobile-common` pointer line, T-29) | changed | 1b |
-| `.claude/agents/product-designer.md` (`graphic-design` pointer line, T-30) | changed | 4 |
-| `.claude/rules/routing.md` | changed | 1a, 1b, 2, 3 |
-| `docs/architecture/STACK.md` | changed | 1b, 2, 3 |
-| `harness/bin/site-data.js` (UNITS, WRITE, EDGES per unit); `site/index.html` (data block, prose counts) | changed | every phase |
-| `.claude/agents/swift-engineer.md`, `.claude/skills/swift-engineering/SKILL.md`, `evals/swift-engineering.md` | new | 2 |
-| `.claude/agents/flutter-engineer.md`, `.claude/skills/flutter-engineering/SKILL.md`, `evals/flutter-engineering.md` | new | 3 |
-| `.claude/skills/{data-design,ai-integration,graphic-design}/SKILL.md`, `evals/{same}.md` | new | 4 |
-| `.claude/skills/{devops-sre,product-manager,marketing-brand,quality-compliance,dotnet-engineering}/refs/*.md`, pointers, `evals/*.md` (+1 case) | new/changed | 4 |
-| `.claude/skills/{dotnet-engineering,react-engineering}/SKILL.md` (pointers to `data-design`, `ai-integration`) | changed | 4 |
-Phase records go to `docs/KARARLAR.md` and `docs/ACIK-ISLER.md` (docs, not unlocked product config). Runtime outputs, not delivered: `docs/design/`, `docs/copy/`. Expected counts: 20/23 (1a), 21/26 (1b), 22/27, 23/28, 23/31 (agents/skills).
+| `.claude/rules/routing.md` | changed | 1a, 1b |
+| `docs/architecture/STACK.md` | changed | 1b |
+| `harness/bin/site-data.js` (UNITS, WRITE, EDGES per unit); `site/index.html` (data block, prose counts) | changed | 1a, 1b |
+Phase records go to `docs/KARARLAR.md` and `docs/ACIK-ISLER.md` (docs: free class, no `Unlocks:` entry needed). Runtime outputs, not delivered: `docs/design/`, `docs/copy/`. Expected counts: 20/23 (1a), 21/26 (1b) (agents/skills; 18/21 today). No row is an enforcement-class file: `CLAUDE.md`, `.claude/settings.json` and `harness/*.js` are not edited.
 
 ## 8. Threat model and security
 Sensitive area: code-signing material and store credentials (named in playbooks, never handled by units); Bash-capable units building on the macOS host next to the CEO's keychain.
 | Boundary | Risk | Mitigation |
 |---|---|---|
-| Stack engineers' Bash on the host (no container gate) | build scripts (Gradle plugins, CocoaPods, npm postinstall) run arbitrary code; signing identities in the login keychain | trial report, Riskler: Gradle and CocoaPods have no `--ignore-scripts` equivalent and run as the CEO's user beside the real keychain; its recommendation is a separate macOS user or machine while real signing keys sit on this host. That is a CEO setup decision recorded in the first store job's ADR, not enforced by this spec. Meanwhile: D1 guard (raises the bar, does not stop a determined agent); D2 hardening; REQ-7 (unsigned/throwaway builds); `npm ci --ignore-scripts`; no sudo; CEO installs |
-| Signing material | leak into repo, chat, logs; a unit reading or using release identities | instruction-only (REQ-7: units never read, export or use them; no `-allowProvisioningUpdates`, no Gradle `--scan`, no inline passwords, REQ-36); identity check before the first build (REQ-33); technical separation is the CEO's setup; custody evidence and a CEO-generated upload key in each ADR (REQ-24, REQ-35); `.gitignore` + pre-commit snippet (AC-16); content scan catches `.p8` and service-account JSON; binaries (`.jks`, `.p12`, `.mobileprovision`) are skipped by `grep -I`: file-name scan comes with D2; evidence logs redacted (REQ-37) |
-| Store/EAS actions | unapproved release, review reply, tester invite, spend | REQ-8; today REMOTE_BIN covers fastlane, altool, notarytool, iTMSTransporter, transporter, eas, appcenter by direct call only (not via `xcrun`, `bundle exec`, `npm exec`, `dlx`) and PUBLISH covers `xcrun altool/notarytool`; appsec's 2026-11-22 probe passed everything else silently; the rest arrives with D2 and is probed before 1b (AC-31) |
-| Write areas | a unit writing outside its area | stack engineers: gate.js in the container; `product-designer` (`docs/design/`) and `ux-writer` (`docs/copy/`) are instruction-only until D3 / spec 0006 (REQ-34; the agent body names the area, AC-2, AC-12); after D1 the guard asks for `.claude/agents|skills|rules` unless the signed spec's `Unlocks:` matches |
+| Stack engineers' Bash on the host (no container gate) | build scripts (Gradle plugins, CocoaPods, npm postinstall) run arbitrary code; signing identities in the login keychain | trial report, Riskler: Gradle and CocoaPods have no `--ignore-scripts` equivalent and run as the CEO's user beside the real keychain; its recommendation is a separate macOS user or machine while real signing keys sit on this host. That is a CEO setup decision recorded in the first store job's ADR, not enforced by this spec. Meanwhile: the host hooks of spec 0004 and spec 0010 (raise the bar, do not stop a determined agent); REQ-7 (unsigned/throwaway builds); `npm ci --ignore-scripts`; no sudo; CEO installs |
+| Signing material | leak into repo, chat, logs; a unit reading or using release identities | instruction-only (REQ-7: units never read, export or use them; no `-allowProvisioningUpdates`, no Gradle `--scan`, no inline passwords, REQ-36); identity check before the first build (REQ-33); technical separation is the CEO's setup; custody evidence and a CEO-generated upload key in each ADR (REQ-24, REQ-35); `.gitignore` + pre-commit snippet (AC-16); content scan catches `.p8` and service-account JSON; binaries (`.jks`, `.p12`, `.mobileprovision`) are skipped by `grep -I`: file-name scan comes with spec 0010 (D2); evidence logs redacted (REQ-37) |
+| Store/EAS actions | unapproved release, review reply, tester invite, spend | REQ-8; before spec 0010 REMOTE_BIN covers fastlane, altool, notarytool, iTMSTransporter, transporter, eas, appcenter by direct call only (not via `xcrun`, `bundle exec`, `npm exec`, `dlx`) and PUBLISH covers `xcrun altool/notarytool`; appsec's 2026-11-22 probe passed everything else silently; the rest arrives with spec 0010, merged before this spec is signed (in `auto` these commands are refused; the CEO runs them in his own terminal), and is probed on the installed hook before 1b ships (AC-31) |
+| Write areas | a unit writing outside its area | stack engineers: gate.js in the container; `product-designer` (`docs/design/`) and `ux-writer` (`docs/copy/`) are instruction-only until D3 / spec 0006 (REQ-34; the agent body names the area, AC-2, AC-12); in `auto` the hooks refuse an edit of `.claude/agents|skills|rules` unless the signed spec's `Unlocks:` covers the path; enforcement-class files stay closed to `rn-engineer` (not in `UNLOCK_CALLERS`, §6.2) |
 | `lint.js` edit | weaker lint | additive only, probed (AC-11); named as CEO-approved by this signature |
 | External content (store pages, reviews, tool output, trial notes) | prompt injection | data, not instruction; web tools only `product-manager`, `scout`; no new web+Bash unit; adversarial eval case (AC-16) |
 | Dev server | Metro on all interfaces (`--localhost` effect unmeasured in the trial) | REQ-9, AC-27 |
 | Telemetry | Expo CLI sends data by default | REQ-29, AC-26 |
 | First spec per stack | storage, token, network, privacy manifest | REQ-24; board C5 stays |
-| LLM calls (`ai-integration`) | new external call | lane 3, `appsec`, validated output |
+| LLM calls | new external call | lane 3, `appsec` (§6.8 lane line); the `ai-integration` playbook is a later spec |
 Residual risk the CEO accepts by signing: (1) the 1a units cannot run commands, but their write areas are kept by instruction only: they can write elsewhere under `docs/`, `specs/`, `plans/`; (2) in app repos without a `specs/` folder nothing checks their writes; (3) after 1b, signing custody rests on instructions plus the CEO's own separation of user/keychain, because hooks cannot stop build scripts from reading the login keychain.
 
 ## 9. Test and evidence plan
@@ -293,21 +279,19 @@ Residual risk the CEO accepts by signing: (1) the 1a units cannot run commands, 
 | AC-3 | `lint.js`; `wc -c`; `grep '^description: Playbook:'`; grep: playbook text lists the prohibitions and the header names its sources | static | quick |
 | AC-4 | `for f in evals/<new>.md; do node harness/bin/eval.js self $f; done`; `grep -c 'Adversarial (QA)'` = 1 per set | eval | quick |
 | AC-5 | plan-mode run on case-1 Task; `eval.js grade` | eval | full |
-| AC-6, AC-7 | `node harness/bin/footprint.js` baseline (T-1) vs after, every phase (T-9, T-20, T-23, T-26, T-28); worst-case sum | measurement | full |
+| AC-6, AC-7 | `node harness/bin/footprint.js` baseline (T-1) vs after, both phases (T-9, T-20); worst-case sum | measurement | full |
 | AC-8, AC-10 | `grep -A6 '^skills:' .claude/agents/*.md`; listing | static | quick |
 | AC-9 | `git diff` of `routing.md`; `wc -c` of added text | static | quick |
 | AC-11 | QA breaks a temporary copy (remove an eval; break a section) → FAIL for each; real tree green | probe | full |
 | AC-12 | `git diff --stat`; `wc -c` of existing playbooks before/after | static | quick |
 | AC-13 | `site-data.js --check`; grep counts; `visual-check.sh` + by eye | static + visual | full |
 | AC-14, AC-15 | frontmatter grep; smoke outputs; `marketing.md` diff | static + eval | full |
-| AC-16, AC-17, AC-18 | the named eval cases (`self`) + graded smoke output; grep for the 12 findings, SDK rules, `--localhost` marked "unverified" (`lsof` belongs to AC-27) | eval | full |
+| AC-16, AC-17, AC-18 | the named eval cases (`self`) + graded smoke output; grep for the 12 findings, SDK rules, `--localhost` marked "unverified" (the `lsof` measurement is the first RN job's, AC-27) | eval | full |
 | AC-19, AC-20, AC-21 | `wc -c`; case self-check; STACK.md diff | static + eval | full |
-| AC-22 | trial spec number and evidence paths cited in the header; CEO approval quote (Flutter) | document check | full |
-| AC-23 | `wc -c`; `eval.js self`; content patterns | static + eval | full |
-| AC-24 | `git log main` shows the D1/D2 merges | static | quick |
-| AC-25 | QA table, audit and appsec reports, quality-office note, `git diff --stat` (AC-27 excluded: post-1b, T-31) | review | full |
+| AC-24 | `git log main` shows the D1 (`b46e144`) and D2 merges; `ls specs/active/`; trace table of spec 0010's ACs against the §6.7 list in the plan | static + document check | quick |
+| AC-25 | QA table, audit and appsec reports, quality-office note, `git diff --stat` (AC-27: hand-over check only) | review | full |
 | AC-26 | `eval.js self` on the telemetry criterion (pass vs fail sample); `grep EXPO_NO_TELEMETRY` | eval | quick |
-| AC-27 | post-1b (T-31): first RN job's recorded `lsof -iTCP:8081` output; grep "unverified" until then | measurement | full |
+| AC-27 | grep "unverified" in `rn-engineering`; grep the REQ-9 open item in `docs/ACIK-ISLER.md` | static | quick |
 | AC-28 | grep each agent body for skill names that have no folder; pointer diffs per phase | static | quick |
 | AC-29 | `eval.js self` on the store-release cases; grep header "unverified" | eval | quick |
 | AC-30 | grep ADR line and per-stack sections in the MASVS reference | static | quick |
@@ -318,29 +302,26 @@ Residual risk the CEO accepts by signing: (1) the 1a units cannot run commands, 
 | AC-35 | `grep -rE 'EXPO_TOKEN|password' docs/kanit/`; grep workflow files for store secrets | static | quick |
 
 ## 10. Deployment and disaster recovery
-Target: the repository (no server). Each phase is one PR; the CEO merges (envelope). After each merge the host re-runs `harness/bin/install-global.sh` (CEO approves) because it links files one by one. Rollback: `git revert` of the phase PR (CEO approves the merge), re-run `install-global.sh`. No data, backup or monitoring beyond `check` in CI.
+Target: the repository (no server). Signing: in his own terminal the CEO runs `harness/bin/approve.sh <workspace> --preview`, reads the path, the sha12 and the `Unlocks:` list (no "ENFORCEMENT FILES THIS SIGNATURE OPENS" block is expected, because no entry names an enforcement file), then `--expect <sha12>`. Each phase is one PR; the CEO merges (envelope). After each merge the CEO re-runs `harness/bin/install-global.sh` in his own terminal (in `auto` the hooks refuse it inside a session) because it links files one by one. Rollback: `git revert` of the phase PR (CEO approves the merge), re-run `install-global.sh`. No data, backup or monitoring beyond `check` in CI.
 ```mermaid
-%% Question: in what order do the phases ship, and which step needs a CEO decision or a separate spec?
+%% Question: in what order do things ship, and which step needs a CEO decision or a separate spec? (hexagon = CEO gate; dotted = later, own specs)
 flowchart LR
-  D1[D1 0004 merged] --> P1a[Phase 1a]
-  D1 --> D2{D2 guard hardening merged}
-  D2 --> P1b[Phase 1b]
-  P1b --> S{Swift trial passed}
-  S --> P2[Phase 2]
-  P1b --> F{CEO approves Flutter install, trial passed}
-  F --> P3[Phase 3]
-  P1b -.-> P4[Phase 4 on first job]
+  D1[D1 spec 0004 merged] --> D2[D2 spec 0010 merged]
+  D2 --> S{{CEO signs 0008, own terminal}}
+  S --> P1a[Phase 1a PR]
+  P1a --> P1b[Phase 1b PR]
+  P1b -.-> L[Later: Swift, Flutter, on-demand playbooks]
 ```
-Description: 1a needs only D1; 1b also needs D2 (a separate spec); 2 and 3 wait for trials and, for Flutter, a CEO decision; 4 ships per job (dotted). Text equivalent: D1→1a; D1→D2→1b; 1b→(Swift gate)→2; 1b→(Flutter gate)→3; 1b⇢4.
+Description: D1 is met; D2 (spec 0010, a separate spec) merges before the CEO signs 0008; then 1a and 1b ship as two PRs, each merged by the CEO; Swift, Flutter and the on-demand playbooks follow in their own specs (dotted). Text equivalent: D1→D2→CEO signature→1a→1b; 1b⇢Later (own specs, own signatures).
 
 ## 11. Legal and compliance
 Checklist: tool licences recorded before "benimse" (Maestro Apache-2.0, RN/Expo MIT, Flutter BSD; Jest licence and the transitive tree unverified); Apple/Google review guidelines, privacy manifest/labels and data-safety forms re-read by `scout` before each release; accounts, fees and bundle ID ownership are CEO decisions at the first store job (ADR). No legal opinion given; `quality-office` flags lawyer items.
 
 ## 12. Task list (atomic)
-"Main session" = writes `.claude/**`, `evals/**`, `harness/bin/*`, `site/**` on the host (R-8). Every task is verified by a unit that did not make it.
+"Main session" = writes `.claude/**`, `evals/**`, `harness/bin/*`, `site/**` on the host (R-8); in `auto` each such edit passes only while this spec is signed and its `Unlocks:` covers the path. Removed task IDs are not reused (§14 rev 5). Every task is verified by a unit that did not make it.
 | ID | Task | AC | Owning unit | Dependency |
 |---|---|---|---|---|
-| T-0 | Confirm D1; record in plan | AC-24 | delivery-manager | signed |
+| T-0 | Confirm D1 and D2 on main and this spec alone in `specs/active/`; trace spec 0010's ACs against the §6.7 list; record in plan | AC-24 | delivery-manager | signed |
 | T-1 | Baseline: `footprint.js`, `check`, `wc -c routing.md` | AC-1, 6, 7, 9 | qa-engineer | T-0 |
 | T-2 | `lint.js` additive "Playbook:" eval check | AC-11 | main session | T-1 |
 | T-3 | `product-design`, `ux-writing` SKILL.md + eval sets | AC-3, 4, 15 | main session | T-2 |
@@ -350,37 +331,27 @@ Checklist: tool licences recorded before "benimse" (Maestro Apache-2.0, RN/Expo 
 | T-7 | Site: UNITS (`product-designer` u1 row 6, `ux-writer` u1 row 7), WRITE, EDGES, `--write`, prose counts lines 230/378/513; on-demand skills without an owner unit appear in the generated skills list with no owner | AC-13 | main session | T-4 |
 | T-8 | Smoke jobs (1a); QA drafts the "Adversarial (QA)" cases in its report, main session commits them verbatim, QA verifies | AC-4, 5 | qa-engineer (runs, drafts, verifies), main session (starts, commits) | T-4 |
 | T-9 | 1a verification | AC-1, 6, 7, 12, 25, 33 | qa-engineer, internal-auditor | T-1..T-8 |
-| T-10 | Confirm D2 merged | AC-24 | delivery-manager | D2 |
-| T-11 | `mobile-common`, `store-release` SKILL.md + evals | AC-3, 4, 16, 18, 29, 30, 34 | main session | T-2, T-10 |
-| T-12 | `rn-engineering` from "RAPOR.md, Bulgular 1-12, commit e023b19" + `docs/kanit/0008-rn-deneme-ozeti.md` | AC-3, 4, 17, 26 | main session | T-10 |
+| T-11 | `mobile-common`, `store-release` SKILL.md + evals | AC-3, 4, 16, 18, 29, 30, 34 | main session | T-2 |
+| T-12 | `rn-engineering` from "RAPOR.md, Bulgular 1-12, commit e023b19" + `docs/kanit/0008-rn-deneme-ozeti.md` | AC-3, 4, 17, 26 | main session | T-0 |
 | T-13 | `rn-engineer.md` | AC-2, 8 | main session | T-12 |
-| T-14 | qa ref, MASVS ref, pointers, +1 case each (appsec drafts its case in its report; main session commits) | AC-19 | main session | T-2, T-10 |
+| T-14 | qa ref, MASVS ref, pointers, +1 case each (appsec drafts its case in its report; main session commits) | AC-19 | main session | T-2 |
 | T-15 | `devops-sre` pointer line (states the REQ-7/8 rule) | AC-20 | main session | T-11 |
 | T-16 | Routing 1b text | AC-9 | main session | T-13 |
-| T-17 | STACK.md rows (RN, test stack dene; Flutter, Swift değerlendir); reconcile with 0004-branch rows | AC-21 | architecture-board | T-13 |
+| T-17 | STACK.md rows (RN, test stack dene; Flutter, Swift değerlendir); reconcile with the rows now on main (lines 29-30) | AC-21 | architecture-board | T-13 |
 | T-18 | Site data 1b | AC-13 | main session | T-13 |
 | T-19 | Smoke jobs (1b); adversarial cases drafted by QA, committed verbatim by the main session, verified by QA | AC-4, 5 | qa-engineer, main session | T-13 |
-| T-20 | 1b verification: qa → appsec (first RN spec too) → audit → quality-office | AC-1, 6, 7, 25, 33-35 | qa-engineer, appsec, internal-auditor, quality-office | T-11..T-19, T-32, T-33 |
-| T-21 | Swift trial quick spec (separate) | AC-22 | business-analyst | 1b |
-| T-22 | Swift files, routing row, STACK, site, smoke | AC-2-8, 13, 22 | main session | T-21 |
-| T-23 | Phase 2 verification (as T-20, incl. REQ-33 identity check) | AC-1, 6, 7, 25, 32, 33 | qa-engineer, appsec, internal-auditor, quality-office | T-22 |
-| T-24 | Flutter: CEO approval + trial quick spec | AC-22 | business-analyst | 1b, CEO |
-| T-25 | Flutter files, routing row, STACK, site, smoke | AC-2-8, 13, 22 | main session | T-24 |
-| T-26 | Phase 3 verification (as T-20, incl. REQ-33 identity check) | AC-1, 6, 7, 25, 32, 33 | qa-engineer, appsec, internal-auditor, quality-office | T-25 |
-| T-27 | Phase 4 item (playbook or addendum, eval, pointer, site) when a job touches it | AC-13, 23 | main session | that job's spec |
-| T-28 | Phase 4 verification | AC-25, 33 | qa-engineer, internal-auditor, appsec | T-27 |
-| T-29 | Add the `mobile-common` pointer line to `product-designer.md` (1b) | AC-28 | main session | T-11 |
-| T-30 | Add the `graphic-design` pointer line to `product-designer.md` (Phase 4, with that playbook) | AC-28 | main session | T-27 |
-| T-31 | First RN job: `rn-engineer` measures `--localhost` (`lsof` output); main session edits `rn-engineering` from "unverified"; QA verifies | AC-27 | rn-engineer (measures), main session (edits), qa-engineer (verifies) | T-13, first RN spec |
-| T-32 | Read-only probe of every D2-list command against the installed hook (dummy input); output attached; silent passes routed to D2 | AC-31 | appsec | T-10 |
-| T-33 | Record `security find-identity -v -p codesigning` output (agent's user context) or the separate-user/machine statement in the plan before the first host build of each stack | AC-32 | qa-engineer (runs), delivery-manager (records) | T-10 |
+| T-20 | 1b verification: qa → appsec (first RN spec too) → audit → quality-office | AC-1, 6, 7, 25, 27, 32, 33-35 | qa-engineer, appsec, internal-auditor, quality-office | T-11..T-19, T-29, T-31..T-33 |
+| T-29 | Add the `mobile-common` pointer line to `product-designer.md` (1b) | AC-28 | main session | T-4, T-11 |
+| T-31 | Hand-over at 1b close: file the `--localhost` measurement (REQ-9) as an open item in `docs/ACIK-ISLER.md` for the first RN job; the playbook stays "unverified" | AC-27 | main session (files), qa-engineer (verifies in T-20) | T-12 |
+| T-32 | Read-only probe of every D2-list command against the installed hook (dummy input, `permission_mode` `auto`); output attached; a silent pass stops 1b and is reported to the CEO | AC-31 | appsec | T-0 |
+| T-33 | Record `security find-identity -v -p codesigning` output (agent's user context) or the separate-user/machine statement in the plan before the first host build of Phase 1b | AC-32 | qa-engineer (runs), delivery-manager (records) | T-0 |
 
 ## 13. Out of scope
-- Swift and Flutter trials, host installs, licence acceptance, store accounts, fees, submission.
+- Swift and Flutter units, playbooks and trials; `data-design`, `ai-integration`, `graphic-design` and the remaining addenda (all Later, §6.7); host installs, licence acceptance, store accounts, fees, submission.
 - The separate CEO-approved store trial (accounts, fees, real device, device signing, provisioning, TestFlight/Play upload, store review) that would turn `store-release` from "unverified" to "evidenced".
 - Moving RN + Expo to "benimse" (board decision via ADR; the row stays "dene" here).
 - `payments-billing`; proposal/estimation unit; `mobile-engineer`, `data-engineer`, `ai-engineer`; Capacitor/PWA, MAUI, Kotlin; EAS, OTA, paid plans.
-- The D2 hardening (`guard.js`, `check`, hooks, settings): separate spec; no enforcement file is changed here. `lint.js` is the only harness file edited, additive, CEO-approved by this signature.
+- The D2 hardening (`guard.js`, `check`, hooks, settings): spec 0010; no enforcement file is changed here and `Unlocks:` names none. `harness/bin/lint.js` (additive, CEO-approved by this signature) and `harness/bin/site-data.js` are the only harness files edited; both are product-config.
 - Robots for new units in `showcase/agency-tower`; `README.md` line 90 count.
 - Stale literals in `site-data.js` ("16 set", "218 kontrol", "87 testle"); follow-up item to be filed in `docs/ACIK-ISLER.md`.
 
@@ -389,21 +360,25 @@ Open questions: none.
 
 Rulings (Type 2 and main-session rulings; format: decision — why — cost if wrong):
 - R-1 Ruling: lane 3 — host builds by Bash-capable units next to the CEO's keychain and store credentials are a new trust boundary (appsec) — a heavier chain for lighter phases (1a uses a short chain).
-- R-2 Ruling: Phase 1 split into 1a (no Bash, no host build) and 1b — 1a has one dependency, 1b two — one more PR.
-- R-3 Ruling: D2 is a separate spec, 0008 lists its minimum content as input — enforcement design needs a software-architect step and CEO-approved guard changes — 1b waits for it.
+- R-2 Ruling: Phase 1 split into 1a (no Bash, no host build) and 1b — 1a has one dependency, 1b two — one more PR. Rev 5: both phases now share the signature's preconditions (R-18); the split stays for the lighter 1a chain and the smaller PRs.
+- R-3 Ruling: D2 is a separate spec, 0008 lists its minimum content as input — enforcement design needs a software-architect step and CEO-approved guard changes — 1b waits for it. Rev 5: D2 is spec 0010 and the signature waits for it (R-18).
 - R-4 Ruling: `lint.js` gets an additive "Playbook:" eval check, named as CEO-approved by this signature; the `Unlocks:` header lists the product-config paths — without it on-demand playbooks could ship without a set — revert a few lines.
-- R-5 Ruling: Phase 4 is lazy (first real job); the two addenda the first RN job needs are in 1b — speculative content goes stale and each skill costs a description line in every chat — a later job waits one small phase.
+- R-5 Ruling: Phase 4 is lazy (first real job); the two addenda the first RN job needs are in 1b — speculative content goes stale and each skill costs a description line in every chat — a later job waits one small phase. Rev 5: Phase 4 left this spec (R-17); the two 1b addenda stay.
 - R-6 Ruling: `rn-engineering` is written from the final trial report ("RAPOR.md, Bulgular 1-12, commit e023b19" + the kanit summary), so 1b no longer waits for it — playbook quality from evidence — a finding the report missed is added later.
 - R-7 Ruling: `ux-writer` stays a unit (not a `marketing-brand` section) — the CEO asked for an in-app copywriter "if missing", the board said keep, it costs one description line; talent-capacity objection recorded — a unit file to merge back.
-- R-8 Ruling: `.claude/**`, `evals/**`, `harness/bin/*`, `site/**` are written by the main session on the host — no unit's write area covers them; after D1 the guard treats `.claude/agents|skills|rules` as product-config and asks unless this spec's `Unlocks:` matches (exact paths in the header) — owner label changes.
+- R-8 Ruling: `.claude/**`, `evals/**`, `harness/bin/*`, `site/**` are written by the main session on the host — no unit's write area covers them; since D1 the hooks treat `.claude/agents|skills|rules` as product-config: in `auto` an edit is refused unless this signed spec's `Unlocks:` covers the path, for any caller (paths in the header) — owner label changes.
 - R-9 Ruling: on-demand playbooks are real skills with the "Playbook:" prefix (lint demands 9 sections per skill folder); addenda are `refs/` files outside lint and footprint — one description line each — move content into a skill folder.
 - R-10 Ruling: `product-designer` and `ux-writer` write only docs; engineers wire strings and assets — keeps code behind the signature gate; write areas are instruction-only until D3 / spec 0006 (known gap, REQ-34) — widen one area.
 - R-11 Ruling: smoke jobs run in plan mode on the case-1 Task — no code, installs or signature needed; real-code proof comes with the first job or trial — add a throwaway-workspace run.
 - R-12 Ruling: caps come from the measured baseline, checked by `wc -c` (no lint max check) — keeps the lint edit minimal — tighten after 1a.
 - R-13 Ruling: signing custody is an instruction plus the CEO's technical separation, not an absolute guarantee (board round 2; trial report Riskler) — hooks cannot stop a determined agent — D2 or a separate user/machine adds enforcement.
-- R-14 Ruling: the "unit not yet opened" stop line lives in the 1a routing text and covers RN until 1b — closes the gap window with no unit to route to — a few bytes of routing text, removed after Phase 3.
+- R-14 Ruling: the "unit not yet opened" stop line lives in the 1a routing text and covers RN until 1b — closes the gap window with no unit to route to — a few bytes of routing text. Rev 5: the line stays for Swift and Flutter after this spec; each later stack spec trims it.
 - R-15 Ruling: `store-release` ships as "unverified" (trial report Öneri 3) — no store, device or signing step was exercised — a later trial upgrades it.
 - R-16 Ruling: adversarial eval cases are drafted by `qa-engineer` (or `appsec`) in the report, committed verbatim by the main session, then verified by QA; the case title carries "Adversarial (QA)" — no unit writes `evals/**` (R-8) and QA's write area is reproduction tests — one extra hand-off per phase.
+- R-17 Ruling (main session, rev 5): this spec delivers Phases 1a and 1b only; the Swift and Flutter units (former Phases 2, 3) and the lazy playbooks and addenda (former Phase 4) each become a later spec — one active spec blocks all other work, and those phases wait on trials or on a first job — one more signature per later stack or playbook (shown to the CEO under Assumptions).
+- R-18 Ruling (main session, rev 5): D1 and D2 (spec 0010) are preconditions of the signature, confirmed once in T-0 — only one spec can be active at a time, so 0010 ships before 0008 is signed — ordering only; 1a also waits for 0010.
+- R-19 Ruling (rev 5): `Unlocks:` names no enforcement-class file and `rn-engineer` is not added to `UNLOCK_CALLERS` — no task edits `CLAUDE.md`, `.claude/settings.json` or a `harness/*.js` file — a later need is a harness spec of its own.
+- R-20 Ruling (rev 5): the `--localhost` measurement is handed over at 1b close as an open item (AC-27, T-31) instead of keeping this spec active until the first RN job — the measurement needs a real RN project and an open spec blocks other work — the later playbook edit needs signed coverage of its own (one quick-spec signature).
 
 Gate findings and closure (the round-1 brief gave ID ranges, not an ID-to-topic mapping, so rows are keyed by topic):
 | Finding | Closed in |
@@ -441,15 +416,52 @@ Gate findings and closure (the round-1 brief gave ID ranges, not an ID-to-topic 
 | Round 2 appsec F-6, F-7, F-8: not-uploadable artefacts and upload key; no `--scan`/inline passwords; redacted logs, no CI store secrets; T-14 after D2 | REQ-35, REQ-36, REQ-37, AC-34, AC-35, T-14, §6.7 D2 (`debug.keystore` allowlist) |
 | Round 2 appsec: residual-risk paragraph | §8 |
 
+Rev 5 delta (2026-11-26, after spec 0004 shipped; rev 4 = sha12 `8164de360511`; the diff gate reads this table). Counts: REQ 37 → 37 (7 reworded), AC 35 → 33, tasks 34 → 24, `Unlocks:` entries 46 → 25. IDs are not renumbered; removed IDs are not reused. Closure rows of the table above that cite AC-22 or T-30 now close in the later specs (§6.7 Later).
+| Where | Change | Why |
+|---|---|---|
+| Title, header | Title names the cut scope; `Status: Draft` until the diff gate passes; "Previous spec" and "Self-critique" lines reworded | facts 2, 3; new bytes need a new gate round and a new signature |
+| Header `Unlocks:` | 21 entries removed: agents `swift-engineer`, `flutter-engineer`; skill globs `swift-engineering`, `flutter-engineering`, `data-design`, `ai-integration`, `graphic-design`, `product-management`, `quality-compliance`, `dotnet-engineering`, `react-engineering`; evals `swift-engineering`, `flutter-engineering`, `data-design`, `ai-integration`, `graphic-design`, `devops-sre`, `product-management`, `marketing-brand`, `quality-compliance`, `dotnet-engineering`. Nothing added | scope cut (R-17) |
+| `Unlocks:` check | Read against `harness/policy.js` (`classifyOne`, `parseHeader`, `globError`, `unlockKinds`) and the `unlocks-header` / `unlocks-row2` rules of `harness/bin/lint.js`; nothing was run. 23 entries are product-config (4 literal `.claude/agents/*.md`, 9 `.claude/skills/<name>/**` globs, `.claude/rules/routing.md`, 7 literal `evals/*.md`, `harness/bin/lint.js`, `harness/bin/site-data.js`); `site/index.html` is code (opened by the signature itself) and `docs/architecture/STACK.md` is free (always open): both entries are harmless. No entry is enforcement-class or locked; no glob can match an enforcement path (under `.claude/` those lie outside `agents/`, `skills/`, `rules/`). Grammar: one `- Unlocks: ` line, comma-separated, no `{}[]!~$\`, no absolute path, no `.`/`..` or empty segment, `**` only as a whole segment. Every path of §7 that needs an entry has one | fact 1 |
+| §1 | Clarification paragraph rewritten for the cut scope; the CEO's words are unchanged | R-17 |
+| §2, §6.1, §6.5 | "arrive with D1" → present since the D1 merge; §6.1 names `rn-engineer` as the first unit of option A; the diagram loses the Swift/Flutter, `data-design`, `ai-integration`, `graphic-design` nodes | D1 met; R-17 |
+| REQ-1, REQ-20 | RN waits only for 1b; Swift/Flutter jobs stop until their own specs; D1 and D2 are preconditions of the signature | facts 2, 3; R-18 |
+| REQ-5, REQ-31, REQ-32, REQ-33 | References to former Phase 2-4 items removed (playbook list, `graphic-design` pointer, Swift/Flutter pinning, "each later stack") | R-17 |
+| REQ-36 | Throwaway keystores (not only passwords) are generated in a temp directory outside the repo | matches the D2 secret-file rule of §6.7 (`debug.keystore` is the only in-repo allowlist entry) |
+| AC-6, AC-7, AC-9, AC-13 | "+1,400 total", "all phases", P2-P4 counts removed; baselines are re-measured in T-1 (the old figures predate the 0004 merge); worst-case job is one stack playbook + `mobile-common` | R-17; the merge changed `routing.md` |
+| AC-21, T-17 | STACK rows are reconciled with main (lines 29-30), no longer with the 0004 branch | D1 met |
+| AC-22, AC-23 | Removed (Phases 2-3 and Phase 4) | R-17 |
+| AC-24, T-0, T-10 | One check before any other task: D1 and D2 on main, this spec alone in `specs/active/`, 0010's ACs traced against the §6.7 list; T-10 merged into T-0 | fact 2; R-18 |
+| AC-25, AC-27, T-31, §9 | The `--localhost` measurement becomes a hand-over checked at 1b close | R-20: the spec now closes after 1b |
+| AC-28, AC-32 | `graphic-design` pointer and "each stack" removed | R-17 |
+| AC-31, T-32 | Probe runs with `permission_mode` `auto` and expects a refusal; a silent pass stops 1b and goes to the CEO (0010 is already merged) | facts 1, 2 |
+| §6.2 | One-unit table (`rn-engineer`); new "Enforcement files" row: none edited, `rn-engineer` not in `UNLOCK_CALLERS`; tools row names the hooks of 0004 and 0010; `product-designer` row loses the `graphic-design` pointer | fact 4; R-17; R-19 |
+| §6.3, §6.4 | Rows and columns of Swift, Flutter, `data-design`, `ai-integration`, `graphic-design` removed | R-17 |
+| §6.5 | Trial status sentence (7 of 7 passed, QA "approve with corrections", corrections applied, `mas` and the watchOS runtime removed) | fact 6 |
+| §6.6 | Baseline note; "+1,400 total" removed; routing hand count 980 → 880 B | R-17 |
+| §6.7 | Triggers are the signature; rows 2, 3, 4 removed; one "Later" paragraph; D1 marked met with the live gate facts; D2 named as spec 0010; D3 sentence and the `guard.js` / `check` line numbers updated to the merged tree | facts 1, 2, 3 |
+| §6.8 | Stop line loses "; needs its trial / D2" and stays for Swift and Flutter after this spec; rows of Phases 2, 3 removed; byte accounting | facts 2, 3 |
+| §6.9 | Swift/Flutter trial row marked as input to the later specs | R-17 |
+| §7 | Rows of Phases 2-4 removed; phases of `routing.md`, `STACK.md`, site narrowed; counts; "no enforcement-class file" sentence | R-17; fact 1 |
+| §8 | D1/D2 wording follows the merged gate and spec 0010 (refusal in `auto`); write-area row names the `UNLOCK_CALLERS` fact; LLM row no longer names a playbook of this spec | facts 1, 2, 4 |
+| §10 | Signing steps (preview, `--expect`); `install-global.sh` is run by the CEO in his own terminal; diagram redrawn (D1 → D2 → signature → 1a → 1b, Later dotted) | facts 1, 2, 3 |
+| §9 | Rows AC-22, AC-23 removed; rows AC-6/7, AC-16..18, AC-24, AC-25, AC-27 follow their reworded criteria | R-17; R-18; R-20 |
+| §12 | Intro line states the `auto` rule (fact 5); T-10, T-21..T-28, T-30 removed; dependencies on T-10 moved to T-0 or T-2; T-20 lists AC-27, AC-32 and depends on T-29, T-31; T-29 also depends on T-4 | R-17; R-18; R-20 |
+| §13 | Later items listed; `site-data.js` named next to `lint.js` as the second harness file edited (rev 4 said "only `lint.js`") | R-17; correction |
+| §14, Assumptions | R-17..R-20 added; "Rev 5" notes appended to R-2, R-3, R-5, R-14 (R-14 loses "removed after Phase 3"); R-8 reworded in place ("asks" → refused in `auto`, any caller); this table; four assumptions added, two reworded | all |
+
 ---
 ## Signature record (CEO only)
 Approved by / on: <!-- recorded under approvals/ by harness/approval.js; this line is informational, validity lives in the signature file -->
 
 ## Assumptions (for the end-of-job report)
-- Site labels in English like the existing ones, role sentences in Turkish; `product-designer` and `ux-writer` in column `u1` (rows 6, 7), stack engineers in `u2` (rows 7-9); the node-map layout is checked by eye.
+- Site labels in English like the existing ones, role sentences in Turkish; `product-designer` and `ux-writer` in column `u1` (rows 6, 7), `rn-engineer` in `u2` (row 7); the node-map layout is checked by eye.
 - Cap values are chosen from the measured range and can be tightened after 1a.
 - Directory names `docs/design/`, `docs/copy/`, `refs/` are my choice.
-- The board opinion says Xcode 26.4+; the host has Xcode 27.2 (`CB-1-A1-A4-xcode.txt`); the Swift trial uses the installed version and `store-release` has `scout` re-read Apple's upload requirement.
+- The board opinion says Xcode 26.4+; the host has Xcode 27.2 (`CB-1-A1-A4-xcode.txt`); `store-release` has `scout` re-read Apple's upload requirement.
+- Scope and order (rev 5, for the CEO at signing): the CEO asked for three stacks ("react native, flutter ve swift yeterli") and accepted the wider gap list ("üçü de geçerli, hepsini ekle"), from which rev 4 took the playbooks `data-design`, `ai-integration` and `graphic-design`. This spec delivers React Native, the designer and the UX writer only. Swift and Flutter each get their own spec after their trial; `data-design`, `ai-integration` and `graphic-design` get theirs when a first job needs them. The order and the packaging are the main session's choice, made because one active spec blocks all other work; nothing the CEO asked for is dropped, each later part costs one more signature.
+- `STACK.md` still gains the Flutter and Swift rows at "değerlendir" in 1b (REQ-18): they record the two stacks the CEO named, not their units.
+- The `--localhost` measurement is handed over to the first RN job as an open item (R-20); the playbook edit that follows it will need that job's own signed coverage.
+- Token and byte baselines are re-measured in T-1 on the tree after the 0004 and 0010 merges; the rev 4 figures in §6.6 predate both.
 
 ## Scorecard (end of job)
 | Measure | Value |
