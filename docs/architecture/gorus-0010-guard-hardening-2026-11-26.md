@@ -1,4 +1,4 @@
-# Mimari görüş: spec 0010 guard hardening (D2, lint fikstürü, kanca geçici kopyası) | Tarih: 2026-11-26 | Karar: CONDITIONAL APPROVE
+# Mimari görüş: spec 0010 guard hardening (D2, lint fikstürü, kanca geçici kopyası) | Tarih: 2026-11-26 | Karar: CONDITIONAL APPROVE (tur 1) → APPROVE (tur 2; sondaki "Kapanış" bölümü)
 
 Kapsam: `specs/draft/0010-guard-hardening.md` (sha12 `67532725bd3d`, görev tanımından alındı; kurul hesaplayamaz) ve tasarım `docs/architecture/tasarim/0010-guard-hardening.md`. Okunan kaynak: `harness/guard.js`, `harness/policy.js`, `.claude/settings.json`, `harness/gate.js` (yükleme satırları), `harness/test/guard.sh:84-91`, `harness/test/policy-driver.js:60-89, 200-202, 444-451`, `harness/test/host-gate.sh:318-326`, `harness/README.md:156-164`, `.gitignore`, `docs/ACIK-ISLER.md:51`, ADR 0001. Bash ve web aracı yok: **hiçbir şey çalıştırılmadı**, her kod iddiası kaynaktan okundu. Spec değiştirilmedi. Kapsam kesintisi (spec §13) tartışılmadı, kesilen kalemler geri istenmiyor. Koşullar `GK-`, öneriler `GÖ-`.
 
@@ -57,3 +57,33 @@ Yok.
 - ADR 0001 durumu hâlâ "Proposed (0004 yeniden imzasını bekliyor)"; 0004 kapandı (commit `10aa039`). Kurul bu turda yalnız gönderme satırını ekledi; durum satırı ayrı düzeltme ister.
 - Güven sınırı, K kümesi, REQ-3'ün yanlış retleri (`git rm --cached release.jks`, `grep "\.jks"`) ve iki izinli anahtar deposu konumu `appsec` ile `spec-critic`'in alanıdır; bu görüş onların yerine geçmez.
 - CEO'ya gösterilecek yeni teknoloji ya da bağımlılık yok.
+
+## Kapanış: 2. tur yeniden denetim (2026-11-26) | Karar: APPROVE
+
+Denetlenen metin: `specs/draft/0010-guard-hardening.md`, 2. tur, sha12 `84d549b1416c` (görev tanımından alındı; kurul hesaplayamaz), commit `c68867f`. Satır numaraları o metnindir. Yukarıdaki bölümler 1. tur metnini (`67532725bd3d`) anlatır ve değiştirilmedi. Hiçbir şey çalıştırılmadı; kaynak göndermeleri yeniden okundu (`harness/policy.js:184-209, 308-321, 330-337, 428-454, 479-500`, `harness/guard.js:51, 186-203, 297, 304-349`, `harness/test/host-gate.sh:318-326`, `harness/test/guard.sh:35, 88-89`, `.gitignore:16`): spec R-6'nın satır göndermeleri kaynakla uyuşuyor.
+
+| Koşul | Durum | Kanıt (spec satırı) |
+|---|---|---|
+| GK-1 onarım biçimi ilk canlı `policy.js` yazmasından önce | **Karşılandı** | T-2 ilk uygulama görevi, tek başına, canlı `guard.js` yalnız onarım biçimiyle (173); `policy.js` T-3'te (174); §12 kural 3 (168); §10 adım 3 `node --check` ve W takımları (157); adım 5 "live since T-2" (159); bootstrap istisnası kalktı (203) |
+| GK-2 gevşetmesiz seçenek tartılsın | **Karşılandı, (a) alındı** | §6 tablo satırı (72); R-6 (80); R-2 düştü (76); §10 usul (154-162); başlık: `shell.js` ve `hook-scratch.sh` yok, iki zorlama dosyası iç kökte de açılır (10); §13 "any scratch exemption … dropped" (196). `hook-scratch.sh` yerine §10 adım 7'nin üç git komutu geldi (161): kabul, bir dosya eksik |
+| GK-3 sınıf değil karar; "aynı kök"; tam harf | **Konusu kalmadı** | İstisna yok (216); §7'de geçici kopya maddesi yok (82-114); yol politikası değişmiyor (80) |
+| GK-4 R-1 olgu düzeltmesi, here-doc commit vakası | **Karşılandı** | R-1 altıncı adım: D2 opaklığı here-doc gövdeleri atılmış, çift tırnak içi korunmuş metinde; `guard.js:297` dokunulmaz (75); §7 D2-opaque listesi, `echo "$(fastlane deliver)"` vakasıyla (90); AC-1: here-doc gövdesinde `fastlane` geçen commit görüş almaz (52) |
+| GK-5 düzenlenmemiş HEAD kopyası | **Karşılandı** | P = `.claude/worktrees/0010-head`, hiç düzenlenmez (154); kaynağı `HEAD` (155); bozuk `guard.js` → `Read` P, `Write` geri (159); her commit'ten sonra yeniden kurulur (160) |
+| GK-6 §4 şeması ve metin | **Karşılandı** | Şemada K yalnız araç-sözcüğü kurallarında; REQ-3 ve REQ-7 doğrudan kip kuralına (36-47); metin eşdeğeri madde 3-4 (48); REQ-2 "any position, any wrapper, basename, no case; K applies" (22); K listesi (89). K'nın REQ-2'yi de kapsaması koşulun lafzından ("yalnız REQ-1") geniştir ama gerekçelidir ve koşulun kendi örneğiyle (`which codesign`) uyumludur (A-5, 236): kabul |
+
+Öneriler: GÖ-1 işlendi (R-5: saf işlev, politikasız REQ-3 değerlendirilmez; 79). GÖ-2: G-26 cümleleri istisnayla düştü; ters bölü R-1'e girdi (75). GÖ-3 işlendi (A-1 "shown at signing", 232). GÖ-4 işlendi (§13, 185).
+
+Yeni karar (tur 2): kanca kaynağı geri alma kuralı, REQ-7 (27), §7 "Hook-source word" (93), AC-5 (56), A-4 (235). Değerlendirme: APPROVE. Gerekçe var (S-05; §8 satır 122), alternatifler tartılmış (yol sözcüğü olmayan biçimler A-4'te bilinçli dışarıda), kip kuralı altında CEO kararı, onarım usulüyle çelişmiyor (§10'daki git komutlarının hiçbiri kurala takılmaz: `worktree`, `add`, `diff`, onarım biçimi). ADR 0002 Karar 3 (f) olarak kayda girdi.
+
+İmzayı engellemeyen notlar (plana ve README metnine; spec değişikliği istemez):
+- **GÖ-5** REQ-7 komut metnini okur: `git checkout -- .` ve `git restore .` bu harness'i kullanan her projede, `harness/` dizini olmasa da, `auto` kipte reddedilir. README "CEO'ya ait komutlar" başlığı bunu ve çıkışı (yolları adıyla yazmak) söylesin; külliyata bu biçimler konmasın.
+- **GÖ-6** D2-opak bir komutta "önce here-doc gövdesi atılır, sonra tırnak içleri sözcük sözcük okunur" sırasını §7 tek cümleyle söylemiyor; sırayı AC-1 vakası sabitliyor (52, 90). Bulgu haritasının söz verdiği külliyat satırı (206) T-4 metninde (175) adıyla geçmiyor: plan taşısın.
+- **GÖ-7** §6 bileşen şeması tasarıma bağlantıdır ve tasarımda artık olmayan parçalar durur (`shell.js`, `gate.js` değişikliği, geçici kopya betiği); spec bunu metinle söylüyor (66). README'ye girecek şema spec'in bileşen cümlesinden çizilsin.
+
+Belge durumu:
+- ADR 0002 2. tur metniyle eşitlendi: geçici kopya istisnası reddedilen seçeneklere taşındı; Karar 1 iç kök usulü (gevşetme yok); geri alma kuralı Karar 3 (f).
+- `docs/architecture/adr/0001-path-class-taxonomy.md:8` gönderme satırı hâlâ "geçici kopya istisnası" diyor ve geri alma kuralını anmıyor; bu turda kurulun yazma izni iki dosyayla sınırlıydı, düzeltilmedi. Aynı dosyanın durum satırı (3) da eskidir (yukarıda bildirildi).
+
+Doğrulanmayan: iç kök yolunun kanca adlı bir dosya için canlıda penceresiz geçtiği (kaynaktan okundu; mevcut test `CLAUDE.md` üzerinde). Spec bunu §10 adım 1'deki ilk yazmayla kanıtlıyor ve red hâlinde duruyor (80, 155); `auto` kipte uygulamanın kendi sınıflandırıcısı ikinci karar vericidir (A-6, 237). `harness/keys/**` gibi kanca kaynağı olmayan zorlama yollarının git ile geri alınması REQ-7'nin dışındadır (yalnız `harness`, `.` ve `harness/<x>.js` sözcükleri): `appsec`'in alanı, spec 0011 (B34 g'nin kalanı).
+
+**Son karar: APPROVE.** Altı koşulun beşi karşılandı, biri (GK-3) konusuz kaldı; açık koşul yok. Yeni teknoloji, bağımlılık ya da zorlama dosyası yok: CEO'ya ayrıca gösterilecek teknoloji kararı yok. STACK.md değişmez. Geri dönüşü pahalı karar: ADR 0002 (Proposed), imzayla kabul sayılır. İmzadan sonra spec baytı değişirse bu karar o metni kapsamaz.
