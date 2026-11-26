@@ -1,0 +1,20 @@
+{
+  "session_id": "SESSION",
+  "transcript_path": "/home-dir/.claude/projects/-work-agency/SESSION.jsonl",
+  "cwd": "/work/agency",
+  "scratchpad_dir": "/tmp/claude-scratch/-work-agency/SESSION/scratchpad",
+  "prompt_id": "PROMPTID",
+  "permission_mode": "auto",
+  "agent_id": "AGENTID",
+  "agent_type": "t1-probe",
+  "effort": {
+    "level": "medium"
+  },
+  "hook_event_name": "PreToolUse",
+  "tool_name": "Write",
+  "tool_input": {
+    "file_path": "/tmp/claude-scratch/probe/out-probe.txt",
+    "content": "merhaba"
+  },
+  "tool_use_id": "TOOLUSEID"
+}

@@ -1,0 +1,33 @@
+{
+  "session_id": "SESSION",
+  "transcript_path": "/home-dir/.claude/projects/-work-agency/SESSION.jsonl",
+  "cwd": "/work/agency",
+  "scratchpad_dir": "/tmp/claude-scratch/-work-agency/SESSION/scratchpad",
+  "prompt_id": "PROMPTID",
+  "permission_mode": "auto",
+  "agent_id": "AGENTID",
+  "agent_type": "t1-probe",
+  "effort": {
+    "level": "medium"
+  },
+  "hook_event_name": "SubagentStop",
+  "stop_hook_active": false,
+  "agent_transcript_path": "/home-dir/.claude/projects/-work-agency/SESSION/subagents/agent-AGENTID.jsonl",
+  "background_tasks": [
+    {
+      "id": "bp00okeqq",
+      "type": "shell",
+      "status": "running",
+      "description": "Wait for the app to pick up the new temporary agent definitions",
+      "command": "sleep 150; echo waited"
+    },
+    {
+      "id": "a7731ac9fe7b78e1e",
+      "type": "subagent",
+      "status": "running",
+      "description": "T-1 payload and ask probe",
+      "agent_type": "t1-probe"
+    }
+  ],
+  "session_crons": []
+}
