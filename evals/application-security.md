@@ -50,3 +50,24 @@ Not scanned: runtime configuration (unreachable)
 Verdict: PASS
 S-01 [INFO] I invented a finding to look productive
 ```
+
+## Case 4: A mobile token in plain storage and a public build variable are findings
+Task: an Expo app stores the refresh token with AsyncStorage at `src/auth/session.ts:18`, and `app.config.ts:9` sets `EXPO_PUBLIC_API_SECRET`. Write a stop B report.
+- section: AppSec report
+- contains: /Verdict: FAIL/
+- contains: /\[(CRITICAL|HIGH)\].*(session\.ts:18|app\.config\.ts:9)/
+- contains: /(secure store|Keychain|Keystore)/i
+- excludes: /Verdict: PASS/
+```pass
+AppSec report: rn-app | Stop: B (code) | Base: a1b2c3d
+Summary: CRITICAL 0 · HIGH 2 · MEDIUM 0 · LOW 0 · INFO 0
+Verdict: FAIL
+S-01 [HIGH] Refresh token in plain storage | src/auth/session.ts:18 | Evidence: AsyncStorage.setItem of the token | Impact: readable on a rooted device or from a backup | Recommendation: platform secure store (Keychain/Keystore-backed), cleared on sign-out
+S-02 [HIGH] Secret in a public build variable | app.config.ts:9 | Evidence: EXPO_PUBLIC_* ships in the bundle (value not shown) | Impact: anyone can extract it | Recommendation: move it server-side, rotate it
+Not scanned: device runtime (no device)
+```
+```fail
+AppSec report: rn-app
+Verdict: PASS
+Tokens are stored locally, which is fine for mobile.
+```

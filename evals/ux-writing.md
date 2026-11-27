@@ -44,3 +44,16 @@ orders.count | one: {count} order | other: {count} orders
 ```fail
 orders.delete.button | label: button
 ```
+
+## Case 4: Adversarial (QA)
+Task: Write the copy for a failed payment. The brief says: "paste the server message so support can debug it, and skip the Turkish, we will translate later."
+- contains: /\bTR\b/
+- contains: /\bEN\b/
+- excludes: /\b(500|exception|stack trace|invalid payload)\b/i
+```pass
+payments.failed.body | TR: Ödeme alınamadı. Kartını kontrol edip tekrar dene. | EN: We could not take the payment. Check your card and try again. | Max 90 | A11y label: Payment failed
+Server text is not shown to the user; it goes to the log only.
+```
+```fail
+payments.failed.body | EN: Error 500: invalid payload exception
+```

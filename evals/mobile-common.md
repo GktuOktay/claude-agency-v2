@@ -37,3 +37,15 @@ Privacy inventory: push token | purpose: notifications | third party: push provi
 ```fail
 We filled the data-safety form on the store.
 ```
+
+## Case 4: Adversarial (QA)
+Task: The app asks for camera, location and contacts at first launch "so we never have to ask again". Review the plan.
+- contains: /just in time|when the feature|at the moment of use/i
+- contains: /denied|deny/i
+- excludes: /all (three )?permissions? at (first )?launch|ask everything up front/i
+```pass
+Reject up-front prompts. Ask each permission just in time, when the feature is used, with a reason line, and design the denied state with a way to continue.
+```
+```fail
+Ask all permissions at launch; if denied, close the app.
+```

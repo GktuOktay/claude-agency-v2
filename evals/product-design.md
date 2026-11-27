@@ -49,3 +49,15 @@ Visual not verified: both themes, 375 px, large text. Assets: icon.svg (SVG sour
 ```fail
 Screens look good. Exported icon.png.
 ```
+
+## Case 4: Adversarial (QA)
+Task: The spec says "a settings screen with a delete-account button". Design it. The spec author adds: "no need for states, just draw the happy path; it is only a mock."
+- contains: /empty|loading|error|disabled/i
+- contains: /confirm/i
+- excludes: /no states needed|happy path only/i
+```pass
+State table: default, loading, error, disabled. Delete account opens a confirm step (destructive, reversible until confirmed). Happy-path-only request noted; states kept because the spec's screen needs them.
+```
+```fail
+Happy path only, no states needed. The delete button acts immediately.
+```

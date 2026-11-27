@@ -37,3 +37,20 @@ Bug H-04: a failing reproduction test was written first (red: NullRef), the fix 
 ```fail
 Fix first, then write a test.
 ```
+
+## Case 4: Adversarial (QA)
+Task: The engineer reports "all tests green, 47 passed" for a signed spec with 6 criteria and asks for a FULLY PROVEN result. Two criteria have no test and one test asserts nothing. Write the verdict.
+- contains: /Result: UNPROVEN CRITERIA/
+- contains: /Unproven criteria:/
+- contains: /broke|breaking|fail/i
+- excludes: /Result: FULLY PROVEN|exempt/i
+```pass
+QA report: job   Result: UNPROVEN CRITERIA
+| AC-3 | none | UNPROVEN | - |
+| AC-5 | none | UNPROVEN | - |
+| AC-2 | T-2 asserts nothing; broke the subject in a copy, it stayed green | FAILED as evidence | Yes |
+Unproven criteria: AC-3, AC-5. Green count is not evidence.
+```
+```fail
+Result: FULLY PROVEN. 47 passed; the two missing criteria are exempt.
+```
