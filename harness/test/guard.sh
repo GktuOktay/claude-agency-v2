@@ -565,5 +565,249 @@ for md in - default plan acceptEdits auto bypassPermissions somethingNew; do
   t "AC-6 loadable policy, mode $md: repair shape, no opinion"      allow "$(gb "$WU" "$WU" "$RS1" "$md")"
 done
 
+# --- spec 0010 T-4: D2 rules (REQ-1..4, REQ-7), cases AC-1, AC-2, AC-3, AC-5. Dummy input only; nothing is run, signed or uploaded. ---
+# d2 <R|N>@@<command> lines: R = refused in mode auto, N = no opinion in mode auto. `@DIR@` stands for an existing directory.
+# The cases run with the root as working directory: the secret-name rule trusts relative paths under the temp set, and this test tree lives there.
+NR=/
+d2() {
+  while IFS= read -r line; do
+    [ -n "$line" ] || continue
+    kind=${line%%@@*}; c=${line#*@@}; c=$(printf '%s' "$c" | sed "s|@DIR@|$WS|g")
+    if [ "$kind" = R ]; then want=deny; else want=allow; fi
+    t "$1 $kind: $c" "$want" "$(gb "$NR" "$NR" "$c" auto)"
+  done
+}
+d2 "D2-1..10 (AC-1)" <<'EOF'
+R@@xcodebuild -exportArchive -archivePath a -exportPath b
+R@@xcodebuild -exportNotarizedApp -archivePath a -exportPath b
+R@@xcodebuild -scheme A -allowProvisioningUpdates build
+R@@xcodebuild -scheme A -allowProvisioningDeviceRegistration build
+R@@xcodebuild -scheme A build -authenticationKeyPath k -authenticationKeyID i
+R@@XCODEBUILD -EXPORTARCHIVE -archivePath a
+R@@xcrun iTMSTransporter -m upload
+R@@xcrun altool --upload-app -f app.ipa
+R@@xcrun notarytool submit a.zip
+R@@npx eas-cli submit
+R@@eas build --local
+R@@./gradlew publishReleaseBundle
+R@@./gradlew :app:publishBundle
+R@@./gradlew app:publishReleaseBundle
+R@@gradle publishBundle
+R@@sh gradlew publishBundle
+R@@./gradlew promoteArtifact --user-fraction 0.5
+R@@./gradlew appDistributionUploadRelease
+R@@bundletool build-apks --bundle a.aab
+R@@java -jar bundletool-all.jar build-apks
+R@@curl https://AndroidPublisher.googleapis.com/x
+R@@curl https://api.appstoreconnect.apple.com/v1/apps
+R@@bundle exec fastlane pilot upload
+R@@npm exec eas-cli -- submit
+R@@pnpm dlx eas-cli submit
+R@@yarn dlx eas-cli submit
+R@@bunx eas-cli submit
+R@@xcrun fastlane deliver
+R@@timeout 600 fastlane deliver
+R@@somenewwrapper --x fastlane deliver
+R@@firebase appdistribution:distribute a.apk
+R@@npx firebase-tools deploy
+R@@appcenter-cli distribute release
+R@@eas-cli@latest submit
+R@@(fastlane deliver)
+R@@{ fastlane deliver; }
+R@@if true; then fastlane deliver; fi
+R@@echo x & fastlane deliver
+R@@"fastlane" deliver
+R@@FASTLANE deliver
+R@@\fastlane deliver
+R@@echo "$(fastlane deliver)"
+R@@echo fastlane deliver > x.sh; `cat x.sh`
+R@@cat <(fastlane deliver)
+R@@echo fastlane deliver > >(sh)
+R@@eval "fastlane deliver"
+R@@echo fastlane deliver | xargs env
+R@@echo fastlane deliver > x.sh; . x.sh
+R@@echo fastlane deliver > x.sh; source x.sh
+R@@bash -lc "fastlane deliver"
+R@@echo fastlane deliver | sh
+R@@bash <<< "fastlane deliver"
+R@@env -S "fastlane deliver"
+R@@npx -c "fastlane deliver"
+R@@npx --call "fastlane deliver"
+R@@su x -c "fastlane deliver"
+R@@osascript -e 'do shell script "fastlane deliver"'
+R@@find . -name x -exec fastlane deliver \;
+R@@find . -name x -execdir fastlane deliver \;
+R@@find . -name x -ok fastlane deliver \;
+R@@find . -name x -okdir fastlane deliver \;
+R@@git -c alias.x='!fastlane deliver' x
+R@@git ls-remote --exec "fastlane deliver" origin
+R@@git rebase -x "fastlane deliver" main
+R@@git bisect run fastlane deliver
+R@@git submodule foreach fastlane deliver
+R@@git filter-branch --tree-filter "fastlane deliver"
+R@@git commit -m "fastlane notes $(date)"
+N@@xcodebuild -scheme A build
+N@@xcodebuild -showBuildSettings
+N@@xcodebuild test
+N@@xcrun simctl list
+N@@npx expo prebuild
+N@@npx expo run:android
+N@@./gradlew assembleRelease
+N@@./gradlew publishToMavenLocal
+N@@./gradlew bundleRelease
+N@@./gradlew test
+N@@dotnet publish -c Release
+N@@npm run publish:docs
+N@@which bundletool
+N@@java -jar app.jar
+N@@curl https://example.com/
+N@@grep -r androidpublisher .
+N@@bundle exec pod install
+N@@which fastlane
+N@@ls fastlane
+N@@cat fastlane/Fastfile
+N@@brew info fastlane
+N@@grep -r eas .
+N@@git commit -m "run fastlane deliver later"
+N@@git -C @DIR@ log --grep "fastlane deliver"
+EOF
+t "D2 AC-1 R: xcodebuild and -exportArchive on two lines joined by a backslash" deny "$(gb "$WS" "$WS" "xcodebuild -scheme A \\
+-exportArchive -archivePath a" auto)"
+t "D2 AC-1 N: usual here-doc commit whose body names fastlane" allow "$(gb "$WS" "$WS" "git commit -m \"\$(cat <<'EOF'
+notes about fastlane deliver
+EOF
+)\"" auto)"
+t "D2 AC-1 R: a here-doc with that body into sh" deny "$(gb "$WS" "$WS" "sh <<'EOF'
+fastlane deliver
+EOF" auto)"
+d2 "D2-11..14 (AC-2)" <<'EOF'
+R@@security find-generic-password -w -s x
+R@@security export -k k
+R@@security dump-keychain
+R@@sudo security dump-keychain
+R@@env security export -k k
+R@@/usr/bin/security dump-keychain
+R@@codesign -s "Apple Distribution: X" A.app
+R@@codesign --sign ID A.app
+R@@codesign --sign=ID A.app
+R@@codesign -fs ID A.app
+R@@codesign -sID A.app
+R@@xcrun codesign -s ID A.app
+R@@keytool -list -keystore x.jks
+R@@keytool -exportcert -alias a
+R@@keytool -importkeystore -srckeystore a
+R@@bash -c "keytool -list"
+R@@cat release.jks
+R@@cat "my release.jks"
+R@@base64 -i upload.keystore
+R@@cp a.p12 b
+R@@openssl pkcs12 -in a.p12
+R@@git rm --cached release.jks
+R@@cat key.properties
+R@@cat sub/AuthKey.p8
+R@@cat a.mobileprovision
+R@@apksigner sign --ks release.jks a.apk
+R@@apksigner sign a.apk
+R@@jarsigner -keystore release.jks a.apk x
+R@@jarsigner a.apk x
+R@@ORG_GRADLE_PROJECT_x=release.jks ./gradlew assembleRelease
+R@@./gradlew assembleRelease -Pstore=upload.p12
+R@@cat "release.jks"
+R@@bash -c "cat release.jks"
+R@@ls $(cat release.jks)
+R@@cd /tmp && cat x.jks
+R@@git show -m HEAD:release.jks
+R@@echo "*.jks" >> .gitignore
+N@@security find-identity -v -p codesigning
+N@@which security
+N@@grep -r security docs
+N@@security
+N@@keytool
+N@@codesign -s - A.app
+N@@codesign -s "-" A.app
+N@@codesign -dv A.app
+N@@which codesign
+N@@keytool -genkeypair -keystore /tmp/k/x.jks -alias a
+N@@apksigner verify a.apk
+N@@apksigner sign --ks /tmp/k/x.jks a.apk
+N@@jarsigner -keystore /tmp/k/x.jks a.apk x
+N@@cat android/app/debug.keystore
+N@@ls android/app/release.jks
+N@@git commit -m "ignore *.jks"
+N@@git commit --message "ignore *.jks"
+N@@git commit -am "ignore *.jks"
+N@@git stash push -m "x.jks"
+N@@cat /tmp/k/x.jks
+EOF
+mkdir -p "$TP/lnk"; ln -s /usr/local/zz-nonexistent/release.jks "$TP/lnk/link.jks"
+t "D2 AC-2 R: a temp-set symlink to a keystore outside it" deny "$(gb "$WS" "$WS" "cat $TP/lnk/link.jks" auto)"
+t "D2 AC-2 R: ios/android/app/debug.keystore is not the allowed path" deny "$(gb "$NR" "$NR" 'cat ios/android/app/debug.keystore' auto)"
+d2 "rollback (AC-5)" <<'EOF'
+R@@git restore --source=HEAD~5 -- harness/guard.js
+R@@git checkout abc1234 -- harness/policy.js
+R@@git restore -s abc1234 harness/
+R@@git checkout -- .
+R@@git stash push harness/guard.js
+R@@git reset HEAD~5 -- harness/gate.js
+R@@git -C sub checkout -- harness/guard.js
+R@@git checkout-index -f harness/guard.js
+R@@git apply --include harness/guard.js x.patch
+R@@git am --include harness/guard.js x.mbox
+R@@git read-tree --prefix harness/ abc1234
+R@@git restore --source=HEAD -- harness/guard.js && true
+N@@git checkout feat/x
+N@@git checkout harness/0010-guard-hardening
+N@@git restore docs/x.md
+N@@git stash list
+N@@git diff harness/guard.js
+N@@git add .
+N@@git stash
+N@@git reset --soft HEAD~5
+N@@git restore --source=HEAD -- harness/guard.js
+N@@git restore --source=HEAD -- harness/guard.js harness/policy.js
+EOF
+t "AC-5 git reset --hard HEAD~1 still asks (guard.sh:35)" ask "$(gb "$WS" "$WS" 'git reset --hard HEAD~1')"
+# AC-3: the mode rule and the byte-exact text; a validly signed workspace and an agent_type change nothing
+DW="$TP/d2ws"; wsp "$DW" '`harness/stop.js`, `.mcp.json`, `src/**`, `docs/**`'; gsign "$DW" 0001.md
+d2text() { printf "BLOCKED by company guard: %s is the CEO's alone, and permission mode '%s' is not proven to show his dialog. The CEO runs this command in his own terminal (no hook runs there); no spec opens it. Do not rewrite the command to get around this refusal.%s\n" "$1" "$2" "$3"; }
+while IFS='@' read -r rule hint cmd; do
+  for ws in "$NR" "$DW"; do
+    for md in - default plan acceptEdits; do t "D2 AC-3 mode $md asks: $cmd" ask "$(gb "$ws" "$ws" "$cmd" "$md")"; done
+    for md in auto bypassPermissions somethingNew; do
+      t "D2 AC-3 mode $md is refused: $cmd" deny "$(gb "$ws" "$ws" "$cmd" "$md")"
+      t "D2 AC-3 mode $md: stderr is the exact text: $cmd" "$(d2text "$rule" "$md" "$hint")" "$(cat "$TP/g.err")"
+    done
+  done
+  t "D2 AC-3 agent_type polyglot-engineer, auto: refused: $cmd" deny "$(gba "$H/guard.js" "$cmd" auto polyglot-engineer)"
+  t "D2 AC-3 agent_type polyglot-engineer, default mode: asks: $cmd" ask "$(gba "$H/guard.js" "$cmd" default polyglot-engineer)"
+done <<'EOF'
+store upload or release signing (fastlane)@@fastlane deliver
+signing material (security)@@security dump-keychain
+secret file name (*.jks)@ To list names use ls, stat or the Glob tool.@cat /srv/app/release.jks
+hook source rollback (git checkout)@ Only "git restore --source=HEAD -- harness/<name>.js" stays open.@git checkout -- .
+EOF
+for c in 'git push origin main' 'gh release create v1' 'ssh host' 'rm -rf build' 'git rebase main'; do
+  for md in - default plan acceptEdits auto bypassPermissions; do t "D2 AC-3 unchanged: $c asks in mode $md" ask "$(gb "$F" "$F" "$c" "$md")"; done
+done
+# REQ-11 (AC-8): every line of the ordinary-command corpus gets no opinion in a signed workspace in mode auto
+n=0; bad=0
+while IFS= read -r line; do
+  [ -n "$line" ] || continue
+  n=$((n+1)); d=$(gb "$WS" "$WS" "$line" auto)
+  if [ "$d" != allow ]; then bad=$((bad+1)); echo "FAIL  corpus line gets $d: $line"; fi
+done < "$HERE/test/fixtures/commands-ordinary.txt"
+t "REQ-11 corpus: no line gets an opinion ($n lines)" 0 "$bad"
+t "REQ-11 corpus: at least 60 lines and the Release publish line" yes "$([ "$n" -ge 60 ] && grep -qx 'dotnet publish -c Release' "$HERE/test/fixtures/commands-ordinary.txt" && echo yes || echo no)"
+# bench (AC-8): only with --bench; the CEO's Mac decides the 150 ms budget. 200 calls, p95 of the time per call.
+if [ "${1:-}" = "--bench" ]; then
+  p95=$(node -e 'const { spawnSync } = require("child_process"); const [g, ws, f] = process.argv.slice(1);
+    const lines = require("fs").readFileSync(f, "utf8").split("\n").filter(Boolean); const ts = [];
+    for (let i = 0; i < 200; i++) { const ev = JSON.stringify({ hook_event_name: "PreToolUse", tool_name: "Bash", cwd: ws, permission_mode: "auto", tool_input: { command: lines[i % lines.length] } });
+      const s = process.hrtime.bigint(); spawnSync("node", [g], { input: ev, env: Object.assign({}, process.env, { CLAUDE_PROJECT_DIR: ws }) }); ts.push(Number(process.hrtime.bigint() - s) / 1e6); }
+    ts.sort((a, b) => a - b); process.stdout.write(String(Math.round(ts[Math.floor(ts.length * 0.95) - 1])));' "$H/guard.js" "$WS" "$HERE/test/fixtures/commands-ordinary.txt")
+  echo "bench: p95 ${p95} ms per Bash call (200 calls)"
+  t "REQ-11 bench: p95 under 150 ms" yes "$([ "$p95" -lt 150 ] && echo yes || echo no)"
+fi
+
 echo; if [ "$fail" -eq 0 ]; then echo "GUARD TESTS GREEN: $pass passed, 0 failed"; else echo "GUARD TESTS FAILED: $pass passed, $fail failed"; fi
 [ "$fail" -eq 0 ]
