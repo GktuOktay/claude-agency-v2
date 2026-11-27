@@ -98,6 +98,7 @@ suite "decisions, signature, permission modes" decide "$T"
 suite "AC-11 source order, no allow"           source
 suite "AC-16 literal enforcement entries"      literal "$T"
 suite "7.3 S-05 header characters"             header-chars
+suite "0010 R-5 secret names, allowed location" names "$T"
 # §7.1.1: path aliases of macOS (data-volume firmlink prefix, volfs); elsewhere the skip is said aloud
 if [ "$(uname -s)" = Darwin ]; then suite "7.1.1 path aliases (firmlink, volfs)" alias "$T"; else echo "skip (not darwin): 7.1.1 path aliases (firmlink, volfs)"; fi
 # §7.1.1: spellings that name a file only through the full case folding of the volume (U+017F, U+00DF, U+FB01)

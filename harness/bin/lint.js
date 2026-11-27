@@ -450,5 +450,33 @@ const q = (s) => JSON.stringify(String(s)).slice(0, 200);          // spec and g
   else ok("texts-0004: harness/README.md names G-1..G-22, the class strength order and the two-path rule; both spec templates carry '- Unlocks:'; CLAUDE.md rule 1 and the lane-0 and last lines of routing.md are the texts of §7.6");
 }
 
+// secret-names (spec 0010 REQ-5, D2-15): no keystore, profile or key file name in the tree, only android/app/debug.keystore.
+{
+  const r = require("child_process").spawnSync(process.execPath, [path.join(__dirname, "secret-names.js"), ROOT], { encoding: "utf8" });
+  if (r.status === 0) ok("secret-names: no secret file name in the tree");
+  else if (r.status === 1) fail("secret-names " + r.stdout.trim().split("\n").join(", "));
+  else fail("secret-names scan could not run: " + String(r.stderr || "").trim().split("\n")[0]);
+}
+
+// texts-0010 (AC-7): the README parts of spec 0010 (gaps G-23..G-27, the two headings, the repair shape, the CEO-terminal note).
+{
+  const bad = [];
+  let readme = "";
+  try { readme = fs.readFileSync(path.join(ROOT, "harness", "README.md"), "utf8"); } catch { bad.push("harness/README.md: not readable"); }
+  const lines = readme.split("\n").map((l) => l.replace(/\r$/, ""));
+  for (const g of ["G-23", "G-24", "G-25", "G-26", "G-27"]) if (!lines.some((l) => l.startsWith("| " + g + " |"))) bad.push("README: gap row " + g + " missing");
+  for (const h of ["## Hook kaynağı güvenle nasıl değiştirilir", "## CEO'ya ait komutlar"]) if (!lines.includes(h)) bad.push("README: heading '" + h + "' missing");
+  if (readme.includes("specs/active/0004-")) bad.push("README: still names specs/active/0004-");
+  const g9 = lines.find((l) => l.startsWith("| G-9 |"));
+  if (!g9 || !g9.includes("D2")) bad.push("README: the G-9 entry lacks the mode-rule sentence (D2)");
+  const i = lines.indexOf("## Hook'lar kilitlenirse (kurtarma yolu R)");
+  let sec = "";
+  if (i >= 0) { const j = lines.findIndex((l, k) => k > i && l.startsWith("## ")); sec = lines.slice(i + 1, j < 0 ? undefined : j).join("\n"); }
+  if (!sec.includes("git restore --source=HEAD -- harness/")) bad.push("README: the section Hook'lar kilitlenirse lacks the repair shape");
+  if (!readme.includes("git rm --cached")) bad.push("README: the CEO-terminal note (git rm --cached) is missing");
+  if (bad.length) fail("texts-0010 " + bad.join("; "));
+  else ok("texts-0010: README carries G-23..G-27, the two headings, the repair shape and the CEO-terminal note");
+}
+
 console.log(`\nLINT ${failures ? "FAILED" : "GREEN"}: ${checks} ok, ${failures} failed`);
 process.exit(failures ? 1 : 0);

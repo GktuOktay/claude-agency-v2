@@ -502,4 +502,48 @@ function decide(req, ctx) {
 
 function safeReal(p, ctx) { try { return resolvePath(path.resolve(p), ctx.fs || fs); } catch { return nfc(path.resolve(p)); } }
 
-module.exports = { context, classify, parseHeader, matchGlob, decide, unlockKinds, UNLOCK_CALLERS, quote, foldGlobs, mainWorktree, ResolveError, ASK_MODES, ENFORCEMENT, LABELS };
+// ---- spec 0010 R-5: secret-file names and the allowed location, pure functions shared by guard.js and bin/secret-names.js ----
+// No state, no shared RegExp object: names are compared as lower-case text.
+const SECRET_SUFFIXES = Object.freeze([".jks", ".keystore", ".p12", ".p8", ".mobileprovision"]);
+const SCAN_SUFFIXES = Object.freeze([...SECRET_SUFFIXES, ".pfx", ".pepk"]);
+// The pattern (`*.jks`, `key.properties`, `credentials.json`) a bare file name matches as a scan name, else null (REQ-5).
+function scanName(name) {
+  const n = String(name).toLowerCase();
+  for (const s of SCAN_SUFFIXES) if (n.endsWith(s)) return "*" + s;
+  if (n === "key.properties") return "key.properties";
+  if (n === "credentials.json") return "credentials.json";
+  return null;
+}
+// The pattern a command word matches as a secret-file name (REQ-3): its last `/` segment, or the last `/` segment of the value
+// after its last `=` (assignment, `-Pkey=value`, `--ks=value`); null when it is none. `credentials.json`, `*.pfx`, `*.pepk` are scan names only.
+function secretFileName(word) {
+  const w = String(word);
+  const seg = (x) => x.slice(x.lastIndexOf("/") + 1).toLowerCase();
+  const eq = w.lastIndexOf("=");
+  for (const n of eq >= 0 ? [seg(w), seg(w.slice(eq + 1))] : [seg(w)]) {
+    for (const s of SECRET_SUFFIXES) if (n.endsWith(s)) return "*" + s;
+    if (n === "key.properties") return "key.properties";
+  }
+  return null;
+}
+// REQ-3 allowed location: a literal path whose written form (made absolute from `cwd`, no symlink followed) and whose resolved
+// form are both `<root>/android/app/debug.keystore`, or both under the temp set. `opts.tempDirs` replaces the default temp set
+// (tests only), `opts.fs` the file system. A word that is no literal path, or a path that cannot be resolved, is not allowed.
+function allowedLocation(word, cwd, root, opts) {
+  opts = opts || {}; const fsx = opts.fs || fs;
+  const w = String(word);
+  if (w === "" || /[$`*?\[{(\\]/.test(w) || w.startsWith("~") || w.includes("\x00")) return false;
+  try {
+    const written = nfc(path.resolve(cwd, w));
+    const resolved = resolvePath(written, fsx);
+    const R = path.resolve(root);
+    if (written === nfc(path.join(R, "android", "app", "debug.keystore"))) return resolved === nfc(path.join(resolvePath(R, fsx), "android", "app", "debug.keystore"));
+    const set = (opts.tempDirs || ["/tmp", "/private/tmp", "/var/folders", "/private/var/folders", os.tmpdir()]).map((d) => nfc(path.resolve(d)));
+    const resolvedSet = set.slice();
+    for (const d of set) { try { resolvedSet.push(resolvePath(d, fsx)); } catch { /* an unresolvable temp entry adds nothing */ } }
+    const under = (p, dirs) => dirs.some((d) => p === d || p.startsWith(d.endsWith("/") ? d : d + "/"));
+    return under(written, set) && under(resolved, resolvedSet);
+  } catch { return false; }
+}
+
+module.exports = { context, classify, parseHeader, matchGlob, decide, unlockKinds, UNLOCK_CALLERS, quote, foldGlobs, mainWorktree, ResolveError, ASK_MODES, ENFORCEMENT, LABELS, scanName, secretFileName, allowedLocation };

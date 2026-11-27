@@ -663,8 +663,44 @@ function foldCases(T) {
   t("without the injection the same text is code", "code", label(path.join(S, "zzz-unexplained/stop.js"), sc));
 }
 
+// Spec 0010 R-5 (AC-2): the secret-file name and allowed-location functions of policy.js. Throwaway tree under <T>/names.
+function names(T) {
+  const N = path.join(T, "names"); const R = path.join(N, "repo"); const TMP = path.join(N, "tmp");
+  fs.mkdirSync(path.join(R, "android", "app"), { recursive: true }); fs.mkdirSync(path.join(R, "ios", "android", "app"), { recursive: true });
+  fs.mkdirSync(path.join(TMP, "k"), { recursive: true }); fs.mkdirSync(path.join(N, "tmp-evil"), { recursive: true });
+  for (const f of ["android/app/debug.keystore", "android/app/release.jks", "ios/android/app/debug.keystore"]) fs.writeFileSync(path.join(R, f), "x");
+  fs.symlinkSync(path.join(R, "android", "app", "release.jks"), path.join(TMP, "link.jks"));
+  fs.symlinkSync(path.join(TMP, "k"), path.join(N, "tmp-link"));
+  const sec = (w) => policy.secretFileName(w);
+  for (const [w, want] of [["release.jks", "*.jks"], ["a/b/Upload.KEYSTORE", "*.keystore"], ["x.p12", "*.p12"], ["x.p8", "*.p8"], ["x.mobileprovision", "*.mobileprovision"],
+    ["key.properties", "key.properties"], ["android/key.properties", "key.properties"], ["X=release.jks", "*.jks"], ["-Pstore=upload.p12", "*.p12"], ["--ks=/a/b/Rel.JKS", "*.jks"],
+    ["storeFile=../key.properties", "key.properties"], ["debug.keystore", "*.keystore"], ["my release.jks", "*.jks"]]) t("secretFileName " + w, want, sec(w));
+  for (const w of ["x.jksx", "jks", "keyXproperties", "key.properties.bak", "a.pfx", "a.pepk", "credentials.json", "a.jks/b", "", "x=y", "docs/readme.md"]) t("secretFileName none: " + JSON.stringify(w), "null", String(sec(w)));
+  for (const [w, want] of [["x.jks", "*.jks"], ["a.PFX", "*.pfx"], ["g.pepk", "*.pepk"], ["credentials.json", "credentials.json"], ["Credentials.JSON", "credentials.json"], ["key.properties", "key.properties"], ["d.p8", "*.p8"], ["e.mobileprovision", "*.mobileprovision"], ["c.p12", "*.p12"], ["x.keystore", "*.keystore"]])
+    t("scanName " + w, want, String(policy.scanName(w)));
+  for (const w of ["credentials.json.bak", "readme.md", "key.props", "xjks"]) t("scanName none: " + w, "null", String(policy.scanName(w)));
+  const al = (w, cwd, over) => String(policy.allowedLocation(w, cwd || R, R, Object.assign({ tempDirs: [TMP] }, over || {})));
+  t("allowed: relative debug.keystore", "true", al("android/app/debug.keystore"));
+  t("allowed: absolute debug.keystore", "true", al(path.join(R, "android", "app", "debug.keystore")));
+  t("allowed: ./ and .. spelling of debug.keystore", "true", al("./android/../android/app/debug.keystore"));
+  t("not allowed: debug.keystore under another folder", "false", al("ios/android/app/debug.keystore"));
+  t("not allowed: release.jks next to it", "false", al("android/app/release.jks"));
+  t("not allowed: debug.keystore of a different root", "false", String(policy.allowedLocation(path.join(R, "android", "app", "debug.keystore"), R, path.join(N, "other"), { tempDirs: [TMP] })));
+  t("allowed: keystore under the temp set", "true", al(path.join(TMP, "k", "x.jks")));
+  t("allowed: relative to a cwd inside the temp set", "true", al("k/x.jks", TMP));
+  t("not allowed: temp-set sibling sharing the prefix", "false", al(path.join(N, "tmp-evil", "x.jks")));
+  t("not allowed: .. leaves the temp set", "false", al(path.join(TMP, "..", "repo", "android", "app", "release.jks")));
+  t("not allowed: temp symlink to a keystore outside it", "false", al(path.join(TMP, "link.jks")));
+  t("allowed: a temp folder that is a symlink inside the set (written and resolved form both inside)", "true", al(path.join(N, "tmp-link", "x.jks"), N, { tempDirs: [TMP, path.join(N, "tmp-link")] }));
+  t("not allowed: written form outside the temp set", "false", al(path.join(N, "tmp-link", "x.jks")));
+  t("not allowed: variable, glob, tilde, backslash, empty", "false,false,false,false,false", ["$H/x.jks", path.join(TMP, "*.jks"), "~/x.jks", "a\\b.jks", ""].map((w) => al(w)).join(","));
+  t("default temp set holds /tmp and the resolved os.tmpdir()", "true,true", [policy.allowedLocation("/tmp/k/x.jks", "/", R), policy.allowedLocation(path.join(fs.realpathSync(require("os").tmpdir()), "k", "x.jks"), "/", R)].join(","));
+  t("default temp set does not hold the home folder", "false", String(policy.allowedLocation("/Users/x/app/x.jks", "/", R)));
+}
+
 const [cmd, a, b] = process.argv.slice(2);
-if (cmd === "matrix") matrix(a);
+if (cmd === "names") names(a);
+else if (cmd === "matrix") matrix(a);
 else if (cmd === "alias") alias(a);
 else if (cmd === "fold") foldCases(a);
 else if (cmd === "paths") for (const m of MATRIX) for (const pf of m[4]) console.log([m[3], pf, m[1], abs(a, m[1], m[2])].join("\t"));
