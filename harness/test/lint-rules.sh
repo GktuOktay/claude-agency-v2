@@ -48,6 +48,9 @@ neg() { # neg <name> <rule id>: the fixture in $C must fail with that rule and n
   t "$1: FAIL  $2" yes "$(has "^FAIL  $2( |:|\$)")"
   t "$1: no other rule fails" 0 "$(others "$2")"
 }
+# spec 0010 REQ-6: the fixture builds its own active spec, so a copy whose specs/active/ is absent works too
+mkdir -p "$BASE/specs/active"; rm -f "$BASE/specs/active/"*.md
+printf '%s\n' '# Spec 0001: lint fixture' '- Status: Active' '- Unlocks: `evals/y.md`' '' '## 1. Intent' 'x' > "$BASE/specs/active/0001-lint-fixture.md"
 ACTIVE=$(cd "$BASE" 2>/dev/null && ls specs/active/*.md 2>/dev/null | head -n 1)
 unlocks() { # unlocks <value>: replaces the Unlocks: line of the active spec in $C
   sed "s|^- Unlocks: .*\$|- Unlocks: $1|" "$C/$ACTIVE" > "$T/spec.tmp" && cp "$T/spec.tmp" "$C/$ACTIVE"
@@ -349,6 +352,44 @@ tneg "AC-14 routing without the lane-0 line" "$RT" 's.split("\n").filter((l) => 
 tneg "AC-14 routing last line as before T-9" "$RT" 's.replace(/\n[^\n]+\n*$/, "\nDefault stack .NET + React, a preference not a restriction. The signature gate and guard are enforced only where `harness/bin/install-project.sh` ran; elsewhere follow the pipeline by instruction and get spec approval in chat.\n")' "routing.md: the last line is not the exact text of spec 0004"
 tneg "AC-14 routing last line without the known-gaps clause" "$RT" 's.replace(" and have known gaps (`harness/README.md`, Bilinen boşluklar)", "")' "routing.md: the last line is not the exact text of spec 0004"
 tneg "AC-14 routing exact last line followed by another line" "$RT" 's.replace(/\n*$/, "\n\nThe hooks cannot be bypassed.\n")' "routing.md: the last line is not the exact text of spec 0004"
+
+# --- spec 0010: secret-names.js (AC-4), rule secret-names, rule texts-0010 (AC-7) ---------------
+SN="$HERE/bin/secret-names.js"
+snrepo() { rm -rf "$T/sn"; mkdir -p "$T/sn"; ( cd "$T/sn" && git init -q . && printf 'ignored.jks\n' > .gitignore ); }
+snrun() { node "$SN" "$@" > "$T/sn.out" 2> "$T/sn.err"; echo $?; }
+snrepo; ( cd "$T/sn" && mkdir -p a android/app ios/android/app && : > x.jks && : > a/b.keystore && : > c.p12 && : > d.p8 && : > e.mobileprovision && : > f.pfx && : > g.pepk \
+  && : > credentials.json && : > android/key.properties && : > ios/android/app/debug.keystore && : > ignored.jks && : > android/app/debug.keystore && git add x.jks )
+t "AC-4 scan: findings exit 1" 1 "$(snrun "$T/sn")"
+t "AC-4 scan: ten paths, one per line" 10 "$(wc -l < "$T/sn.out" | tr -d ' ')"
+t "AC-4 scan: tracked, untracked, key.properties and the nested debug.keystore are listed" 4 "$(grep -cxE 'x.jks|a/b.keystore|android/key.properties|ios/android/app/debug.keystore' "$T/sn.out")"
+t "AC-4 scan: the allowed path and the ignored file are not listed" 0 "$(grep -cE '^(android/app/debug.keystore|ignored.jks)$' "$T/sn.out")"
+snrepo; ( cd "$T/sn" && mkdir -p android/app && : > android/app/debug.keystore && : > ignored.jks && printf 'not a key\n' > notes.txt )
+t "AC-4 scan: only the allowed path and an ignored file: exit 0" 0 "$(snrun "$T/sn")"
+t "AC-4 scan: no argument: exit 2" 2 "$(snrun)"
+snrepo; printf 'key material %s\n' 'stand-in' > "$T/sn/innocent.txt"
+t "AC-4 scan: key content under another name is not reported" 0 "$(snrun "$T/sn")"
+fresh; lint "$C"
+t "AC-4 baseline fixture: rule secret-names reports ok" yes "$(has '^ok    secret-names')"
+fresh; : > "$C/x.jks"; neg "AC-4 planted x.jks" secret-names
+t "AC-4 planted x.jks: the line names the file" yes "$(has '^FAIL  secret-names x.jks')"
+t "AC-4 lint run does not touch check" 0 "$(git -C "$REPO" diff --stat -- harness/bin/check | wc -l | tr -d ' ')"
+fresh; lint "$C"
+t "AC-7 baseline fixture: rule texts-0010 reports ok" yes "$(has '^ok    texts-0010')"
+t0() { # t0 <name> <edit> <message pattern>: the edited README fails texts-0010 alone
+  fresh; t "$1: the edit changed the file" yes "$(redit "$RD" "$2")"
+  neg "$1" texts-0010
+  t "$1: the message" yes "$(has "^FAIL  texts-0010 .*$3")"
+}
+for g in G-23 G-24 G-25 G-26 G-27; do t0 "AC-7 README without the row $g" "s.split(\"\\n\").filter((l) => !l.startsWith(\"| $g |\")).join(\"\\n\")" "gap row $g missing"; done
+t0 "AC-7 README without the heading Hook kaynağı" 's.replace("## Hook kaynağı güvenle nasıl değiştirilir", "## Hook kaynağı")' "heading '## Hook kaynağı güvenle"
+t0 "AC-7 README without the heading CEO'ya ait komutlar" 's.replace("## CEO'"'"'ya ait komutlar", "## CEO komutları")' "heading '## CEO'ya ait"
+t0 "AC-7 README names specs/active/0004- again" 's + "\nsee specs/active/0004-x.md\n"' "still names specs/active/0004-"
+t0 "AC-7 README G-9 without D2" 's.split("\n").map((l) => (l.startsWith("| G-9 |") ? l.split("D2").join("D-2") : l)).join("\n")' "G-9 entry lacks"
+t0 "AC-7 README repair shape missing from Hook'lar kilitlenirse" 's.split("git restore --source=HEAD -- harness/").join("git restore --source=HEAD")' "lacks the repair shape"
+t0 "AC-7 README without git rm --cached" 's.split("git rm --cached").join("git rm")' "git rm --cached"
+fresh; rm -rf "$C/specs/active"; lint "$C"
+t "AC-7 copy without specs/active: lint exit 0" 0 "$rc"
+t "AC-7 copy without specs/active: no FAIL line" 0 "$(fails)"
 
 echo; if [ "$fail" -eq 0 ]; then echo "LINT RULE TESTS GREEN: $pass passed, 0 failed"; else echo "LINT RULE TESTS FAILED: $pass passed, $fail failed"; fi
 [ "$fail" -eq 0 ]

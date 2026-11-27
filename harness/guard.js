@@ -180,7 +180,173 @@ const GIT_CONFIG_KEY = /hooksPath|core\.editor|credential|^alias\./i;
 const GIT_CONFIG_WHY = "git yapılandırması (kanca yolu/kimlik/takma ad).";
 const GIT_ENV = /^(GIT_DIR|GIT_WORK_TREE|GIT_EXEC_PATH|GIT_CONFIG_\w*)=/;
 
+// Spec 0010 REQ-8: the repair shape, matched on the whole command before any other rule. It only returns hook sources to the
+// content of HEAD, so it gets no opinion in every mode and for every caller, also when policy.js cannot be loaded.
+const REPAIR_SHAPE = /^git restore --source=HEAD -- harness\/[A-Za-z0-9_-]+\.js( harness\/[A-Za-z0-9_-]+\.js)*$/;
+
+// ---- spec 0010 T-4: the D2 view (Ruling R-1), the store, signing and key rules (REQ-1..3) and the rollback rule (REQ-7) ----
+// One view of the command for these rules only; the older rules keep their own views. It reads the visible words of every
+// command part; words built at run time, scripts and abbreviations are not seen (README G-23, G-24).
+const D2_S = new Set(["fastlane", "eas", "eas-cli", "altool", "notarytool", "itmstransporter", "transporter", "appcenter", "appcenter-cli", "firebase", "firebase-tools", "bundletool"]);
+const D2_S_SHOWN = { itmstransporter: "iTMSTransporter" };
+const D2_F = new Set(["-exportarchive", "-exportnotarizedapp", "-allowprovisioningupdates", "-allowprovisioningdeviceregistration"]);
+const D2_G = /^(:?[\w.-]+:)*:?(publish|promote|appdistributionupload)/i;
+const D2_K = new Set("cd ls cat head tail grep rg find which type man echo printf mkdir rm cp mv touch chmod wc diff stat test [".split(" "));
+const D2_K_GIT = new Set("status diff log show add commit mv rm grep blame ls-files checkout switch restore stash branch".split(" "));
+const D2_SHELL = new Set(["sh", "bash", "zsh", "dash", "ksh"]);
+const D2_ROLLBACK = new Set(["restore", "checkout", "reset", "stash", "apply", "am", "read-tree", "checkout-index"]);
+const D2_MSG_SUB = new Set(["commit", "tag", "merge", "stash", "notes"]);
+const D2_EDGE = /^[(){}!$`<>;&|"']+|[(){}!$`<>;&|"']+$/g;
+const d2base = (s) => path.basename(String(s)).toLowerCase();
+// The subcommand of the git word at index i and the index of the word after it; global options skipped as gitRules does.
+function d2GitSub(o, i) {
+  let k = i + 1;
+  while (k < o.length && o[k].startsWith("-")) k += GIT_VALUE_OPTS.has(o[k]) ? 2 : 1;
+  return { sub: o[k], at: k };
+}
+// A pathspec word that may name a hook source: a glob character, `:/`, a leading dot (`.`, `./harness`, `.claude/...`), `harness`,
+// `<x>/harness`, `harness/<x>.js` or a path deeper in `harness/` (a branch name such as `harness/0010-x` has one segment and does not count).
+const d2Hook = (w) => {
+  const s = w.replace(/\/+$/, "");
+  if (/[*?\[]/.test(w) || w.startsWith(":/") || w.startsWith(".")) return true;
+  return s === "harness" || s.endsWith("/harness") || /(^|\/)harness\/[^/]+\.js$/.test(s) || /^harness\/[^/]+\//.test(s);
+};
+const D2_SUBST = /\$\(|`/;
+const d2DirOpt = (x) => ["cd", "pushd"].includes(d2base(x)) || x === "-C" || ["--chdir", "--directory", "--git-dir", "--work-tree"].includes(x) || /^--(chdir|directory|git-dir|work-tree)=/.test(x);
+
+// -> [{ kind: "store"|"signing"|"secret"|"rollback", tool }]
+function d2Scan(full, cwd, rootOf) {
+  const hits = []; const add = (kind, tool) => { if (!hits.some((h) => h.kind === kind && h.tool === tool)) hits.push({ kind, tool }); };
+  // continuation lines joined; here-doc bodies dropped, except a body fed to a shell word (read as words)
+  const bodies = [];
+  let text = full.replace(/\\\r?\n/g, "").replace(HEREDOC, (m, tag, off, whole) => {
+    const before = whole.slice(0, off); const nl = m.indexOf("\n");
+    if (/(?:^|[\s|&;(])(?:\S*\/)?(?:sh|bash|zsh|dash|ksh)(?=\s|$)/.test(before.slice(before.lastIndexOf("\n") + 1) + m.slice(0, nl))) bodies.push(m.slice(nl + 1));
+    return " ";
+  });
+  if (bodies.length) text += "\n" + bodies.join("\n");
+  const mp = stripMap(text, /(?!)/g, false);
+  // opacity is tested with double-quoted content kept and single-quoted content blanked
+  let opaque = bodies.length > 0 || /\$\(|`|<\(|>\(/.test(mp.s.replace(MARK, (_, n) => (mp.q[+n].k === "s" ? "''" : mp.q[+n].text)));
+  const parts = mp.s.split(/&&|\|\||;|\||\n|(?<![<>&])&(?![>&])/).map((x) => x.trim()).filter(Boolean).map((raw) => {
+    const words = [];
+    for (const w of raw.split(/\s+/).filter(Boolean)) {
+      const u = unq(w, mp.q); const whole = /^\x01\d+\x02$/.test(w);
+      let t = whole ? u.text : u.text.replace(/\\(.)/g, "$1").replace(D2_EDGE, "");
+      if (t !== "") words.push({ t, q: u.quoted, msg: false });
+    }
+    return { raw, words };
+  });
+  // triggers of the D2-opaque list (§7); `-c` is case-sensitive
+  for (const p of parts) {
+    const o = p.words.map((w) => w.t); const lc = o.map(d2base);
+    const ci = o.findIndex((x) => !/^\w+=/.test(x));
+    const later = (i, f) => o.slice(i + 1).some(f);
+    if (lc.some((x) => x === "eval" || x === "xargs") || (ci >= 0 && (lc[ci] === "source" || lc[ci] === "."))) opaque = true;
+    lc.forEach((b, i) => {
+      if (D2_SHELL.has(b) && (i === ci || later(i, (x) => /^-[A-Za-z]*c[A-Za-z]*$/.test(x)) || /<<</.test(p.raw) || /<</.test(p.raw))) opaque = true;
+      if (b === "env" && later(i, (x) => /^-[A-Za-z]*S/.test(x))) opaque = true;
+      if ((b === "npx" || b === "pnpm" || b === "su" || (b === "npm" && later(i, (x) => x === "exec"))) && later(i, (x) => x === "-c" || x === "--call")) opaque = true;
+      if (b === "osascript" && later(i, (x) => x === "-e")) opaque = true;
+      if (b === "find" && later(i, (x) => ["-exec", "-execdir", "-ok", "-okdir"].includes(x))) opaque = true;
+      if (b === "git" && i >= 0 && !o[i].startsWith("-")) {
+        if (later(i, (x) => x === "-c" || x === "--exec" || x.startsWith("--exec=") || x === "-x" || x === "rebase" || x === "filter-branch")) opaque = true;
+        const bi = o.indexOf("bisect", i); const si = o.indexOf("submodule", i);
+        if ((bi >= 0 && o[bi + 1] === "run") || (si >= 0 && o[si + 1] === "foreach")) opaque = true;
+      }
+    });
+  }
+  const trim = (s) => s.replace(D2_EDGE, "");
+  for (const p of parts) {
+    // git message values (-m, --message) of commit, tag, merge, stash and notes are data (REQ-3)
+    const o0 = p.words.map((w) => w.t);
+    const gi = o0.findIndex((x, i) => d2base(x) === "git" && !x.startsWith("-") && !/^\w+=/.test(x));
+    if (gi >= 0) {
+      const { sub, at } = d2GitSub(o0, gi);
+      if (D2_MSG_SUB.has(sub)) for (let j = at + 1; j < p.words.length; j++) {
+        const t = p.words[j].t;
+        if ((t === "-m" || t === "--message" || /^-[A-Za-z]*m$/.test(t)) && p.words[j + 1]) p.words[j + 1].msg = !D2_SUBST.test(p.words[j + 1].t);   // a substitution in the message is no plain data
+        else if (t.startsWith("--message=")) p.words[j].msg = !D2_SUBST.test(t);
+      }
+    }
+    p.flat = !opaque ? p.words : p.words.flatMap((w) => (w.q ? [w, ...w.t.split(/[\s;&|]+/).map(trim).filter(Boolean).map((t) => ({ t, q: false, msg: w.msg }))] : [w]));
+    const o = p.words.map((w) => w.t); const ci = o.findIndex((x) => !/^\w+=/.test(x));
+    p.cmd = ci >= 0 ? d2base(o[ci]) : "";
+    let k = D2_K.has(p.cmd);
+    if (p.cmd === "git") k = D2_K_GIT.has(d2GitSub(o, ci).sub);
+    else if (p.cmd === "brew") k = ["info", "list", "search"].includes(o[ci + 1]);
+    else if (p.cmd === "gem") k = o[ci + 1] === "list";
+    else if (p.cmd === "npm") k = ["ls", "view"].includes(o[ci + 1]);
+    p.inert = k && !opaque;
+  }
+  // `cd`, `pushd` or a directory option (-C, --chdir, ...) makes a relative word point somewhere else: no temp-set trust
+  const hasCd = parts.some((p) => p.flat.some((w) => d2DirOpt(w.t)));
+  const revPath = (x) => /^[^/]*:/.test(x);                      // <rev>:path names a blob, not a file of the working directory
+  const tempOnly = (v) => !!policy && !hasCd && policy.allowedLocation(v, cwd, rootOf()) && path.resolve(cwd, v) !== path.join(path.resolve(rootOf()), "android", "app", "debug.keystore");
+  for (const p of parts) {
+    const f = p.flat.map((w) => w.t); const lc = f.map((x) => x.toLowerCase());
+    if (!p.inert) {
+      // REQ-1: tool words
+      for (const w of f) {
+        const cands = [w]; const eq = w.lastIndexOf("="); if (eq >= 0) cands.push(trim(w.slice(eq + 1)));
+        for (const c of cands) {
+          const b = d2base(c).replace(/(.)@[^@/]*$/, "$1");
+          if (D2_S.has(b)) add("store", D2_S_SHOWN[b] || b); else if (/^bundletool.*\.jar$/.test(b)) add("store", "bundletool");
+        }
+        if (w.toLowerCase().includes("androidpublisher")) add("store", "androidpublisher");
+        if (w.toLowerCase().includes("api.appstoreconnect.apple.com")) add("store", "api.appstoreconnect.apple.com");
+      }
+      if (f.some((x) => d2base(x) === "xcodebuild") && lc.some((x) => D2_F.has(x) || x.startsWith("-authenticationkey"))) add("store", "xcodebuild");
+      f.forEach((x, i) => { if (["gradlew", "gradlew.bat", "gradle"].includes(d2base(x)) && f.slice(i + 1).some((y) => D2_G.test(y) && !/tomavenlocal$/i.test(y))) add("store", "gradle"); });
+      // REQ-2: signing material
+      f.forEach((x, i) => {
+        const b = d2base(x); const next = lc[i + 1]; const rest = f.slice(i + 1);
+        if (b === "security" && next !== undefined && next !== "find-identity" && next !== "help") add("signing", "security");
+        if (b === "keytool" && next !== undefined && !["-genkeypair", "-genkey", "-help"].includes(next)) add("signing", "keytool");
+        if (b === "codesign") {
+          let sign = false; let adhoc = true;
+          rest.forEach((y, j) => {
+            let val = null;
+            if (y.startsWith("--sign")) { sign = true; val = y.startsWith("--sign=") ? y.slice(7) : y === "--sign" ? rest[j + 1] : "?"; }
+            else if (/^-[A-Za-z0-9]+$/.test(y) && y.includes("s")) { sign = true; const tail = y.slice(y.indexOf("s") + 1); val = tail !== "" ? tail : rest[j + 1]; }
+            if (val !== null && val !== "-") adhoc = false;
+          });
+          if (sign && !adhoc) add("signing", "codesign");
+        }
+        if (b === "apksigner" && next === "sign") {
+          const ks = rest.findIndex((y) => y === "--ks" || y.startsWith("--ks="));
+          const v = ks < 0 ? null : rest[ks].startsWith("--ks=") ? rest[ks].slice(5) : rest[ks + 1];
+          if (!(v && tempOnly(v))) add("signing", "apksigner");
+        }
+        if (b === "jarsigner") {
+          const ks = rest.indexOf("-keystore");
+          if (!(ks >= 0 && rest[ks + 1] && tempOnly(rest[ks + 1]))) add("signing", "jarsigner");
+        }
+      });
+    }
+    // REQ-7: rollback of hook sources by a plain git command (no inert set, no exceptions)
+    p.flat.forEach((w, i) => {
+      if (d2base(w.t) !== "git" || w.t.startsWith("-") || /^\w+=/.test(w.t)) return;
+      const { sub, at } = d2GitSub(f, i);
+      if (D2_ROLLBACK.has(sub) && p.flat.slice(at + 1).some((x) => !x.msg && d2Hook(x.t))) add("rollback", sub);
+    });
+    // REQ-3: secret-file names (the inert set does not apply)
+    if (policy && !(!opaque && ["ls", "stat", "test", "["].includes(p.cmd))) {
+      for (const w of p.flat) {
+        if (w.msg) continue;
+        const pat = policy.secretFileName(w.t);
+        if (!pat) continue;
+        const eq = w.t.lastIndexOf("=");
+        if (!hasCd && !revPath(w.t) && (policy.allowedLocation(w.t, cwd, rootOf()) || (eq >= 0 && policy.allowedLocation(w.t.slice(eq + 1), cwd, rootOf())))) continue;
+        add("secret", pat);
+      }
+    }
+  }
+  return hits;
+}
+
 function bashBranch(ev) {
+  if (REPAIR_SHAPE.test(String((ev.tool_input && ev.tool_input.command) || ""))) process.exit(0);
   const full = String((ev.tool_input && ev.tool_input.command) || "").replace(/[\x01\x02]/g, "\x03");
   const cwd = ev.cwd || process.cwd();
   const cleaned = strip(full);
@@ -390,6 +556,24 @@ function bashBranch(ev) {
       }
       if (bin === "rm" && rest.some((x) => /^-[a-zA-Z]*[rR]/.test(x) || x === "--recursive")) envelope("özyinelemeli silme.");
       if (/\b(curl|wget)\b/.test(seg) && /\|\s*(sh|bash|zsh)\b/.test(v)) envelope("indirilen betiği doğrudan çalıştırma.");
+    }
+  }
+
+  // --- spec 0010: store, signing, secret-name and hook-rollback rules (REQ-1..4, REQ-7); the mode rule applies ---------------
+  {
+    const shown = String(mode).replace(/[^\x20-\x7e]/g, "?").slice(0, 40);
+    const rootOf = () => policy.context(ev, { mode: "host", env: process.env, harnessDir: __dirname }).root;
+    const RULE = { store: "store upload or release signing", signing: "signing material", secret: "secret file name", rollback: "hook source rollback" };
+    const ASK = { store: "mağaza yükleme veya sürüm imzası", signing: "imza malzemesi", secret: "gizli dosya adı", rollback: "kanca kaynağını geri alma" };
+    const HINT = { secret: " To list names use ls, stat or the Glob tool.", rollback: ' Only "git restore --source=HEAD -- harness/<name>.js" stays open.' };
+    for (const h of d2Scan(full, cwd, rootOf)) {
+      const label = h.kind === "rollback" ? "git " + h.tool : h.tool;
+      if (modeAsks) {
+        if (h.kind === "store" && found.some((x) => x.d === "ask" && x.why.includes("(" + h.tool + ")"))) continue;   // the remote rule already asks (R-3)
+        note("ask", ASK[h.kind] + " (" + label + "): bu komutu yalnız CEO çalıştırır.");
+      } else {
+        refuse(RULE[h.kind] + " (" + label + ") is the CEO's alone, and permission mode '" + shown + "' is not proven to show his dialog. The CEO runs this command in his own terminal (no hook runs there); no spec opens it. Do not rewrite the command to get around this refusal." + (HINT[h.kind] || ""));
+      }
     }
   }
 

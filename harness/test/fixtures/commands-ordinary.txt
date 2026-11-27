@@ -1,0 +1,85 @@
+npm install
+npm run build
+npm test
+npm run lint
+npx expo start
+npx expo prebuild
+npx expo run:android
+npx expo run:ios
+npx react-native start
+npx react-native run-android
+npx react-native run-ios
+npx tsc --noEmit
+npx jest --watchAll=false
+npx eslint src --ext .ts,.tsx
+yarn install
+yarn test
+pnpm install
+pod install
+cd ios && pod install
+cd android && ./gradlew assembleDebug
+./gradlew assembleRelease
+./gradlew bundleRelease
+./gradlew test
+./gradlew publishToMavenLocal
+./gradlew clean
+./gradlew :app:dependencies
+./gradlew --version
+xcodebuild -scheme A build
+xcodebuild -showBuildSettings
+xcodebuild test -scheme A -destination 'platform=iOS Simulator,name=iPhone 15'
+xcodebuild -list
+xcrun simctl list
+xcrun simctl boot "iPhone 15"
+xcrun --show-sdk-path
+adb devices
+adb logcat -d
+dotnet build
+dotnet test
+dotnet restore
+dotnet run --project src/App
+dotnet publish -c Release
+dotnet format --verify-no-changes
+node --version
+node scripts/build-index.js
+python3 -m pytest
+git status
+git status --short
+git diff
+git diff --stat HEAD~1
+git log --oneline -n 10
+git log --grep "deliver"
+git show HEAD
+git add -A
+git commit -m "feat: add login screen"
+git commit -m "docs: mention fastlane and eas in the notes"
+git branch -a
+git checkout feat/x
+git stash list
+git blame README.md
+ls -la
+ls android/app
+cat package.json
+cat android/app/debug.keystore
+head -n 20 README.md
+grep -rn "TODO" src
+grep -r eas .
+rg "fastlane" docs
+find . -name "*.tsx" -not -path "./node_modules/*"
+which node
+which fastlane
+echo hello
+mkdir -p build/out
+touch src/new.ts
+wc -l src/index.ts
+diff a.txt b.txt
+brew info fastlane
+brew list
+curl https://example.com/
+curl -s http://localhost:8081/status
+docker compose up -d
+docker build -t app .
+docker ps
+sleep 1
+pwd
+env
