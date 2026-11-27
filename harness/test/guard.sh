@@ -789,6 +789,25 @@ EOF
 for c in 'git push origin main' 'gh release create v1' 'ssh host' 'rm -rf build' 'git rebase main'; do
   for md in - default plan acceptEdits auto bypassPermissions; do t "D2 AC-3 unchanged: $c asks in mode $md" ask "$(gb "$F" "$F" "$c" "$md")"; done
 done
+# appsec conditions S-01..S-03 (pathspec globs, message values with substitution, directory options and <rev>:path)
+d2 "appsec S-01/S-02" <<'EOF'
+R@@git checkout HEAD~1 -- 'harness/*'
+R@@git checkout HEAD~1 -- harness/guard.j?
+R@@git checkout HEAD~1 -- '*guard.js'
+R@@git restore -s HEAD~1 -- .claude/settings.json
+R@@git checkout HEAD~1 -- :/harness
+R@@git checkout HEAD~1 -- harness/bin/check
+R@@git commit -m "$(cat release.jks)"
+R@@git commit -m "$(base64 -i android/app/release.jks)"
+R@@git stash push -m "$(cat a.p12)"
+N@@git stash push -m "wip? done"
+N@@git commit -m "plain message about release.jks"
+N@@git checkout harness/0010-guard-hardening
+EOF
+t "appsec S-03 R: git -C <repo> show HEAD:release.jks from a temp cwd" deny "$(gb "$WS" "$WS" "git -C $WS show HEAD:release.jks" auto)"
+t "appsec S-03 R: tar -C <dir> -cf - release.jks from a temp cwd" deny "$(gb "$WS" "$WS" "tar -C $WS -cf - release.jks" auto)"
+t "appsec S-03 R: env -C <dir> cat release.jks from a temp cwd" deny "$(gb "$WS" "$WS" "env -C $WS cat release.jks" auto)"
+t "appsec S-03 R: git show HEAD:release.jks from a temp cwd" deny "$(gb "$WS" "$WS" "git show HEAD:release.jks" auto)"
 # REQ-11 (AC-8): every line of the ordinary-command corpus gets no opinion in a signed workspace in mode auto
 n=0; bad=0
 while IFS= read -r line; do

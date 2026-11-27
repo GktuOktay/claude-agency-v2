@@ -27,3 +27,8 @@
 ## AC-7 empty-active copy (§10 step 7)
 - `git worktree add --detach .claude/worktrees/0010-empty HEAD`, spec file removed, `specs/active/` removed: its `harness/bin/check` printed `CHECK GREEN (full)` and `LINT RULE TESTS GREEN: 542 passed, 0 failed` (same 542 cases as in the repository). Copy removed with `--force`.
 - Not done by this unit (T-6 and §10 step 8, main session): qa/appsec/audit chain, live `auto` record per family, W/P removal, ACIK-ISLER marks.
+
+## AppSec conditions S-01..S-04 (guard.js, guard.sh, README)
+- Red first in W: 12 new cases FAIL (`GUARD TESTS FAILED: 1174 passed, 12 failed`); green after the fix: `GUARD TESTS GREEN: 1186 passed, 0 failed`; W and main `check` green.
+- S-01 pathspec words with a glob character, `:/`, a leading dot or a path deeper in `harness/` count as hook words (a one-segment branch name `harness/0010-x` still has no opinion, AC-5). S-02 a message value holding `$(` or a backtick is no longer exempt. S-03 `-C`, `--chdir`, `--directory`, `--git-dir`, `--work-tree`, `cd`, `pushd` and `<rev>:path` void the relative temp-set trust. S-04 and the G-26 scope note are in README G-23 and G-26.
+- Live write of `harness/guard.js`: `cmp` identical to W; canaries `git status --short` ran, `echo git --no-verify` blocked, this note written.

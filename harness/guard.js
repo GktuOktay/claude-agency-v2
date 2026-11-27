@@ -204,7 +204,15 @@ function d2GitSub(o, i) {
   while (k < o.length && o[k].startsWith("-")) k += GIT_VALUE_OPTS.has(o[k]) ? 2 : 1;
   return { sub: o[k], at: k };
 }
-const d2Hook = (w) => { let s = w.replace(/^\.\//, "").replace(/\/+$/, ""); return s === "." || s === "harness" || s.endsWith("/harness") || /(^|\/)harness\/[^/]+\.js$/.test(s); };
+// A pathspec word that may name a hook source: a glob character, `:/`, a leading dot (`.`, `./harness`, `.claude/...`), `harness`,
+// `<x>/harness`, `harness/<x>.js` or a path deeper in `harness/` (a branch name such as `harness/0010-x` has one segment and does not count).
+const d2Hook = (w) => {
+  const s = w.replace(/\/+$/, "");
+  if (/[*?\[]/.test(w) || w.startsWith(":/") || w.startsWith(".")) return true;
+  return s === "harness" || s.endsWith("/harness") || /(^|\/)harness\/[^/]+\.js$/.test(s) || /^harness\/[^/]+\//.test(s);
+};
+const D2_SUBST = /\$\(|`/;
+const d2DirOpt = (x) => ["cd", "pushd"].includes(d2base(x)) || x === "-C" || ["--chdir", "--directory", "--git-dir", "--work-tree"].includes(x) || /^--(chdir|directory|git-dir|work-tree)=/.test(x);
 
 // -> [{ kind: "store"|"signing"|"secret"|"rollback", tool }]
 function d2Scan(full, cwd, rootOf) {
@@ -257,8 +265,8 @@ function d2Scan(full, cwd, rootOf) {
       const { sub, at } = d2GitSub(o0, gi);
       if (D2_MSG_SUB.has(sub)) for (let j = at + 1; j < p.words.length; j++) {
         const t = p.words[j].t;
-        if ((t === "-m" || t === "--message" || /^-[A-Za-z]*m$/.test(t)) && p.words[j + 1]) p.words[j + 1].msg = true;
-        else if (t.startsWith("--message=")) p.words[j].msg = true;
+        if ((t === "-m" || t === "--message" || /^-[A-Za-z]*m$/.test(t)) && p.words[j + 1]) p.words[j + 1].msg = !D2_SUBST.test(p.words[j + 1].t);   // a substitution in the message is no plain data
+        else if (t.startsWith("--message=")) p.words[j].msg = !D2_SUBST.test(t);
       }
     }
     p.flat = !opaque ? p.words : p.words.flatMap((w) => (w.q ? [w, ...w.t.split(/[\s;&|]+/).map(trim).filter(Boolean).map((t) => ({ t, q: false, msg: w.msg }))] : [w]));
@@ -271,7 +279,9 @@ function d2Scan(full, cwd, rootOf) {
     else if (p.cmd === "npm") k = ["ls", "view"].includes(o[ci + 1]);
     p.inert = k && !opaque;
   }
-  const hasCd = parts.some((p) => p.flat.some((w) => ["cd", "pushd"].includes(d2base(w.t))));
+  // `cd`, `pushd` or a directory option (-C, --chdir, ...) makes a relative word point somewhere else: no temp-set trust
+  const hasCd = parts.some((p) => p.flat.some((w) => d2DirOpt(w.t)));
+  const revPath = (x) => /^[^/]*:/.test(x);                      // <rev>:path names a blob, not a file of the working directory
   const tempOnly = (v) => !!policy && !hasCd && policy.allowedLocation(v, cwd, rootOf()) && path.resolve(cwd, v) !== path.join(path.resolve(rootOf()), "android", "app", "debug.keystore");
   for (const p of parts) {
     const f = p.flat.map((w) => w.t); const lc = f.map((x) => x.toLowerCase());
@@ -318,7 +328,7 @@ function d2Scan(full, cwd, rootOf) {
     p.flat.forEach((w, i) => {
       if (d2base(w.t) !== "git" || w.t.startsWith("-") || /^\w+=/.test(w.t)) return;
       const { sub, at } = d2GitSub(f, i);
-      if (D2_ROLLBACK.has(sub) && f.slice(at + 1).some(d2Hook)) add("rollback", sub);
+      if (D2_ROLLBACK.has(sub) && p.flat.slice(at + 1).some((x) => !x.msg && d2Hook(x.t))) add("rollback", sub);
     });
     // REQ-3: secret-file names (the inert set does not apply)
     if (policy && !(!opaque && ["ls", "stat", "test", "["].includes(p.cmd))) {
@@ -327,7 +337,7 @@ function d2Scan(full, cwd, rootOf) {
         const pat = policy.secretFileName(w.t);
         if (!pat) continue;
         const eq = w.t.lastIndexOf("=");
-        if (!hasCd && (policy.allowedLocation(w.t, cwd, rootOf()) || (eq >= 0 && policy.allowedLocation(w.t.slice(eq + 1), cwd, rootOf())))) continue;
+        if (!hasCd && !revPath(w.t) && (policy.allowedLocation(w.t, cwd, rootOf()) || (eq >= 0 && policy.allowedLocation(w.t.slice(eq + 1), cwd, rootOf())))) continue;
         add("secret", pat);
       }
     }
