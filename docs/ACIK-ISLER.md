@@ -84,3 +84,8 @@ CEO 2026-11-21: 0002 bitmiş sayıldı, spec dosyası değiştirilmeden `specs/d
 ## D. Temizlik
 
 - [x] `docker rmi company-agent:test` yapıldı.
+
+## E. Spec 0008 teslim sonrası (2026-11-27)
+
+- [ ] B35: Atılık Android anahtar parolasının izinli bir geçiş yolu yok (appsec S-02, `docs/kanit/0008-appsec.md`); REQ-7 yalnız `ORG_GRADLE_PROJECT_…` env değişkenine izin veriyor, Bash çağrıları arasında taşınmıyor. Sonraki spec revizyonu.
+- [ ] B36: `devops-sre` spawn 4132 > §6.6 başlığındaki 4090 (AC-20 işaretçisi zorunlu kıldı); §6.6 ifadesi sonraki revizyonda düzeltilecek.

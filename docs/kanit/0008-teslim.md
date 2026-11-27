@@ -50,3 +50,8 @@ Ruling: yazım görevleri token ekonomisi için polyglot-engineer'a devredildi �
 - `rn-engineering` Metro satırı spec §6.5 bulgu 3 ve AC-27 olumsuz/ölçülemedi dalıyla uyumlu geçici metin; T-31 ile değişir.
 - `store-release` ön-commit parçacığındaki hizmet hesabı denetimi `git grep --cached -q` kullanır (yalnız dosya adı/çıkış kodu, içerik basılmaz).
 - Deneme deposu `RAPOR.md` bu oturumda okunmadı; 12 bulgu spec §6.5 tablosundan alındı.
+
+## Denetim 1. tur kapanışları (ana oturum, 2026-11-27)
+- AC-13: `visual-check.sh` çalışmadı (Docker kapalı). Yerine uygulama içi tarayıcı: 375 px, açık ve koyu tema, yatay kaydırma yok (scrollWidth 375), "21 agent" metni. axe taraması yapılmadı.
+- AppSec raporu `docs/kanit/0008-appsec.md`; S-02 için metin değişikliği geri alındı (REQ-7 imzalı haliyle), açık iş B35.
+- Ruling: yazar işleri ana oturum yerine `polyglot-engineer`'a verildi — token ekonomisi — yanlışsa yeniden yazım gerekmez, yalnız rol sapması; doğrulayıcı ayrı birimler.
