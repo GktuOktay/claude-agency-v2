@@ -55,3 +55,5 @@ Ruling: yazım görevleri token ekonomisi için polyglot-engineer'a devredildi �
 - AC-13: `visual-check.sh` çalışmadı (Docker kapalı). Yerine uygulama içi tarayıcı: 375 px, açık ve koyu tema, yatay kaydırma yok (scrollWidth 375), "21 agent" metni. axe taraması yapılmadı.
 - AppSec raporu `docs/kanit/0008-appsec.md`; S-02 için metin değişikliği geri alındı (REQ-7 imzalı haliyle), açık iş B35.
 - Ruling: yazar işleri ana oturum yerine `polyglot-engineer`'a verildi — token ekonomisi — yanlışsa yeniden yazım gerekmez, yalnız rol sapması; doğrulayıcı ayrı birimler.
+- AC-5/AC-14 smoke (plan modu, çıktılar repo dışında): product-designer `CASE 1 PASSED (7/7)`, ux-writer `CASE 1 PASSED (7/7)`, rn-engineer `CASE 1 PASSED (6/6)`, hepsi exit 0. Tasarımcı çıktısında 6 durumlu tablo; yazar çıktısında anahtar, TR+EN, uzunluk, a11y etiketi sütunlu kopya destesi.
+- Açık (CEO): 1a ve 1b tek dalda, tek PR; ayrı 1a doğrulaması yok, plan dosyası/delivery-manager yok (denetim #3, #4).
