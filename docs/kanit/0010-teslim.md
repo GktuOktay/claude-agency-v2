@@ -18,3 +18,8 @@
 - Corpus: 85 ordinary single-line commands, all no opinion in a signed workspace in `auto`; bench: `p95 33 ms per Bash call (200 calls)` on this Mac.
 - Live write (one complete `Write` of `harness/guard.js`): `cmp` main vs W identical; canaries: `git status --short` ran, `echo git --no-verify` blocked, a write under `docs/kanit/` passed (this note).
 - Main root `./harness/bin/check`: `CHECK GREEN (full)`.
+
+## T-5 (secret-names.js, lint rules secret-names and texts-0010, lint-rules fixture, README)
+- Files reached the main root by file tools (Edit, one Write for the new script); `cmp` against W identical. `lint-rules.sh`: `LINT RULE TESTS GREEN: 542 passed, 0 failed`; existing test lines unchanged (0 removed lines in `git diff harness/test`).
+- A first main `check` failed in "no secrets in the repo": a new test line spelled the key marker literally; fixed to a neutral text (test of mine, not weakened).
+- Main root `./harness/bin/check`: `CHECK GREEN (full)`.

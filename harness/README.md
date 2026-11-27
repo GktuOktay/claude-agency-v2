@@ -24,7 +24,7 @@ Belirteci terminal çıktısından ayıklarken sonuna fazladan karakter yapışa
 
 ## Yol sınıfları
 
-Bir yazma isteğinin hedef yolu tek bir sınıfa düşer ve karar o sınıfa göre verilir. Kaynak: `specs/active/0004-harness-enforcement-gaps.md` §7.1; kod: `policy.js`.
+Bir yazma isteğinin hedef yolu tek bir sınıfa düşer ve karar o sınıfa göre verilir. Kaynak: `specs/done/0004-harness-enforcement-gaps.md` §7.1; kod: `policy.js`.
 
 Kök (R), ana makinede `CLAUDE_PROJECT_DIR` değeridir, boşsa çağrının `cwd` değeridir. Konteynerde her zaman `cwd` değeridir.
 
@@ -163,6 +163,22 @@ Bozuk bir `policy.js` ya da bozuk bir giriş dosyası (`gate.js`, `guard.js`) ho
 
 Oturum içinden onarım yalnız bir durumda olur: `policy.js` yüklenemiyorsa guard her `Bash` çağrısında sorar ve sen tek bir onarım komutuna izin verebilirsin. Pencerenin kanıtlanmadığı kipte bu soru da reddedilir; o zaman onarım oturum dışında yapılır. Oturumlar `auto` kipinde çalışır ve bu kip kanıtlanmamış kiptir: oturum içi onarım sorusu orada her zaman reddedilir, "tek bir onarım komutuna izin ver" yolu yalnız kanıtlı bir kipte başlatılmış oturumda vardır. Uygulamada onarım oturumun dışında, yukarıdaki kurtarma yolu R ile yapılır. Giriş dosyasındaki sözdizimi hatası aracın tamamını engeller ve yalnız oturum dışından onarılır.
 
+Spec 0010'dan beri tek bir komut her kipte guard'dan görüş almaz: `git restore --source=HEAD -- harness/<ad>.js` (bir ya da birkaç dosya, başka hiçbir söz yok). Bu komut kanca kaynağını `HEAD` içeriğine döndürür; `policy.js` yüklenemese de çalışır. Oturum içi onarım böyle yapılır: bozuk `policy.js` için `git restore --source=HEAD -- harness/policy.js`; bozuk `guard.js` için dosya araçlarıyla `HEAD` içeriği yazılır. İkisi birden bozuksa yalnız CEO'nun terminali kalır.
+
+## Hook kaynağı güvenle nasıl değiştirilir
+
+Canlı hook kaynağı (`guard.js`, `policy.js`) doğrudan düzenlenmez; bir oturumu kilitleyebilir. Yol (spec 0010 §10):
+
+1. Ana kökten, çalışma dalında iki ayrık bağlı çalışma ağacı aç: `git worktree add --detach .claude/worktrees/<ad>-hooks HEAD` (çalışma) ve `.claude/worktrees/<ad>-head` (dokunulmaz kopya).
+2. Düzenlemeyi yalnız dosya araçlarıyla çalışma ağacında yap; orada `sh harness/test/guard.sh` ve `harness/bin/check` çalıştır. Hiçbir Bash yazıcısı, betik ya da yorumlayıcı hook kaynağı yazmaz.
+3. `node --check` ve testler yeşilse adayı ana köke dosya başına bir tam `Write` ile getir; her seferinde yalnız bir hook kaynağı. Bash ile dizin kopyası, arşiv, `patch` ya da `git apply` kullanma (G-27).
+4. Hemen üç yoklama yap: `git status --short` çalışır, `echo git --no-verify` guard tarafından durdurulur, `docs/` altına yazma geçer.
+5. Sonuç başka çıkarsa `HEAD`'e dön (yukarıdaki onarım komutu ya da dokunulmaz kopyadan `Write`), sonra yeniden hazırla. Görev başına en çok üç canlı yazma; sonra dur.
+
+## CEO'ya ait komutlar
+
+Mağaza yükleme, sürüm imzası, anahtar ve profil okuma/dışa aktarma ve kanca kaynağını geri alma komutlarını yalnız CEO kendi terminalinde çalıştırır (orada hook çalışmaz); hiçbir spec bunları açmaz. `auto` kipinde guard bunları reddeder. Örnekler: `fastlane deliver`, `security export`, `keytool -list`, `git rm --cached release.jks` (izlenen bir anahtar dosyasını dizinden çıkarmak CEO terminalinin işidir; `.gitignore` düzenlemeleri dosya araçlarıyla yapılır). Adları listelemek için `ls`, `stat` ya da Glob aracı kullanılır. Dosya adı taraması: `node harness/bin/secret-names.js <kök>` (lint onu kendi kökünde çalıştırır).
+
 ## Bilinen sınırlar
 
 - Hook yalnızca `Write`, `Edit`, `MultiEdit`, `NotebookEdit` üstündedir. `Bash` ile yazma yolunu kapatan şey Docker bağlama modudur (imzasızken çalışma alanı salt-okunur). İkisi birlikte gerekir.
@@ -185,7 +201,7 @@ Ana makinedeki hook'lar kazayı ve dürüst hatayı durdurur; kararlı bir ajan�
 | G-6 | Git'in kendi yaptığı `.git/` yazmaları (şablonla gelen hook'lar, yapılandırma) görülmez. | `core.hooksPath` ayarı ve `.git/` içine yönlendirme sorulur. |
 | G-7 | Yan etki olarak dosya yazan derleme ve paket araçları denetlenmez: `npm install` betikleri, üreteçler, `make`, `dotnet`, `xcodebuild`. | Yok; mühendisler bu araçlara ana makinede ihtiyaç duyar. |
 | G-8 | Guard'ın düz metin olarak göremediği `Bash` hedefleri. Ayrıntı tablonun altında. | Kısmi; ayrıntıda. |
-| G-9 | Uygulamanın her kipte hook'un "sor" kararını pencereye çevirdiği kanıtlı değildir. T-1'de `default` ve `acceptEdits` kanıtlandı; `auto` kipinde pencere açılmadı; `plan` ve `bypassPermissions` gözlenmedi. Guard'ın eski zarf soruları (git, `gh`, uzak erişim, yayın, HTTP, `rm -r`, git yapılandırma ve ortam soruları) ve ham metin üzerindeki zorlama dosyası soruları kip kuralının dışındadır: her kipte "sor" olarak çıkar ve uygulamanın soruyu sessizce geçtiği kipte CEO kararı üretmez. | Yol soruları, imza ve anahtar soruları (`approve.sh`, `--expect` ile ya da onsuz; `approval.js sign` ve `keygen`; anahtar ve `~/.company` erişimi; `ceo-keygen.sh`), kurulum ve onarım soruları kanıtlanmamış kipte reddedilir. Oturumlar `auto` kipinde çalışır (CEO kararı, 2026-11-22): CEO kendi terminalinde imzalar ve bu soruların hiçbiri ona pencere olarak ulaşmaz. |
+| G-9 | Uygulamanın her kipte hook'un "sor" kararını pencereye çevirdiği kanıtlı değildir. T-1'de `default` ve `acceptEdits` kanıtlandı; `auto` kipinde pencere açılmadı; `plan` ve `bypassPermissions` gözlenmedi. Guard'ın eski zarf soruları (git, `gh`, uzak erişim, yayın, HTTP, `rm -r`, git yapılandırma ve ortam soruları) ve ham metin üzerindeki zorlama dosyası soruları kip kuralının dışındadır: her kipte "sor" olarak çıkar ve uygulamanın soruyu sessizce geçtiği kipte CEO kararı üretmez. | Yol soruları, imza ve anahtar soruları (`approve.sh`, `--expect` ile ya da onsuz; `approval.js sign` ve `keygen`; anahtar ve `~/.company` erişimi; `ceo-keygen.sh`), kurulum ve onarım soruları kanıtlanmamış kipte reddedilir. Oturumlar `auto` kipinde çalışır (CEO kararı, 2026-11-22): CEO kendi terminalinde imzalar ve bu soruların hiçbiri ona pencere olarak ulaşmaz. Spec 0010'dan beri kip kuralı D2 ailesini (mağaza yükleme, sürüm imzası ve imza malzemesi komutları, gizli dosya adları) ve kanca kaynağı geri alma komutlarını da kapsar; diğer zarf soruları kapsam dışıdır. |
 | G-10 | CEO anahtarı parolasızdır: imza bir niyet kaydıdır, kimlik kanıtı değildir. | Bilinçli karar (Revizyon 48). |
 | G-11 | Önyükleme: T-6 ve T-9 öncesinde `policy.js`, `approve.sh` ve `install-project.sh` düzenlemeleri ana makinede sorulmadı (o günkü guard kalıbı bu dosyaları tanımıyordu). Spec 0004'ün kendisi önizleme olmadan imzalandı, çünkü önizleme henüz yoktu. 2026-11-22 tarihli deltanın yeniden imzası T-8b'den önce atıldı: o önizleme sekiz zorlama girdisini ayrı başlık altında değil, düz `Unlocks:` satırının içinde gösterdi. | T-11 incelemesi kapsar. Yeniden imzadan önce ana oturum sekiz girdiyi, commit edilmiş `policy.js` ile hesaplayıp CEO'ya yazdırdı; CEO listeyi başlıkla karşılaştırdı (spec §12 imza öncesi adım; kayıt: `docs/kanit/0004-delta-kapi.md`). |
 | G-12 | `specs/` klasörü olmayan çalışma alanında kod ve ürün ayarı için görüş verilmez. `specs/` klasörünü silmek ya da yeniden adlandırmak bu satırları kapatır. | `rm -rf` yine sorulur; `mv specs x` komutu `x` hedefi için sorulur. |
@@ -199,6 +215,11 @@ Ana makinedeki hook'lar kazayı ve dürüst hatayı durdurur; kararlı bir ajan�
 | G-20 | Denetim ile yazma arasındaki yarış: hook yolu çağrı anında sınıflar. Sonradan (paralel bir `Bash` çağrısı ya da başka bir oturum tarafından) değiştirilen sembolik bağ yazma anında yeniden denetlenmez. | Yok. |
 | G-21 | Aynı proje içinde imza tekrarı: kayıtlar `approvals/` altında kalır, göreli yol ve özetle eşleşir, `specs/**` ise serbesttir. Biten bir spec bayt bayt aynı haliyle `specs/active/` klasörüne geri taşınırsa (kazayla ya da bilerek) kod yetkisi ve `Unlocks:` listesi bir sonraki çağrıda sessizce geri gelir. Böyle geri gelen başlık, tam yoluyla adlandırdığı zorlama dosyalarını da yeniden açar (spec 0004 sekiz dosya adlandırır). Kayıt git tarafından yok sayılır (`*.sig.json`), yani silinene kadar diskte durur. | Kalıcı çözüm spec 0005'tedir (CEO'nun çalıştırdığı kayıt emekliye ayırma adımı). O adıma kadar ana oturum kod işinden önce `specs/active/` ile `specs/done/` klasörlerini karşılaştırır; bu yalnız talimattır, hook yoktur. Spec 0004 için emeklilik 0005'i beklemez: spec `specs/done/` klasörüne taşınırken CEO kendi terminalinde o spec'in kaydını `approvals/` klasöründen siler (T-12, AC-19; kalıcı silme zarf eylemidir). |
 | G-22 | `approvals` adlı ürün klasörleri: 2. satır `**/approvals/**` kalıbını içerir. `src/features/approvals/` gibi bir ürün modülü zorlama sınıfına düşer: ana makinede her düzenleme sorulur, konteynerde imzalı spec olsa da her düzenleme reddedilir ve hiçbir `Unlocks:` onu açmaz. | Bir ürün böyle bir modüle ihtiyaç duyarsa CEO karar verir: kalıp daraltılır ya da modül yeniden adlandırılır. |
+| G-23 | D2 kuralları yalnız görünen sözcükleri, R-1'in yazımlarıyla okur. Çalışma anında kurulan sözcükler ve Gradle görev kısaltmaları (`pRB` gibi) geçer. | Spec 0011'in genel ön geçişi ve tripwire'ı. |
+| G-24 | Betik içeriği (Fastfile hattı, npm betiği, Gradle eklentisi, adıyla çağrılan bir API betiği) ve S kümesi dışındaki araçlar görülmez. | Mağaza kimlik bilgilerinin gerçek sınırı bu kullanıcıya erişilebilir olmamalarıdır (0008 R-13). |
+| G-25 | Gizli dosyalar yalnız adıyla tanınır; başka adla saklanan anahtar içeriği raporlanmaz. | İçerik taraması yoktur. |
+| G-26 | Onarım komutu, bütün çağıranlar için commit edilmemiş kanca düzenlemelerini atar ve `HEAD` içeriğini getirir. Yol sözcüğü taşımayan git biçimleri (`git stash`, `git reset --soft`, `git checkout <commit>`, `git apply x.patch`), `harness/` yazmayan yol yazımları (`harness` içinde çalışma dizini, `:/` yol belirteci, `--pathspec-from-file`) ve oynamış bir `HEAD` geri alma kuralınca görülmez. | `git status` ve `git diff` ile commit öncesi bakmak; spec 0011. |
+| G-27 | Ana köke Bash ile dizin kopyası, arşiv ya da yama (`cp -R`, `ditto`, `tar`, `patch`, `git apply`) dosya başına sınıflandırılmaz (G-5, G-17'ye bak). | Yalnız talimat: dosya başına bir `Write`. |
 
 ### G-8 ayrıntısı
 
