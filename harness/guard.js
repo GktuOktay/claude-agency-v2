@@ -180,7 +180,12 @@ const GIT_CONFIG_KEY = /hooksPath|core\.editor|credential|^alias\./i;
 const GIT_CONFIG_WHY = "git yapılandırması (kanca yolu/kimlik/takma ad).";
 const GIT_ENV = /^(GIT_DIR|GIT_WORK_TREE|GIT_EXEC_PATH|GIT_CONFIG_\w*)=/;
 
+// Spec 0010 REQ-8: the repair shape, matched on the whole command before any other rule. It only returns hook sources to the
+// content of HEAD, so it gets no opinion in every mode and for every caller, also when policy.js cannot be loaded.
+const REPAIR_SHAPE = /^git restore --source=HEAD -- harness\/[A-Za-z0-9_-]+\.js( harness\/[A-Za-z0-9_-]+\.js)*$/;
+
 function bashBranch(ev) {
+  if (REPAIR_SHAPE.test(String((ev.tool_input && ev.tool_input.command) || ""))) process.exit(0);
   const full = String((ev.tool_input && ev.tool_input.command) || "").replace(/[\x01\x02]/g, "\x03");
   const cwd = ev.cwd || process.cwd();
   const cleaned = strip(full);

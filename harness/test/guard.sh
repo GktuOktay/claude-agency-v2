@@ -540,5 +540,30 @@ t "REQ-33 QA repro: 4 cases ran, none failed"         4,0   "$(grep -c '^ok    '
 t "AC-10 no new case ever printed an allow decision"  no    "$(if grep -q '"permissionDecision":"allow"' "$TP/all.out" 2>/dev/null; then echo yes; else echo no; fi)"
 t "AC-10 the new cases did print ask decisions"       yes   "$(if grep -q '"permissionDecision":"ask"' "$TP/all.out" 2>/dev/null; then echo yes; else echo no; fi)"
 
+# --- spec 0010 AC-6 (REQ-8): the repair shape gets no opinion in every mode, also when policy.js cannot be loaded ---
+HB="$TP/hb/harness"; mkdir -p "$HB"; cp "$HERE"/*.js "$HB/"; printf '%s\n' 'throw new Error("broken on purpose");' > "$HB/policy.js"
+gbb() { GUARD="$HB/guard.js"; gbr=$(gb "$@"); GUARD=; echo "$gbr"; }          # gb against the copy whose policy.js does not load
+# gba <guard entry> <command> <mode> <agent_type>: as gb, with an agent_type in the event
+gba() {
+  node -e 'const [cwd, cmd, mode, at] = process.argv.slice(1);
+    process.stdout.write(JSON.stringify({ hook_event_name: "PreToolUse", tool_name: "Bash", cwd, permission_mode: mode, agent_type: at, tool_input: { command: cmd } }));' "$WU" "$2" "$3" "$4" > "$TP/g.in"
+  env -u COMPANY_PUBKEY -u COMPANY_SPEC -u COMPANY_HARNESS_DIR CLAUDE_PROJECT_DIR="$WU" HOME="$TH" PATH="$GPATH" node "$1" < "$TP/g.in" > "$TP/g.out" 2> "$TP/g.err"
+  gbrc=$?; if [ "$gbrc" = 2 ]; then echo deny; elif [ "$gbrc" != 0 ]; then echo "error(rc=$gbrc)"; elif [ ! -s "$TP/g.out" ]; then echo allow; else echo ask; fi
+}
+RS1='git restore --source=HEAD -- harness/policy.js'; RS2='git restore --source=HEAD -- harness/guard.js harness/policy.js'
+t "AC-6 broken policy, auto: repair shape, one file, no opinion"   allow "$(gbb "$WU" "$WU" "$RS1" auto)"
+t "AC-6 broken policy, auto: repair shape, two files, no opinion"  allow "$(gbb "$WU" "$WU" "$RS2" auto)"
+t "AC-6 broken policy, no mode: repair shape, no opinion"          allow "$(gbb "$WU" "$WU" "$RS1")"
+t "AC-6 broken policy, auto, agent_type polyglot-engineer: repair shape, no opinion" allow "$(gba "$HB/guard.js" "$RS1" auto polyglot-engineer)"
+t "AC-6 broken policy, auto: git status keeps today's refusal"      deny  "$(gbb "$WU" "$WU" 'git status' auto)"
+t "AC-6 broken policy, auto: shape with '&& x' keeps the refusal"   deny  "$(gbb "$WU" "$WU" "$RS1 && x" auto)"
+t "AC-6 broken policy, auto: --source=HEAD~1 keeps the refusal"     deny  "$(gbb "$WU" "$WU" 'git restore --source=HEAD~1 -- harness/policy.js' auto)"
+t "AC-6 broken policy, auto: harness/bin/check keeps the refusal"   deny  "$(gbb "$WU" "$WU" 'git restore --source=HEAD -- harness/bin/check' auto)"
+t "AC-6 broken policy, auto: CLAUDE.md keeps the refusal"           deny  "$(gbb "$WU" "$WU" 'git restore --source=HEAD -- CLAUDE.md' auto)"
+t "AC-6 broken policy, auto: one more word keeps the refusal"       deny  "$(gbb "$WU" "$WU" "$RS1 extra" auto)"
+for md in - default plan acceptEdits auto bypassPermissions somethingNew; do
+  t "AC-6 loadable policy, mode $md: repair shape, no opinion"      allow "$(gb "$WU" "$WU" "$RS1" "$md")"
+done
+
 echo; if [ "$fail" -eq 0 ]; then echo "GUARD TESTS GREEN: $pass passed, 0 failed"; else echo "GUARD TESTS FAILED: $pass passed, $fail failed"; fi
 [ "$fail" -eq 0 ]
