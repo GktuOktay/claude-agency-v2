@@ -201,12 +201,19 @@ try {
   for (const f of fs.existsSync(agentsDir) ? fs.readdirSync(agentsDir).filter((x) => x.endsWith(".md")) : []) {
     const p = frontmatter(path.join(agentsDir, f)); if (p && (p.fm.skills || [])[0]) unitSkills.add(p.fm.skills[0]);
   }
-  for (const s of unitSkills) {
+  // spec 0008 REQ-28: a skill whose description starts "Playbook:" needs an eval set even when no unit owns it (on-demand playbooks)
+  const evalSkills = new Set(unitSkills);
+  for (const d of fs.existsSync(skillsDir) ? fs.readdirSync(skillsDir) : []) {
+    const f = path.join(skillsDir, d, "SKILL.md");
+    const p = fs.existsSync(f) ? frontmatter(f) : null;
+    if (p && /^Playbook:/.test(p.fm.description || "")) evalSkills.add(d);
+  }
+  for (const s of evalSkills) {
     const file = path.join(ROOT, "evals", s + ".md");
     if (!fs.existsSync(file)) { bad.push(`evals/${s}.md missing`); continue; }
     for (const pr of evalMod.validate(file)) bad.push(`evals/${s}.md: ${pr}`);
   }
-  if (bad.length) fail("evaluation sets: " + bad.join("; ")); else ok(`evaluation sets: ${unitSkills.size} unit playbooks, each with >=3 self-checking cases`);
+  if (bad.length) fail("evaluation sets: " + bad.join("; ")); else ok(`evaluation sets: ${evalSkills.size} playbooks, each with >=3 self-checking cases`);
 }
 
 // notification and enforcement-file hooks, and the templates the processes rely on
