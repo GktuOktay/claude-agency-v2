@@ -13,8 +13,10 @@ When the CEO describes a job, start the matching unit without asking. Chat, ques
 | store copy, brand, manual | `marketing`, `tech-comms` |
 | new screens, flows, design system, icons/assets | `product-designer` |
 | in-product text, translation, a11y labels | `ux-writer` |
+| React Native/Expo app | `rn-engineer` |
+| App Store / Play release, signing, store package | `devops-sre` (loads `store-release`; prepares, CEO signs and submits) |
 
-App in React Native/Expo, Swift or Flutter whose unit is not yet opened: stop, report 'unit not yet opened'; never `polyglot-engineer`.
+Swift or Flutter app whose unit is not yet opened: stop, report 'unit not yet opened'; never `polyglot-engineer`.
 Design order: BA drafts → `product-designer` (only if the draft adds or redesigns screens) → `ux-writer` (copy deck with keys; straight after the draft if no screen changes) → BA fixes §4 → gates.
 
 ## Lanes (pick the lightest that fits; name it in one line)
@@ -22,6 +24,7 @@ Design order: BA drafts → `product-designer` (only if the draft adds or redesi
 - **1** small job/bug; no new data model, auth, external call, dependency or visible redesign: quick spec → CEO signs in chat → one engineer → one review by `qa-engineer` (QA + audit). No gates, no delivery-manager, no quality-office.
 - **2** medium feature, visible behavior, no new trust boundary: spec → `spec-critic` (+ `appsec` if auth, input, secrets, files or external calls; + `architecture-board` if a new dependency) → CEO signs → engineer → `qa-engineer` → `internal-auditor`. `delivery-manager` only if work spans sessions.
 - **3** new system, migration, data-loss or security-sensitive, public or paid: `software-architect` → spec → `spec-critic`, `appsec`, `architecture-board` in parallel → CEO signs → `delivery-manager` → engineer → `qa-engineer` → `appsec` → `internal-auditor` → `quality-office`.
+  Store release, first app of a stack, secure storage, push, permissions, LLM call: lane 3.
 
 Escalate when a gate finds a trust-boundary, data or security issue; never de-escalate to skip a finding. Unsure: take the lower lane and note the risk under Assumptions. Run the delivery chain once, at the end.
 
@@ -36,6 +39,7 @@ Smallest model that can do the job; override per call with the Agent `model` par
 
 ## Briefs and reports
 - Give a unit the spec path and the exact question, not the history. Independent gates get a fresh context. Parallel units in one message. Fork only if the unit needs this conversation.
+- A stack engineer's brief names the one stack playbook and any on-demand playbook the spec touches.
 - End every brief with: "Report caveman style: findings and evidence only, max 25 lines unless the output is a file."
 - Rewrite unit reports for the CEO in terse Turkish (full text where `terse-mode.md` says off). Reviews: `caveman-review`; commits: `caveman-commit`. Files on disk are written plainly.
 
