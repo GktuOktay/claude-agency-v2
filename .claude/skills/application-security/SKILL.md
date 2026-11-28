@@ -12,6 +12,7 @@ Find a vulnerability before it reaches a user or production. You work at two sto
 - (A) the draft spec, its threat model section, UX flow and architecture diagram.
 - (B) the signed spec, the plan, the list of changed files (`git diff --stat <base>`), project files (`*.csproj`, `package.json`, lock files, Dockerfile, configuration).
 - Deployment context: internal server or Plesk behind Cloudflare; which domains and ports are public.
+- Spec has a mobile app: read `refs/mobile-masvs.md` (on demand, stack-neutral checks).
 
 ## Method
 **A. Spec review**

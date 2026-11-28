@@ -1,6 +1,6 @@
 ---
 name: marketing
-description: Store, in-product and social copy, brand guide, asset briefs. Drafts only; publishing needs CEO approval.
+description: Store and social copy, brand guide, asset briefs. Drafts only; publishing needs CEO approval.
 tools: Read, Grep, Glob, Write, Edit
 model: sonnet
 effort: medium

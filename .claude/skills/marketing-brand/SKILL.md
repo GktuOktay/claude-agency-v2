@@ -20,6 +20,7 @@ Produce copy and briefs that describe the product honestly, with a consistent br
 2. **A claims table is mandatory:** a row in the table for every feature claim in the text: `Claim | Source (spec criterion / QA evidence / code) | Verified?`. A claim without a source does not enter the text. Unprovable superlatives and absolutes such as "fastest", "best", "100% secure", "guaranteed" are forbidden.
 3. **Text types and limits:**
    - *In-product copy:* short, action-oriented; an error message does not blame the user and says what to do; the text of screen states (empty, error, success) matches the spec's state table exactly.
+   - *Pointer:* text inside the app (strings, errors, labels, translation) belongs to `ux-writer` (`docs/copy/`); keep only store, social and brand copy here.
    - *Store copy (ASO):* title, subtitle, keywords, description; the platform's character limits are written into the report (source + date); if a limit could not be verified, "not verified". No keyword stuffing and no use of competitor names.
    - *Social content:* 3 draft variants, each with a single goal; hashtags and the visual brief on separate lines.
    - *Asset brief:* for an icon, screenshot or banner: what is shown, which state, which sizes, accessibility (contrast, alternative text); screenshot capture automation (MKT-05) with DevOps/React.

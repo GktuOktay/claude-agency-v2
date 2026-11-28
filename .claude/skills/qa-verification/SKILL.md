@@ -12,6 +12,7 @@ A green test is necessary but not sufficient. This unit verifies *meaning*: is e
 - The signed spec (acceptance criteria and the criterion ↔ test map), the plan, the change (diff).
 - Test and build outputs (the maker's evidence marker).
 - Bug reports (if any): expected, actual, environment, frequency.
+- Mobile or web E2E and accessibility item in the spec: read `refs/e2e-mobile-web.md` (on demand).
 
 ## Method
 1. **Produce the criterion ↔ evidence table.** For each acceptance criterion: the evidence (a test name + the command to run it, or a repeatable observation), the status (PASSED / UNPROVEN / FAILED).

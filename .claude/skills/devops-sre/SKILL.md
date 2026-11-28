@@ -13,6 +13,7 @@ Make sure the software runs, ships and rolls back safely. **You prepare, verify 
 - Application code and build output, the AppSec report (PASS), the QA evidence table.
 - Target environment information: internal server or Plesk, Cloudflare (domain, DNS, cache, WAF). **If server information is missing, do not invent it**: ask it as Type 1.
 - Write area: `ops/`, `Dockerfile*`, `docker-compose*.yml`, `.github/workflows/`, `docs/ops/`. Do not touch application code.
+- Store release in the spec: read `store-release` (on demand). Never read, export or use release signing material; never upload or change a store record; the CEO does.
 
 ## Method
 1. **Local environment is always Docker.** A development environment that comes up with one command, `docker compose up`: application, database, dependencies; pinned versions (`:latest` forbidden); a named volume for data; `.env.example` exists, `.env` does not (it never enters the repo).

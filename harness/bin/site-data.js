@@ -31,9 +31,12 @@ const UNITS = {
   "scout":             ["u1", 3, "Scout", "Hazır çözüm arar (API, depo, MCP, plugin), kaynaklı karşılaştırır. Kurmaz: Bash'i yok."],
   "software-architect":["u1", 5, "Software architect", "Spec'ten önce çözüm mimarisini ve (göçte) kaynak-hedef geçişi tasarlar; seçenekleri ödünleşimle yazar. Kendi tasarımını onaylamaz, Bash'i yok."],
   "delivery-manager":  ["u1", 4, "Delivery", "İmzalı spec'ten plan, issue, branch ve PR üretir, CI'ı izler. main'e gideni Approver'a bırakır."],
+  "product-designer":  ["u1", 6, "Product designer", "BA taslağındaki ekranlardan akış, ekran durum tablosu ve açık/koyu tasarım token'ları çıkarır; HIG ve Material uyumuna bakar. Kod ve metin yazmaz, Bash'i yok."],
+  "ux-writer":         ["u1", 7, "UX writer", "Uygulama içi metni anahtarlı TR/EN metin destesi olarak yazar: uzunluk sınırı, çoğul, hata metni, ekran okuyucu etiketi. Mağaza metni yazmaz, Bash'i yok."],
   "dotnet-engineer":   ["u2", 0, ".NET engineer", "İmzalı spec'i C# / ASP.NET Core / EF Core ile test önce yaklaşımıyla koda çevirir."],
   "react-engineer":    ["u2", 1, "React engineer", "İmzalı spec'i React, TypeScript, Vite ile tüm ekran durumlarıyla (yükleniyor, boş, hata, başarı) koda çevirir."],
   "polyglot-engineer": ["u2", 6, "Polyglot engineer", "Django, Vue, PHP gibi standart dışı yığınları okur, davranış envanteri çıkarır; imzadan sonra port eder veya adlandırılmış yığında geliştirir."],
+  "rn-engineer":      ["u2", 7, "RN engineer", "İmzalı spec'i React Native + Expo ile test önce koda çevirir; yalnız debug, imzasız veya geçici anahtarlı yapı üretir, mağaza ve imza anahtarı Approver'ındır."],
   "qa-engineer":       ["u2", 2, "QA engineer", "Her kabul kriterini bir kanıta eşler, testleri kodu bozarak yoklar. Üretim kodu yazmaz."],
   "devops-sre":        ["u2", 3, "DevOps / SRE", "Deploy paketi (adım, geri alma, sağlık kontrolü), CI, yedek ve izleme hazırlar. Deploy etmez."],
   "marketing":         ["u2", 4, "Marketing", "Mağaza ve ürün metni, marka kılavuzu, varlık brifi yazar. İddiaları kaynağa bağlar; yayınlamaz."],
@@ -98,13 +101,15 @@ const EDGES = [
   ["check", "evals", "denetim", "kılavuz setlerini kendini sınatır"], ["check", "guard", "denetim", "87 testle sınar"], ["check", "gate", "denetim", "20 testle sınar"],
   ["check", "delivery-manager", "denetim", "CI yeşil olmadan merge reddedilir"], ["evals", "internal-auditor", "denetim", "kılavuz uyumunu ölçmeye yarar"],
   ["runner", "notify", "akis", "koşu bitince bildirim tetikler"], ["devops-sre", "check", "akis", "CI hattını hazırlar"],
+  ["cos", "product-designer", "akis", "yeni ekranları tasarlatır"], ["product-designer", "business-analyst", "akis", "ekran akışı ve durum tablosunu verir"],
+  ["cos", "ux-writer", "akis", "uygulama içi metni yazdırır"], ["cos", "rn-engineer", "akis", "React Native/Expo işini başlatır"], ["gate", "rn-engineer", "denetim", "imzasız kod yazımını engeller"], ["spec", "rn-engineer", "akis", "uygulanacak sözleşme"], ["rn-engineer", "qa-engineer", "akis", "kod ve testleri teslim eder"], ["product-designer", "ux-writer", "akis", "metin anahtarlarının ekran listesini verir"], ["ux-writer", "react-engineer", "akis", "metin anahtarlarını bağlanmak üzere verir"],
 ];
 
 
 const WRITE = {
   "product-manager": "docs/product/", "business-analyst": "specs/, docs/", "spec-critic": "yok", "scout": "docs/scout/", "delivery-manager": "plans/, STATE.md, docs/",
-  "dotnet-engineer": "imzalıysa workspace", "react-engineer": "imzalıysa workspace", "qa-engineer": "yalnız test dosyaları", "devops-sre": "ops/, docs/ops/, Dockerfile, CI",
-  "marketing": "docs/marka/", "tech-comms": "docs/dis/", "internal-auditor": "yok", "appsec": "yok", "architecture-board": "docs/architecture/", "software-architect": "docs/architecture/tasarim/", "polyglot-engineer": "docs/port/, docs/yigin/ (kip A); imzalıysa workspace (kip B)", "talent-capacity": "docs/talent/",
+  "dotnet-engineer": "imzalıysa workspace", "react-engineer": "imzalıysa workspace", "rn-engineer": "imzalıysa workspace", "qa-engineer": "yalnız test dosyaları", "devops-sre": "ops/, docs/ops/, Dockerfile, CI",
+  "marketing": "docs/marka/", "product-designer": "docs/design/", "ux-writer": "docs/copy/", "tech-comms": "docs/dis/", "internal-auditor": "yok", "appsec": "yok", "architecture-board": "docs/architecture/", "software-architect": "docs/architecture/tasarim/", "polyglot-engineer": "docs/port/, docs/yigin/ (kip A); imzalıysa workspace (kip B)", "talent-capacity": "docs/talent/",
   "quality-office": "docs/kalite/, docs/uyum/",
 };
 const GROUP = { u1: "Ürün hattı", u2: "Üretim ve teslim", u3: "Gate'ler ve yönetişim" };

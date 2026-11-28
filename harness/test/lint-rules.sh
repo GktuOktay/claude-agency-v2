@@ -391,5 +391,12 @@ fresh; rm -rf "$C/specs/active"; lint "$C"
 t "AC-7 copy without specs/active: lint exit 0" 0 "$rc"
 t "AC-7 copy without specs/active: no FAIL line" 0 "$(fails)"
 
+# --- spec 0008 AC-11: a Playbook: skill owned by no unit still needs evals/<name>.md ---------
+fresh; mkdir -p "$C/.claude/skills/zz-orphan"
+{ printf '%s\n' '---' 'name: zz-orphan' 'description: Playbook: lint fixture owned by no unit, no evaluation set.' '---' '' '# Orphan: playbook v0.1'
+  for h in Purpose Inputs Method "Output template" Checklist Prohibitions "Tools and permissions" "Stop and escalate" Examples; do printf '## %s\n' "$h"; [ "$h" = Checklist ] && printf -- '- [ ] x\n'; printf 'x\n\n'; done; } > "$C/.claude/skills/zz-orphan/SKILL.md"
+neg "AC-11 Playbook: skill owned by no unit, no eval set" "evaluation sets"
+t "AC-11 the line names the missing eval" yes "$(has '^FAIL  evaluation sets: evals/zz-orphan.md missing')"
+
 echo; if [ "$fail" -eq 0 ]; then echo "LINT RULE TESTS GREEN: $pass passed, 0 failed"; else echo "LINT RULE TESTS FAILED: $pass passed, $fail failed"; fi
 [ "$fail" -eq 0 ]
